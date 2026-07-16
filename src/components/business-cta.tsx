@@ -1,3 +1,5 @@
+import { BrandLogo } from "@/components/shared/brand-logo";
+
 const highlights = [
   "Visualizações do seu perfil",
   "Solicitações de rota",
@@ -16,6 +18,7 @@ export function BusinessCta() {
 
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-xl">
+              <BrandLogo variant="yellow" size="large" className="mb-5" />
               <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
                 Seu estabelecimento para as pessoas certas.
               </h2>

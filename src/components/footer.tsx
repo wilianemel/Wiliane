@@ -1,3 +1,5 @@
+import { BrandLogo } from "@/components/shared/brand-logo";
+
 const institutionalLinks = ["Sobre", "Termos de uso", "Privacidade", "Ajuda"];
 
 export function Footer() {
@@ -6,10 +8,8 @@ export function Footer() {
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
         <div className="flex flex-col gap-8 sm:flex-row sm:justify-between">
           <div className="max-w-sm">
-            <span className="text-lg font-bold tracking-tight text-foreground">
-              Qual é a Boa<span className="text-accent">!</span>
-            </span>
-            <p className="mt-2 text-sm text-muted">
+            <BrandLogo variant="dark" size="small" />
+            <p className="mt-3 text-sm text-muted">
               Uma plataforma inteligente de descoberta de experiências.
               Menos tempo procurando, mais tempo vivendo.
             </p>

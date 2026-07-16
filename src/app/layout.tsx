@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Qual é a Boa! — Menos tempo procurando. Mais tempo vivendo.",
+  title: "Qual é a Boa | Experiências escolhidas para você",
   description:
-    "Descubra experiências que combinam com o seu momento: conte o que deseja viver, com quem vai sair e quanto pretende gastar, e receba recomendações feitas para você.",
+    "Descubra restaurantes, bares, eventos e experiências que combinam com o seu momento.",
 };
 
 export const viewport: Viewport = {

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { venues } from "@/data/venues";
 import { SearchPage } from "@/components/search/search-page";
+import { BrandLogo } from "@/components/shared/brand-logo";
 
 export const metadata: Metadata = {
   title: "Buscar — Qual é a Boa!",
@@ -34,9 +35,9 @@ export default async function BuscarPage({ searchParams }: BuscarPageProps) {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-border/60 bg-background/90 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <Link href="/" className="text-lg font-bold tracking-tight text-foreground">
-            Qual é a Boa<span className="text-accent">!</span>
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-2 sm:px-6">
+          <Link href="/" aria-label="Qual é a Boa — página inicial">
+            <BrandLogo variant="dark" size="medium" priority />
           </Link>
           <Link
             href="/"
