@@ -50,6 +50,10 @@ export interface Venue {
   dataConfidence: number;
   /** Data de referência da última atualização demonstrativa dos dados. */
   updatedAt: string;
+  /** Itens de cardápio demonstrativos, exibidos no perfil do lugar. */
+  menuHighlights: string[];
+  /** Número de WhatsApp demonstrativo, em formato internacional (sem "+"). */
+  whatsappNumber: string;
 }
 
 export const venues: Venue[] = [
@@ -74,6 +78,12 @@ export const venues: Venue[] = [
     openNow: true,
     dataConfidence: 90,
     updatedAt: "2026-07-10",
+    menuHighlights: [
+      "Chopp Pilsen 500ml — R$ 18",
+      "Tábua de petiscos para dois — R$ 65",
+      "Burger artesanal do pub — R$ 42",
+    ],
+    whatsappNumber: "5512999110001",
   },
   {
     id: "bella-serra",
@@ -96,6 +106,12 @@ export const venues: Venue[] = [
     openNow: true,
     dataConfidence: 95,
     updatedAt: "2026-07-12",
+    menuHighlights: [
+      "Tagliatelle ao ragù de cordeiro — R$ 89",
+      "Risoto de funghi — R$ 78",
+      "Taça de vinho tinto selecionado — R$ 38",
+    ],
+    whatsappNumber: "5512999110002",
   },
   {
     id: "rooftop-360",
@@ -118,6 +134,12 @@ export const venues: Venue[] = [
     openNow: true,
     dataConfidence: 97,
     updatedAt: "2026-07-14",
+    menuHighlights: [
+      "Drink autoral com pôr do sol — R$ 34",
+      "Tábua de queijos e frios — R$ 72",
+      "Espumante nacional (taça) — R$ 29",
+    ],
+    whatsappNumber: "5512999110003",
   },
   {
     id: "cafe-aurora",
@@ -140,6 +162,12 @@ export const venues: Venue[] = [
     openNow: true,
     dataConfidence: 92,
     updatedAt: "2026-07-13",
+    menuHighlights: [
+      "Brunch completo — R$ 39",
+      "Café coado da casa — R$ 12",
+      "Bolo de fubá com goiabada — R$ 16",
+    ],
+    whatsappNumber: "5512999110004",
   },
   {
     id: "quintal-da-familia",
@@ -162,6 +190,12 @@ export const venues: Venue[] = [
     openNow: true,
     dataConfidence: 88,
     updatedAt: "2026-07-08",
+    menuHighlights: [
+      "Buffet livre em família — R$ 59",
+      "Sobremesa infantil cortesia",
+      "Suco natural à vontade — R$ 14",
+    ],
+    whatsappNumber: "5512999110005",
   },
   {
     id: "casa-do-rock",
@@ -187,5 +221,11 @@ export const venues: Venue[] = [
     openNow: true,
     dataConfidence: 85,
     updatedAt: "2026-07-05",
+    menuHighlights: [
+      "Cerveja artesanal IPA — R$ 24",
+      "Porção de isca de frango — R$ 48",
+      "Combo casal (2 chopps + porção) — R$ 89",
+    ],
+    whatsappNumber: "5512999110006",
   },
 ];

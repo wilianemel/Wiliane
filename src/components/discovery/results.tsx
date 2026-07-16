@@ -8,9 +8,10 @@ const focusRing =
 interface ResultsProps {
   results: MatchResult[];
   onRestart: () => void;
+  onSelect: (result: MatchResult) => void;
 }
 
-export function Results({ results, onRestart }: ResultsProps) {
+export function Results({ results, onRestart, onSelect }: ResultsProps) {
   const hasResults = results.length > 0;
   const isPartial = hasResults && results.length < MAX_RESULTS;
 
@@ -71,6 +72,7 @@ export function Results({ results, onRestart }: ResultsProps) {
               position={index + 1}
               featured={index === 0}
               onRestart={onRestart}
+              onSelect={() => onSelect(result)}
             />
           ))}
         </div>

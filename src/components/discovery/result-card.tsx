@@ -44,9 +44,16 @@ interface ResultCardProps {
   position: number;
   featured?: boolean;
   onRestart: () => void;
+  onSelect: () => void;
 }
 
-export function ResultCard({ result, position, featured = false, onRestart }: ResultCardProps) {
+export function ResultCard({
+  result,
+  position,
+  featured = false,
+  onRestart,
+  onSelect,
+}: ResultCardProps) {
   const { venue, score, reasons } = result;
 
   return (
@@ -133,7 +140,7 @@ export function ResultCard({ result, position, featured = false, onRestart }: Re
       <div className="mt-auto flex flex-col gap-2 pt-1 sm:flex-row sm:items-center sm:justify-between">
         <button
           type="button"
-          title="Página de detalhes em breve"
+          onClick={onSelect}
           className={`rounded-full border border-accent px-5 py-2 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-accent-foreground ${focusRing}`}
         >
           Ver experiência

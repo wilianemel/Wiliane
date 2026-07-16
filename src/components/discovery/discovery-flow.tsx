@@ -14,6 +14,7 @@ import {
   INTENTION_OPTIONS,
   MUSIC_OPTIONS,
 } from "./steps";
+import { VenueProfile } from "./venue-profile";
 
 const TOTAL_STEPS = 5;
 const STEP_LABELS = ["Intenção", "Companhia", "Orçamento", "Distância", "Ambiente"];
@@ -29,7 +30,7 @@ const INITIAL_ANSWERS: DiscoveryAnswers = {
   music: "sem-preferencia",
 };
 
-type Phase = "questions" | "loading" | "results";
+type Phase = "questions" | "loading" | "results" | "detail";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -75,6 +76,7 @@ export function DiscoveryFlow() {
   const [answers, setAnswers] = useState<DiscoveryAnswers>(INITIAL_ANSWERS);
   const [phase, setPhase] = useState<Phase>("questions");
   const [results, setResults] = useState<MatchResult[]>([]);
+  const [selectedResult, setSelectedResult] = useState<MatchResult | null>(null);
 
   useEffect(() => {
     if (phase !== "loading") return;
@@ -121,15 +123,32 @@ export function DiscoveryFlow() {
     setAnswers(INITIAL_ANSWERS);
     setStepIndex(0);
     setResults([]);
+    setSelectedResult(null);
     setPhase("questions");
+  }
+
+  function selectResult(result: MatchResult) {
+    setSelectedResult(result);
+    setPhase("detail");
+  }
+
+  function backToResults() {
+    setSelectedResult(null);
+    setPhase("results");
   }
 
   if (phase === "loading") {
     return <LoadingState />;
   }
 
+  if (phase === "detail" && selectedResult) {
+    return (
+      <VenueProfile result={selectedResult} onBack={backToResults} onRestart={restart} />
+    );
+  }
+
   if (phase === "results") {
-    return <Results results={results} onRestart={restart} />;
+    return <Results results={results} onRestart={restart} onSelect={selectResult} />;
   }
 
   const selectedBudgetId =
