@@ -1,3 +1,10 @@
+import type {
+  AtmosphereId,
+  CompanionId,
+  IntentionId,
+  MusicPreferenceId,
+} from "@/types/discovery";
+
 /**
  * Dados de demonstração (mock).
  *
@@ -5,6 +12,9 @@
  * layout e o funcionamento do produto nesta fase de MVP. Nenhuma
  * informação aqui reflete um negócio real, e nenhum dado é obtido de
  * banco de dados, API externa ou serviço de terceiros.
+ *
+ * Os campos abaixo também alimentam o motor de afinidade determinístico
+ * usado em `/descobrir` (ver `src/lib/match-engine.ts`).
  */
 
 export type PriceRange = "$" | "$$" | "$$$";
@@ -22,6 +32,24 @@ export interface Venue {
   compatibility: number;
   /** Classes de gradiente usadas como área reservada para imagem futura. */
   gradient: string;
+  /** Gasto médio por pessoa, em reais, usado no cálculo de orçamento. */
+  averagePricePerPerson: number;
+  /** Distância demonstrativa até o usuário, em quilômetros. */
+  distanceKm: number;
+  /** Momentos com os quais este local combina. */
+  intentions: IntentionId[];
+  /** Tipos de companhia para os quais este local é adequado. */
+  companions: CompanionId[];
+  /** Ambientes que descrevem este local. */
+  atmospheres: AtmosphereId[];
+  /** Estilos musicais presentes na programação do local. */
+  musicStyles: MusicPreferenceId[];
+  /** Indica se o local está demonstrativamente aberto agora. */
+  openNow: boolean;
+  /** Confiabilidade demonstrativa dos dados cadastrais, de 0 a 100. */
+  dataConfidence: number;
+  /** Data de referência da última atualização demonstrativa dos dados. */
+  updatedAt: string;
 }
 
 export const venues: Venue[] = [
@@ -37,6 +65,15 @@ export const venues: Venue[] = [
     schedule: ["Sexta: Rock ao vivo às 21h", "Sábado: Cover acústico às 20h"],
     compatibility: 92,
     gradient: "from-amber-500/30 via-zinc-900 to-black",
+    averagePricePerPerson: 70,
+    distanceKm: 6.5,
+    intentions: ["amigos", "musica-ao-vivo", "comemorar", "surpreenda"],
+    companions: ["amigos", "casal"],
+    atmospheres: ["animado", "casual"],
+    musicStyles: ["rock", "mpb"],
+    openNow: true,
+    dataConfidence: 90,
+    updatedAt: "2026-07-10",
   },
   {
     id: "bella-serra",
@@ -50,6 +87,15 @@ export const venues: Venue[] = [
     schedule: ["Terça a domingo: Jantar a partir das 19h"],
     compatibility: 88,
     gradient: "from-rose-500/20 via-zinc-900 to-black",
+    averagePricePerPerson: 180,
+    distanceKm: 9.8,
+    intentions: ["casal", "comemorar", "surpreenda"],
+    companions: ["casal"],
+    atmospheres: ["romantico", "sofisticado"],
+    musicStyles: ["ambiente"],
+    openNow: true,
+    dataConfidence: 95,
+    updatedAt: "2026-07-12",
   },
   {
     id: "rooftop-360",
@@ -63,6 +109,15 @@ export const venues: Venue[] = [
     schedule: ["Quinta a sábado: DJ set às 22h"],
     compatibility: 95,
     gradient: "from-yellow-400/25 via-zinc-900 to-black",
+    averagePricePerPerson: 150,
+    distanceKm: 4.2,
+    intentions: ["casal", "comemorar", "amigos", "novidade", "surpreenda"],
+    companions: ["casal", "amigos"],
+    atmospheres: ["sofisticado", "animado", "romantico"],
+    musicStyles: ["eletronica", "mpb"],
+    openNow: true,
+    dataConfidence: 97,
+    updatedAt: "2026-07-14",
   },
   {
     id: "cafe-aurora",
@@ -76,6 +131,15 @@ export const venues: Venue[] = [
     schedule: ["Todos os dias: Café da manhã e brunch até 12h"],
     compatibility: 84,
     gradient: "from-orange-400/20 via-zinc-900 to-black",
+    averagePricePerPerson: 45,
+    distanceKm: 3.1,
+    intentions: ["relaxar", "familia", "novidade", "surpreenda"],
+    companions: ["sozinho", "casal", "familia", "amigos"],
+    atmospheres: ["tranquilo", "casual", "familiar"],
+    musicStyles: ["ambiente"],
+    openNow: true,
+    dataConfidence: 92,
+    updatedAt: "2026-07-13",
   },
   {
     id: "quintal-da-familia",
@@ -89,6 +153,15 @@ export const venues: Venue[] = [
     schedule: ["Domingo: Almoço em família das 12h às 16h"],
     compatibility: 90,
     gradient: "from-lime-500/20 via-zinc-900 to-black",
+    averagePricePerPerson: 65,
+    distanceKm: 12.4,
+    intentions: ["familia", "comemorar", "surpreenda"],
+    companions: ["familia", "amigos"],
+    atmospheres: ["familiar", "casual"],
+    musicStyles: ["sertanejo", "mpb"],
+    openNow: true,
+    dataConfidence: 88,
+    updatedAt: "2026-07-08",
   },
   {
     id: "casa-do-rock",
@@ -105,5 +178,14 @@ export const venues: Venue[] = [
     ],
     compatibility: 87,
     gradient: "from-red-500/20 via-zinc-900 to-black",
+    averagePricePerPerson: 90,
+    distanceKm: 18.5,
+    intentions: ["amigos", "musica-ao-vivo", "comemorar", "novidade", "surpreenda"],
+    companions: ["amigos", "casal"],
+    atmospheres: ["animado", "casual"],
+    musicStyles: ["rock"],
+    openNow: true,
+    dataConfidence: 85,
+    updatedAt: "2026-07-05",
   },
 ];

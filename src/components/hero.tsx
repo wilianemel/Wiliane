@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 const searchFilters = [
   "Cidade",
@@ -86,13 +87,13 @@ export function Hero() {
                 personalizadas.
               </p>
             </div>
-            <a
-              href="#intencoes"
+            <Link
+              href="/descobrir"
               className="mt-6 inline-flex w-fit items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02]"
             >
               Me ajude a escolher
               <ArrowIcon />
-            </a>
+            </Link>
           </div>
 
           <div
