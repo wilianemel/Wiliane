@@ -14,7 +14,7 @@ import {
   INTENTION_OPTIONS,
   MUSIC_OPTIONS,
 } from "./steps";
-import { VenueProfile } from "./venue-profile";
+import { VenueProfile } from "@/components/venues/venue-profile";
 
 const TOTAL_STEPS = 5;
 const STEP_LABELS = ["Intenção", "Companhia", "Orçamento", "Distância", "Ambiente"];
@@ -143,7 +143,13 @@ export function DiscoveryFlow() {
 
   if (phase === "detail" && selectedResult) {
     return (
-      <VenueProfile result={selectedResult} onBack={backToResults} onRestart={restart} />
+      <VenueProfile
+        venue={selectedResult.venue}
+        match={{ score: selectedResult.score, reasons: selectedResult.reasons }}
+        backLabel="Voltar para os resultados"
+        onBack={backToResults}
+        onRestart={restart}
+      />
     );
   }
 

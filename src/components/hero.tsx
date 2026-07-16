@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const searchFilters = [
   "Cidade",
@@ -46,7 +47,9 @@ function SearchIcon() {
 }
 
 export function Hero() {
+  const router = useRouter();
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   function toggleFilter(filter: string) {
     setActiveFilters((current) =>
@@ -54,6 +57,12 @@ export function Hero() {
         ? current.filter((item) => item !== filter)
         : [...current, filter],
     );
+  }
+
+  function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmedQuery = searchQuery.trim();
+    router.push(trimmedQuery ? `/buscar?q=${encodeURIComponent(trimmedQuery)}` : "/buscar");
   }
 
   return (
@@ -105,7 +114,7 @@ export function Hero() {
             </h2>
 
             <form
-              onSubmit={(event) => event.preventDefault()}
+              onSubmit={handleSearchSubmit}
               className="mt-4 flex flex-col gap-3 sm:flex-row"
             >
               <label htmlFor="search-input" className="sr-only">
@@ -116,12 +125,15 @@ export function Hero() {
                 <input
                   id="search-input"
                   type="text"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder="Busque por restaurante, bar, comida, evento ou lugar..."
                   className="w-full bg-transparent text-sm text-foreground placeholder:text-muted focus:outline-none"
                 />
               </div>
               <button
                 type="submit"
+                aria-label="Buscar"
                 className="rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02]"
               >
                 Buscar

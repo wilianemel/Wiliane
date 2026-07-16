@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { venues, type Venue } from "@/data/venues";
 
 function ClockIcon() {
@@ -71,13 +72,12 @@ function VenueCard({ venue }: { venue: Venue }) {
           ))}
         </ul>
 
-        <button
-          type="button"
-          title="Página de detalhes em breve"
-          className="mt-auto rounded-full border border-accent py-2 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-accent-foreground"
+        <Link
+          href={`/lugares/${venue.id}`}
+          className="mt-auto rounded-full border border-accent py-2 text-center text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           Ver experiência
-        </button>
+        </Link>
       </div>
     </article>
   );

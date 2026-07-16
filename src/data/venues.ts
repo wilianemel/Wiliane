@@ -23,10 +23,16 @@ export interface Venue {
   id: string;
   name: string;
   category: string;
+  /** Cidade demonstrativa onde o local está localizado. */
+  city: string;
   neighborhood: string;
+  /** Endereço demonstrativo, usado apenas para exibição e busca de rota. */
+  address: string;
   priceRange: PriceRange;
   description: string;
   tags: string[];
+  /** Tipos de culinária demonstrativos, usados na busca direta. */
+  cuisineTypes: string[];
   schedule: string[];
   /** Percentual demonstrativo de compatibilidade com o momento do usuário. */
   compatibility: number;
@@ -61,11 +67,14 @@ export const venues: Venue[] = [
     id: "pub-do-vale",
     name: "Pub do Vale",
     category: "Bar & Pub",
+    city: "São José dos Campos",
     neighborhood: "Vila Ema",
+    address: "Rua Demonstrativa 120, Vila Ema - São José dos Campos, SP",
     priceRange: "$$",
     description:
       "Chopp artesanal, petiscos encorpados e música ao vivo em um ambiente descontraído para juntar a turma depois do trabalho.",
     tags: ["Chopp artesanal", "Música ao vivo", "Ambiente descontraído"],
+    cuisineTypes: ["Petiscos", "Cozinha de boteco"],
     schedule: ["Sexta: Rock ao vivo às 21h", "Sábado: Cover acústico às 20h"],
     compatibility: 92,
     gradient: "from-amber-500/30 via-zinc-900 to-black",
@@ -89,11 +98,14 @@ export const venues: Venue[] = [
     id: "bella-serra",
     name: "Bella Serra",
     category: "Restaurante Italiano",
+    city: "São José dos Campos",
     neighborhood: "Jardim Aquarius",
+    address: "Rua Demonstrativa 480, Jardim Aquarius - São José dos Campos, SP",
     priceRange: "$$$",
     description:
       "Massas artesanais, carta de vinhos selecionada e iluminação intimista, perfeito para um jantar a dois sem pressa.",
     tags: ["Culinária italiana", "Ambiente romântico", "Vinhos selecionados"],
+    cuisineTypes: ["Italiana"],
     schedule: ["Terça a domingo: Jantar a partir das 19h"],
     compatibility: 88,
     gradient: "from-rose-500/20 via-zinc-900 to-black",
@@ -117,11 +129,14 @@ export const venues: Venue[] = [
     id: "rooftop-360",
     name: "Rooftop 360",
     category: "Bar & Rooftop",
+    city: "São José dos Campos",
     neighborhood: "Centro",
+    address: "Rua Demonstrativa 10, Centro - São José dos Campos, SP",
     priceRange: "$$$",
     description:
       "Vista panorâmica da cidade, drinks autorais e pôr do sol garantido. Ideal para comemorar ou simplesmente aproveitar a noite.",
     tags: ["Vista panorâmica", "Drinks autorais", "Pôr do sol"],
+    cuisineTypes: ["Drinks autorais", "Contemporânea"],
     schedule: ["Quinta a sábado: DJ set às 22h"],
     compatibility: 95,
     gradient: "from-yellow-400/25 via-zinc-900 to-black",
@@ -145,11 +160,14 @@ export const venues: Venue[] = [
     id: "cafe-aurora",
     name: "Café Aurora",
     category: "Café & Brunch",
+    city: "São José dos Campos",
     neighborhood: "Jardim Satélite",
+    address: "Rua Demonstrativa 75, Jardim Satélite - São José dos Campos, SP",
     priceRange: "$",
     description:
       "Brunch caprichado, café coado na hora e um pátio arborizado para relaxar sem pressa em qualquer dia da semana.",
     tags: ["Brunch", "Ambiente tranquilo", "Pet friendly"],
+    cuisineTypes: ["Cafeteria", "Brunch"],
     schedule: ["Todos os dias: Café da manhã e brunch até 12h"],
     compatibility: 84,
     gradient: "from-orange-400/20 via-zinc-900 to-black",
@@ -173,11 +191,14 @@ export const venues: Venue[] = [
     id: "quintal-da-familia",
     name: "Quintal da Família",
     category: "Restaurante Familiar",
+    city: "São José dos Campos",
     neighborhood: "Urbanova",
+    address: "Rua Demonstrativa 900, Urbanova - São José dos Campos, SP",
     priceRange: "$$",
     description:
       "Espaço amplo com área externa, buffet variado e estrutura kids para reunir todas as gerações da família em um só lugar.",
     tags: ["Espaço kids", "Buffet variado", "Área externa"],
+    cuisineTypes: ["Brasileira", "Buffet"],
     schedule: ["Domingo: Almoço em família das 12h às 16h"],
     compatibility: 90,
     gradient: "from-lime-500/20 via-zinc-900 to-black",
@@ -201,11 +222,14 @@ export const venues: Venue[] = [
     id: "casa-do-rock",
     name: "Casa do Rock",
     category: "Casa de Shows",
+    city: "São José dos Campos",
     neighborhood: "Vila Adyana",
+    address: "Rua Demonstrativa 33, Vila Adyana - São José dos Campos, SP",
     priceRange: "$$",
     description:
       "Bandas autorais, tributos e cerveja artesanal em um espaço feito para quem quer curtir uma boa música ao vivo.",
     tags: ["Bandas autorais", "Cerveja artesanal", "Pista de dança"],
+    cuisineTypes: ["Petiscos", "Cervejaria"],
     schedule: [
       "Sexta: Banda de rock nacional às 22h",
       "Sábado: Tributo anos 80 às 21h",

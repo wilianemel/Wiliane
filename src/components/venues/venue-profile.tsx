@@ -1,4 +1,5 @@
-import type { MatchResult } from "@/types/discovery";
+import Link from "next/link";
+import type { Venue } from "@/data/venues";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -116,17 +117,38 @@ function InfoIcon() {
   );
 }
 
-interface VenueProfileProps {
-  result: MatchResult;
-  onBack: () => void;
-  onRestart: () => void;
+export interface VenueMatch {
+  /** Pontuação de 0 a 100, calculada pelo motor de afinidade em `/descobrir`. */
+  score: number;
+  reasons: string[];
 }
 
-export function VenueProfile({ result, onBack, onRestart }: VenueProfileProps) {
-  const { venue, score, reasons } = result;
+interface VenueProfileProps {
+  venue: Venue;
+  /** Presente apenas quando o perfil é aberto a partir do fluxo de descoberta. */
+  match?: VenueMatch;
+  backLabel: string;
+  /** Navegação client-side (usada dentro do fluxo de descoberta, sem recarregar a página). */
+  onBack?: () => void;
+  /** Navegação por link (usada na rota direta `/lugares/[id]`). */
+  backHref?: string;
+  /** Só existe dentro do fluxo de descoberta, para refazer as respostas. */
+  onRestart?: () => void;
+  /** Mostra o CTA para iniciar o fluxo guiado, usado na rota direta. */
+  showHelpCta?: boolean;
+}
 
+export function VenueProfile({
+  venue,
+  match,
+  backLabel,
+  onBack,
+  backHref,
+  onRestart,
+  showHelpCta = false,
+}: VenueProfileProps) {
   const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-    `${venue.name}, ${venue.neighborhood}`,
+    venue.address,
   )}`;
   const whatsappHref = `https://wa.me/${venue.whatsappNumber}?text=${encodeURIComponent(
     `Olá! Vim pelo Qual é a Boa e gostaria de saber mais sobre o ${venue.name}.`,
@@ -138,14 +160,24 @@ export function VenueProfile({ result, onBack, onRestart }: VenueProfileProps) {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-14">
-      <button
-        type="button"
-        onClick={onBack}
-        className={`inline-flex items-center gap-2 text-sm font-medium text-muted transition-colors hover:text-accent ${focusRing} rounded`}
-      >
-        <ArrowLeftIcon />
-        Voltar para os resultados
-      </button>
+      {onBack ? (
+        <button
+          type="button"
+          onClick={onBack}
+          className={`inline-flex items-center gap-2 text-sm font-medium text-muted transition-colors hover:text-accent ${focusRing} rounded`}
+        >
+          <ArrowLeftIcon />
+          {backLabel}
+        </button>
+      ) : (
+        <Link
+          href={backHref ?? "/"}
+          className={`inline-flex items-center gap-2 text-sm font-medium text-muted transition-colors hover:text-accent ${focusRing} rounded`}
+        >
+          <ArrowLeftIcon />
+          {backLabel}
+        </Link>
+      )}
 
       <header className="mt-6">
         <p className="text-sm text-muted">{venue.category}</p>
@@ -155,7 +187,7 @@ export function VenueProfile({ result, onBack, onRestart }: VenueProfileProps) {
         <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-muted">
           <span className="inline-flex items-center gap-1">
             <PinIcon />
-            {venue.neighborhood}
+            {venue.neighborhood} · {venue.city}
           </span>
           <span aria-hidden="true">·</span>
           <span>{venue.distanceKm.toFixed(1).replace(".", ",")} km</span>
@@ -179,26 +211,28 @@ export function VenueProfile({ result, onBack, onRestart }: VenueProfileProps) {
         </div>
       </section>
 
-      {/* Motivos do match */}
-      <section className="mt-8 rounded-xl border border-border/80 bg-background-elevated p-5">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-            Motivos do match
-          </p>
-          <span className="text-xl font-bold text-accent">{score}%</span>
-        </div>
-        <ul className="mt-3 flex flex-col gap-1.5 text-sm text-foreground">
-          {reasons.map((reason) => (
-            <li key={reason} className="flex items-start gap-2">
-              <span
-                aria-hidden="true"
-                className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-accent"
-              />
-              {reason}
-            </li>
-          ))}
-        </ul>
-      </section>
+      {/* Motivos do match — só existe vindo do fluxo de descoberta */}
+      {match && (
+        <section className="mt-8 rounded-xl border border-border/80 bg-background-elevated p-5">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+              Motivos do match
+            </p>
+            <span className="text-xl font-bold text-accent">{match.score}%</span>
+          </div>
+          <ul className="mt-3 flex flex-col gap-1.5 text-sm text-foreground">
+            {match.reasons.map((reason) => (
+              <li key={reason} className="flex items-start gap-2">
+                <span
+                  aria-hidden="true"
+                  className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-accent"
+                />
+                {reason}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* Cardápio e faixa de preço */}
       <section className="mt-8">
@@ -258,8 +292,19 @@ export function VenueProfile({ result, onBack, onRestart }: VenueProfileProps) {
         </p>
       </section>
 
+      {/* Endereço */}
+      <section className="mt-8">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+          Endereço
+        </h2>
+        <p className="mt-2 flex items-start gap-2 text-sm text-foreground">
+          <PinIcon />
+          {venue.address}
+        </p>
+      </section>
+
       {/* Rota ou WhatsApp */}
-      <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
         <a
           href={mapsHref}
           target="_blank"
@@ -280,13 +325,25 @@ export function VenueProfile({ result, onBack, onRestart }: VenueProfileProps) {
         </a>
       </div>
 
-      <button
-        type="button"
-        onClick={onRestart}
-        className={`mt-6 text-sm font-medium text-muted underline-offset-4 transition-colors hover:text-accent hover:underline ${focusRing} rounded`}
-      >
-        Refazer escolha
-      </button>
+      <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2">
+        {onRestart && (
+          <button
+            type="button"
+            onClick={onRestart}
+            className={`text-sm font-medium text-muted underline-offset-4 transition-colors hover:text-accent hover:underline ${focusRing} rounded`}
+          >
+            Refazer escolha
+          </button>
+        )}
+        {showHelpCta && (
+          <Link
+            href="/descobrir"
+            className={`inline-flex items-center gap-2 rounded-full border border-border px-5 py-2 text-sm font-medium text-muted transition-colors hover:border-accent hover:text-accent ${focusRing}`}
+          >
+            Me ajude a escolher
+          </Link>
+        )}
+      </div>
     </div>
   );
 }
