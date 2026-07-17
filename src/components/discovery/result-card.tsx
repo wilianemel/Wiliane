@@ -87,8 +87,12 @@ export function ResultCard({
             </span>
             <span aria-hidden="true">·</span>
             <span>{venue.priceRange}</span>
-            <span aria-hidden="true">·</span>
-            <span>{venue.distanceKm.toFixed(1).replace(".", ",")} km</span>
+            {venue.distanceKm !== null && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span>{venue.distanceKm.toFixed(1).replace(".", ",")} km</span>
+              </>
+            )}
           </p>
         </div>
 

@@ -5,15 +5,17 @@ import { FeaturedVenues } from "@/components/featured-venues";
 import { TrustSection } from "@/components/trust-section";
 import { BusinessCta } from "@/components/business-cta";
 import { Footer } from "@/components/footer";
+import { getPublishedVenues } from "@/lib/venues/venue-repository";
 
-export default function Home() {
+export default async function Home() {
+  const venues = await getPublishedVenues();
   return (
     <>
       <Header />
       <main className="flex-1">
         <Hero />
         <ExperienceIntentions />
-        <FeaturedVenues />
+        <FeaturedVenues venues={venues} />
         <TrustSection />
         <BusinessCta />
       </main>

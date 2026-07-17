@@ -1,4 +1,4 @@
-import { venues as defaultVenues, type Venue } from "@/data/venues";
+import type { Venue } from "@/data/venues";
 import type {
   AtmosphereId,
   DiscoveryAnswers,
@@ -77,7 +77,12 @@ const MUSIC_LABELS: Partial<Record<MusicPreferenceId, string>> = {
 function isEligible(venue: Venue, answers: DiscoveryAnswers): boolean {
   if (!venue.openNow) return false;
 
-  if (answers.distanceMax !== null && venue.distanceKm > answers.distanceMax) {
+  if (
+    answers.distanceMax !== null &&
+    (venue.distanceKm === null || venue.distanceKm > answers.distanceMax)
+  ) {
+    // Com um limite de distância explícito, um local de distância
+    // desconhecida não pode ser tratado como se estivesse dentro do limite.
     return false;
   }
 
@@ -135,6 +140,10 @@ function scoreMusic(venue: Venue, answers: DiscoveryAnswers): number {
 
 /** Quanto mais perto do limite aceito, maior a pontuação de distância. */
 function scoreDistance(venue: Venue, answers: DiscoveryAnswers): number {
+  // Distância desconhecida nunca pontua por proximidade — nem para mais,
+  // nem para menos.
+  if (venue.distanceKm === null) return 0;
+
   if (answers.distanceMax === null || answers.distanceMax <= 0) {
     return WEIGHTS.distance;
   }
@@ -177,7 +186,9 @@ function buildReasons(venue: Venue, answers: DiscoveryAnswers): string[] {
     );
   }
 
-  reasons.push(`Fica a ${venue.distanceKm.toFixed(1).replace(".", ",")} km.`);
+  if (venue.distanceKm !== null) {
+    reasons.push(`Fica a ${venue.distanceKm.toFixed(1).replace(".", ",")} km.`);
+  }
 
   if (venue.dataConfidence >= 90) {
     reasons.push("As informações foram verificadas recentemente.");
@@ -193,7 +204,7 @@ function buildReasons(venue: Venue, answers: DiscoveryAnswers): string[] {
  */
 export function getRecommendations(
   answers: DiscoveryAnswers,
-  candidateVenues: Venue[] = defaultVenues,
+  candidateVenues: Venue[],
 ): MatchResult[] {
   const eligibleVenues = candidateVenues.filter((venue) => isEligible(venue, answers));
 

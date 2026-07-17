@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { venues, type Venue } from "@/data/venues";
+import type { Venue } from "@/data/venues";
 
 function ClockIcon() {
   return (
@@ -31,12 +31,6 @@ function VenueCard({ venue }: { venue: Venue }) {
         />
         <span className="absolute left-3 top-3 rounded-full bg-black/50 px-2.5 py-1 text-[11px] text-white/70 backdrop-blur">
           Área reservada para imagem
-        </span>
-        <span
-          title="Percentual demonstrativo de compatibilidade"
-          className="absolute right-3 top-3 rounded-full bg-black/60 px-3 py-1 text-sm font-semibold text-accent backdrop-blur"
-        >
-          {venue.compatibility}% compatível
         </span>
       </div>
 
@@ -83,7 +77,7 @@ function VenueCard({ venue }: { venue: Venue }) {
   );
 }
 
-export function FeaturedVenues() {
+export function FeaturedVenues({ venues }: { venues: Venue[] }) {
   return (
     <section id="experiencias" className="scroll-mt-20 border-t border-border/60">
       <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
@@ -91,15 +85,21 @@ export function FeaturedVenues() {
           Experiências em destaque
         </h2>
         <p className="mt-2 max-w-2xl text-sm text-muted sm:text-base">
-          Estabelecimentos fictícios usados como dados de demonstração para
-          ilustrar como as recomendações aparecem no produto final.
+          Lugares publicados na base do MVP. Registros demonstrativos são
+          identificados com transparência em seus perfis.
         </p>
 
-        <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {venues.map((venue) => (
-            <VenueCard key={venue.id} venue={venue} />
-          ))}
-        </div>
+        {venues.length === 0 ? (
+          <div className="mt-8 rounded-2xl border border-border bg-background-elevated p-8 text-center text-sm text-muted">
+            Nenhuma experiência publicada no momento. Volte em breve para descobrir novas opções.
+          </div>
+        ) : (
+          <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {venues.map((venue) => (
+              <VenueCard key={venue.id} venue={venue} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

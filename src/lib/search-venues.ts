@@ -1,4 +1,4 @@
-import { venues as defaultVenues, type PriceRange, type Venue } from "@/data/venues";
+import type { PriceRange, Venue } from "@/data/venues";
 
 /**
  * Busca direta determinística ("Já sei o que procuro").
@@ -99,8 +99,8 @@ function matchesFilters(venue: Venue, filters: VenueFilters): boolean {
  */
 export function searchVenues(
   query: string,
-  filters: VenueFilters = EMPTY_VENUE_FILTERS,
-  candidateVenues: Venue[] = defaultVenues,
+  filters: VenueFilters,
+  candidateVenues: Venue[],
 ): Venue[] {
   const normalizedQuery = normalize(query);
   const filtered = candidateVenues.filter((venue) => matchesFilters(venue, filters));

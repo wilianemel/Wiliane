@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { venues } from "@/data/venues";
 import { SearchPage } from "@/components/search/search-page";
 import { BrandLogo } from "@/components/shared/brand-logo";
+import { getPublishedVenues } from "@/lib/venues/venue-repository";
 
 export const metadata: Metadata = {
   title: "Buscar — Qual é a Boa!",
@@ -31,6 +31,7 @@ interface BuscarPageProps {
 
 export default async function BuscarPage({ searchParams }: BuscarPageProps) {
   const { q } = await searchParams;
+  const venues = await getPublishedVenues();
 
   return (
     <div className="flex min-h-screen flex-col">

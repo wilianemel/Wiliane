@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { venues } from "@/data/venues";
 import { VenueProfile } from "@/components/venues/venue-profile";
 import { BrandLogo } from "@/components/shared/brand-logo";
+import { getPublishedVenueBySlug } from "@/lib/venues/venue-repository";
 
 function ArrowLeftIcon() {
   return (
@@ -26,7 +26,7 @@ interface VenuePageProps {
 
 export async function generateMetadata({ params }: VenuePageProps): Promise<Metadata> {
   const { id } = await params;
-  const venue = venues.find((item) => item.id === id);
+  const venue = await getPublishedVenueBySlug(id);
 
   if (!venue) {
     return { title: "Estabelecimento não encontrado — Qual é a Boa!" };
@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: VenuePageProps): Promise<Meta
 
 export default async function VenuePage({ params }: VenuePageProps) {
   const { id } = await params;
-  const venue = venues.find((item) => item.id === id);
+  const venue = await getPublishedVenueBySlug(id);
 
   if (!venue) {
     notFound();

@@ -15,6 +15,7 @@ import {
   MUSIC_OPTIONS,
 } from "./steps";
 import { VenueProfile } from "@/components/venues/venue-profile";
+import type { Venue } from "@/data/venues";
 
 const TOTAL_STEPS = 5;
 const STEP_LABELS = ["Intenção", "Companhia", "Orçamento", "Distância", "Ambiente"];
@@ -71,7 +72,7 @@ function LoadingState() {
   );
 }
 
-export function DiscoveryFlow() {
+export function DiscoveryFlow({ venues }: { venues: Venue[] }) {
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<DiscoveryAnswers>(INITIAL_ANSWERS);
   const [phase, setPhase] = useState<Phase>("questions");
@@ -82,12 +83,12 @@ export function DiscoveryFlow() {
     if (phase !== "loading") return;
 
     const timer = setTimeout(() => {
-      setResults(getRecommendations(answers));
+      setResults(getRecommendations(answers, venues));
       setPhase("results");
     }, LOADING_DURATION_MS);
 
     return () => clearTimeout(timer);
-  }, [phase, answers]);
+  }, [phase, answers, venues]);
 
   const isStepValid = useMemo(() => {
     switch (stepIndex) {

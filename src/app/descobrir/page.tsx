@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { DiscoveryFlow } from "@/components/discovery/discovery-flow";
 import { BrandLogo } from "@/components/shared/brand-logo";
+import { getPublishedVenues } from "@/lib/venues/venue-repository";
 
 export const metadata: Metadata = {
   title: "Descobrir — Qual é a Boa!",
@@ -24,7 +25,8 @@ function ArrowLeftIcon() {
   );
 }
 
-export default function DescobrirPage() {
+export default async function DescobrirPage() {
+  const venues = await getPublishedVenues();
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-border/60 bg-background/90 backdrop-blur">
@@ -43,7 +45,7 @@ export default function DescobrirPage() {
       </header>
 
       <main className="flex-1">
-        <DiscoveryFlow />
+        <DiscoveryFlow venues={venues} />
       </main>
     </div>
   );

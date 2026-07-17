@@ -4,6 +4,9 @@ import type { Venue } from "@/data/venues";
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
+/** Quando o local tem exatamente esta tag, o botão de WhatsApp reflete isso em vez do texto padrão. */
+const PICKUP_ONLY_TAG = "Pedidos para retirada";
+
 function ArrowLeftIcon() {
   return (
     <svg
@@ -153,10 +156,18 @@ export function VenueProfile({
   const whatsappHref = `https://wa.me/${venue.whatsappNumber}?text=${encodeURIComponent(
     `Olá! Vim pelo Qual é a Boa e gostaria de saber mais sobre o ${venue.name}.`,
   )}`;
-  const formattedUpdatedAt = new Date(`${venue.updatedAt}T00:00:00`).toLocaleDateString(
-    "pt-BR",
-    { day: "2-digit", month: "long", year: "numeric" },
-  );
+  const whatsappLabel = venue.tags.includes(PICKUP_ONLY_TAG)
+    ? PICKUP_ONLY_TAG
+    : "Chamar no WhatsApp";
+  const verificationDate = venue.lastVerifiedAt ?? venue.updatedAt;
+  const parsedVerificationDate = new Date(verificationDate);
+  const formattedUpdatedAt = Number.isNaN(parsedVerificationDate.getTime())
+    ? null
+    : parsedVerificationDate.toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      });
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-14">
@@ -180,6 +191,11 @@ export function VenueProfile({
       )}
 
       <header className="mt-6">
+        {venue.isDemo && (
+          <p className="mb-3 w-fit rounded-full border border-border px-3 py-1 text-xs text-muted">
+            Dados demonstrativos para validação do MVP
+          </p>
+        )}
         <p className="text-sm text-muted">{venue.category}</p>
         <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
           {venue.name}
@@ -189,8 +205,12 @@ export function VenueProfile({
             <PinIcon />
             {venue.neighborhood} · {venue.city}
           </span>
-          <span aria-hidden="true">·</span>
-          <span>{venue.distanceKm.toFixed(1).replace(".", ",")} km</span>
+          {venue.distanceKm !== null && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span>{venue.distanceKm.toFixed(1).replace(".", ",")} km</span>
+            </>
+          )}
         </p>
         <p className="mt-3 text-sm text-foreground sm:text-base">{venue.description}</p>
       </header>
@@ -287,8 +307,10 @@ export function VenueProfile({
         </div>
         <p className="flex items-center gap-2 text-muted">
           <InfoIcon />
-          Informações atualizadas em {formattedUpdatedAt} · confiabilidade demonstrativa
-          de {venue.dataConfidence}%.
+          {formattedUpdatedAt
+            ? `Informações verificadas em ${formattedUpdatedAt}`
+            : "Data de verificação não informada"}{" "}
+          · confiabilidade {venue.isDemo ? "demonstrativa " : ""}de {venue.dataConfidence}%.
         </p>
       </section>
 
@@ -321,7 +343,7 @@ export function VenueProfile({
           className={`inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] ${focusRing}`}
         >
           <WhatsAppIcon />
-          Chamar no WhatsApp
+          {whatsappLabel}
         </a>
       </div>
 

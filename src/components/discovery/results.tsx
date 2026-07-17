@@ -24,8 +24,8 @@ export function Results({ results, onRestart, onSelect }: ResultsProps) {
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-muted sm:text-base">
             Os percentuais são calculados localmente a partir das suas
-            respostas e dos dados de demonstração dos estabelecimentos.
-            Nenhuma informação real foi usada.
+            respostas e dos atributos publicados de cada estabelecimento.
+            Registros demonstrativos são identificados no perfil.
           </p>
         </div>
         <button

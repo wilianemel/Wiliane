@@ -34,14 +34,21 @@ export interface Venue {
   /** Tipos de culinária demonstrativos, usados na busca direta. */
   cuisineTypes: string[];
   schedule: string[];
-  /** Percentual demonstrativo de compatibilidade com o momento do usuário. */
-  compatibility: number;
+  /**
+   * Percentual de compatibilidade cosmético usado apenas nos dados de
+   * demonstração mais antigos. Não existe coluna equivalente no Supabase e
+   * não deve ser inventado no mapeamento — por isso é opcional, e a Home
+   * não deve exibi-lo. O percentual real de recomendação vem de
+   * `MatchResult.score`, calculado em `match-engine.ts` dentro de
+   * `/descobrir`.
+   */
+  compatibility?: number;
   /** Classes de gradiente usadas como área reservada para imagem futura. */
   gradient: string;
   /** Gasto médio por pessoa, em reais, usado no cálculo de orçamento. */
   averagePricePerPerson: number;
-  /** Distância demonstrativa até o usuário, em quilômetros. */
-  distanceKm: number;
+  /** Distância até o usuário, em quilômetros; `null` quando desconhecida (sem geolocalização real ainda). */
+  distanceKm: number | null;
   /** Momentos com os quais este local combina. */
   intentions: IntentionId[];
   /** Tipos de companhia para os quais este local é adequado. */
@@ -56,6 +63,10 @@ export interface Venue {
   dataConfidence: number;
   /** Data de referência da última atualização demonstrativa dos dados. */
   updatedAt: string;
+  /** Data da última verificação declarada no banco, quando disponível. */
+  lastVerifiedAt?: string;
+  /** Identifica os registros fictícios usados para validar o MVP. */
+  isDemo?: boolean;
   /** Itens de cardápio demonstrativos, exibidos no perfil do lugar. */
   menuHighlights: string[];
   /** Número de WhatsApp demonstrativo, em formato internacional (sem "+"). */
@@ -64,35 +75,60 @@ export interface Venue {
 
 export const venues: Venue[] = [
   {
-    id: "pub-do-vale",
-    name: "Pub do Vale",
-    category: "Bar & Pub",
+    id: "garagem-do-espeto",
+    name: "Garagem do Espeto",
+    category: "Hamburgueria e casa de carnes",
     city: "São José dos Campos",
-    neighborhood: "Vila Ema",
-    address: "Rua Demonstrativa 120, Vila Ema - São José dos Campos, SP",
+    neighborhood: "Jardim Morumbi",
+    address:
+      "Av. Benedito Domingues de Oliveira, 467, Jardim Morumbi, São José dos Campos - SP, CEP 12236-700",
     priceRange: "$$",
     description:
-      "Chopp artesanal, petiscos encorpados e música ao vivo em um ambiente descontraído para juntar a turma depois do trabalho.",
-    tags: ["Chopp artesanal", "Música ao vivo", "Ambiente descontraído"],
-    cuisineTypes: ["Petiscos", "Cozinha de boteco"],
-    schedule: ["Sexta: Rock ao vivo às 21h", "Sábado: Cover acústico às 20h"],
-    compatibility: 92,
-    gradient: "from-amber-500/30 via-zinc-900 to-black",
-    averagePricePerPerson: 70,
-    distanceKm: 6.5,
-    intentions: ["amigos", "musica-ao-vivo", "comemorar", "surpreenda"],
-    companions: ["amigos", "casal"],
-    atmospheres: ["animado", "casual"],
-    musicStyles: ["rock", "mpb"],
-    openNow: true,
-    dataConfidence: 90,
-    updatedAt: "2026-07-10",
-    menuHighlights: [
-      "Chopp Pilsen 500ml — R$ 18",
-      "Tábua de petiscos para dois — R$ 65",
-      "Burger artesanal do pub — R$ 42",
+      "Hamburgueria e casa de carnes com identidade inspirada em garagens e oficinas retrô. O cardápio reúne hambúrgueres, torresmo, carnes nobres, petiscos, sobremesas artesanais, drinks e cervejas especiais, em um ambiente descontraído, rústico e industrial. O atendimento acontece por ordem de chegada.",
+    tags: [
+      "Temática automotiva retrô",
+      "Atendimento por ordem de chegada",
+      "Sem reservas",
+      "Sem delivery",
+      "Sem iFood",
+      "Sem música ao vivo",
+      "Sem transmissão de jogos",
+      "Não aceita pets",
+      "Pedidos para retirada",
     ],
-    whatsappNumber: "5512999110001",
+    cuisineTypes: ["Brasileira", "Hambúrgueres", "Carnes", "Petiscos"],
+    schedule: ["Terça a sábado, das 17h30 às 22h"],
+    gradient: "from-rose-500/20 via-zinc-900 to-black",
+    averagePricePerPerson: 90,
+    // Sem geolocalização real ainda: distância desconhecida, nunca 0.
+    distanceKm: null,
+    // "intentions", "atmospheres" e "companions" foram pedidos com valores em
+    // português livre que não existem nos union types atuais (IntentionId,
+    // AtmosphereId, CompanionId), usados também pelas perguntas de
+    // `/descobrir` e pelos Records exaustivos do motor de afinidade. Mapeei
+    // para os valores existentes mais próximos, em vez de expandir esses
+    // tipos (o que exigiria novas opções de pergunta e novos textos de
+    // motivo, fora do escopo desta tarefa). Ver relatório para o de-para
+    // completo.
+    intentions: ["amigos", "relaxar", "novidade"],
+    companions: ["amigos", "casal"],
+    atmospheres: ["casual"],
+    musicStyles: [],
+    openNow: false,
+    isDemo: false,
+    dataConfidence: 80,
+    updatedAt: "2026-07-17",
+    menuHighlights: [
+      "Hambúrgueres",
+      "Torresmo",
+      "Carnes nobres",
+      "Milk-shake de bacon",
+      "Ninho com Nutella",
+      "Cheesecake",
+      "Cervejas especiais",
+      "Drinks autorais",
+    ],
+    whatsappNumber: "5512988969006",
   },
   {
     id: "bella-serra",

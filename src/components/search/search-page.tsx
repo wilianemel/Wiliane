@@ -78,7 +78,7 @@ export function SearchPage({ venues, initialQuery }: SearchPageProps) {
       </h1>
       <p className="mt-2 max-w-2xl text-sm text-muted sm:text-base">
         Busque por lugar, comida, bairro, evento ou tipo de experiência. Os
-        resultados usam os mesmos dados de demonstração do restante do produto.
+        resultados usam os estabelecimentos publicados na base atual do produto.
       </p>
 
       <form
