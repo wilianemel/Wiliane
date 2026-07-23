@@ -71,6 +71,8 @@ export interface Venue {
   menuHighlights: string[];
   /** Número de WhatsApp demonstrativo, em formato internacional (sem "+"). */
   whatsappNumber: string;
+  /** URL pública de um vídeo real do estabelecimento, quando cadastrada. */
+  videoUrl?: string;
 }
 
 export const venues: Venue[] = [

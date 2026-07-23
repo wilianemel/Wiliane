@@ -59,5 +59,6 @@ export function mapVenueRow(row: VenueRow): Venue {
     isDemo: row.is_demo,
     menuHighlights: row.menu_highlights ?? [],
     whatsappNumber: row.whatsapp_number ?? "",
+    videoUrl: row.video_url ?? undefined,
   };
 }

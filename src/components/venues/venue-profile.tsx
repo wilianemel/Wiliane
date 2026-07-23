@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Venue } from "@/data/venues";
+import { VenueVideoPlayer } from "./venue-video-player";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -217,18 +218,26 @@ export function VenueProfile({
 
       {/* Vídeo e fotos */}
       <section className="mt-8">
-        <div
-          className={`flex aspect-video items-center justify-center rounded-2xl bg-gradient-to-br ${venue.gradient}`}
-        >
-          <div className="flex flex-col items-center gap-2 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-background/40 text-foreground">
-              <PlayIcon />
-            </span>
-            <p className="px-4 text-xs text-foreground/80">
-              Vídeo e fotos reais deste local chegam em breve.
-            </p>
+        {venue.videoUrl ? (
+          <VenueVideoPlayer
+            videoUrl={venue.videoUrl}
+            venueName={venue.name}
+            gradient={venue.gradient}
+          />
+        ) : (
+          <div
+            className={`flex aspect-video items-center justify-center rounded-2xl bg-gradient-to-br ${venue.gradient}`}
+          >
+            <div className="flex flex-col items-center gap-2 text-center">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-background/40 text-foreground">
+                <PlayIcon />
+              </span>
+              <p className="px-4 text-xs text-foreground/80">
+                Vídeo e fotos reais deste local chegam em breve.
+              </p>
+            </div>
           </div>
-        </div>
+        )}
       </section>
 
       {/* Motivos do match — só existe vindo do fluxo de descoberta */}
