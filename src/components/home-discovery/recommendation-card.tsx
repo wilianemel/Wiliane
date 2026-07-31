@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { RecommendationCard as RecommendationCardData } from "@/lib/home-discovery/types";
 import { registerUserInteraction } from "@/lib/home-discovery/register-interaction";
+import { humanizeSlug, humanizeSlugsInText } from "@/lib/format/humanize-slug";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -30,7 +31,9 @@ export function RecommendationCard({ card, featured = false }: RecommendationCar
           <h3 className="text-xl font-semibold text-foreground sm:text-2xl">{card.venue_name}</h3>
           {card.headline && <p className="mt-1 text-sm text-muted sm:text-base">{card.headline}</p>}
           <p className="mt-2 flex flex-wrap items-center gap-x-2 text-sm text-muted">
-            {cuisine.length > 0 && <span>{cuisine.join(", ")}</span>}
+            {cuisine.length > 0 && (
+              <span>{cuisine.map((item) => humanizeSlug(item)).join(", ")}</span>
+            )}
             {card.price_range && (
               <>
                 {cuisine.length > 0 && <span aria-hidden="true">·</span>}
@@ -58,7 +61,7 @@ export function RecommendationCard({ card, featured = false }: RecommendationCar
               key={highlight}
               className="rounded-full border border-border px-3 py-1 text-xs text-muted"
             >
-              {highlight}
+              {humanizeSlug(highlight)}
             </span>
           ))}
         </div>
@@ -69,7 +72,9 @@ export function RecommendationCard({ card, featured = false }: RecommendationCar
           <p className="text-xs font-semibold uppercase tracking-wide text-muted">
             Por que essa recomendação
           </p>
-          <p className="mt-2 text-sm text-foreground">{card.why_recommended}</p>
+          <p className="mt-2 text-sm text-foreground">
+            {humanizeSlugsInText(card.why_recommended)}
+          </p>
         </div>
       )}
 

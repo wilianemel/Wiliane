@@ -1,5 +1,9 @@
 import Link from "next/link";
 import type { Venue } from "@/data/venues";
+import { humanizeSlug } from "@/lib/format/humanize-slug";
+
+/** A Home mostra só uma vitrine, não o catálogo inteiro — o restante fica em /buscar. */
+const MAX_FEATURED_VENUES = 6;
 
 function ClockIcon() {
   return (
@@ -52,7 +56,7 @@ function VenueCard({ venue }: { venue: Venue }) {
               key={tag}
               className="rounded-full border border-border px-3 py-1 text-xs text-muted"
             >
-              {tag}
+              {humanizeSlug(tag)}
             </span>
           ))}
         </div>
@@ -78,6 +82,10 @@ function VenueCard({ venue }: { venue: Venue }) {
 }
 
 export function FeaturedVenues({ venues }: { venues: Venue[] }) {
+  // A consulta em getPublishedVenues() já ordena is_featured primeiro, então
+  // um corte simples aqui preserva os destaques reais sem precisar reordenar.
+  const displayedVenues = venues.slice(0, MAX_FEATURED_VENUES);
+
   return (
     <section id="experiencias" className="scroll-mt-20 border-t border-border/60">
       <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
@@ -95,7 +103,7 @@ export function FeaturedVenues({ venues }: { venues: Venue[] }) {
           </div>
         ) : (
           <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {venues.map((venue) => (
+            {displayedVenues.map((venue) => (
               <VenueCard key={venue.id} venue={venue} />
             ))}
           </div>

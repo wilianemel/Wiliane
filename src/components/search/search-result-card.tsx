@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Venue } from "@/data/venues";
+import { humanizeSlug } from "@/lib/format/humanize-slug";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -74,7 +75,7 @@ export function SearchResultCard({ venue }: SearchResultCardProps) {
             key={tag}
             className="rounded-full border border-border px-3 py-1 text-xs text-muted"
           >
-            {tag}
+            {humanizeSlug(tag)}
           </span>
         ))}
       </div>

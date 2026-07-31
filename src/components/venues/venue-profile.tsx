@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Venue } from "@/data/venues";
+import { humanizeSlug } from "@/lib/format/humanize-slug";
 import { VenueVideoPlayer } from "./venue-video-player";
 
 const focusRing =
@@ -154,9 +155,14 @@ export function VenueProfile({
   const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     venue.address,
   )}`;
-  const whatsappHref = `https://wa.me/${venue.whatsappNumber}?text=${encodeURIComponent(
-    `Olá! Vim pelo Qual é a Boa e gostaria de saber mais sobre o ${venue.name}.`,
-  )}`;
+  // Sem número real, o link de WhatsApp não é montado — o botão some
+  // (ver seção "Rota ou WhatsApp"), em vez de apontar para um link quebrado.
+  const hasValidWhatsapp = venue.whatsappNumber.trim().length > 0;
+  const whatsappHref = hasValidWhatsapp
+    ? `https://wa.me/${venue.whatsappNumber}?text=${encodeURIComponent(
+        `Olá! Vim pelo Qual é a Boa e gostaria de saber mais sobre o ${venue.name}.`,
+      )}`
+    : null;
   const whatsappLabel = venue.tags.includes(PICKUP_ONLY_TAG)
     ? PICKUP_ONLY_TAG
     : "Chamar no WhatsApp";
@@ -280,7 +286,7 @@ export function VenueProfile({
                 aria-hidden="true"
                 className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-accent"
               />
-              {item}
+              {humanizeSlug(item)}
             </li>
           ))}
         </ul>
@@ -345,15 +351,17 @@ export function VenueProfile({
           <MapIcon />
           Ver rota
         </a>
-        <a
-          href={whatsappHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] ${focusRing}`}
-        >
-          <WhatsAppIcon />
-          {whatsappLabel}
-        </a>
+        {whatsappHref && (
+          <a
+            href={whatsappHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] ${focusRing}`}
+          >
+            <WhatsAppIcon />
+            {whatsappLabel}
+          </a>
+        )}
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2">
