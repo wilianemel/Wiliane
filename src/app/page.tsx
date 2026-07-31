@@ -1,5 +1,6 @@
 import { Header } from "@/components/header";
 import { Hero } from "@/components/hero";
+import { HomeDiscoveryFlow } from "@/components/home-discovery/home-discovery-flow";
 import { ExperienceIntentions } from "@/components/experience-intentions";
 import { FeaturedVenues } from "@/components/featured-venues";
 import { TrustSection } from "@/components/trust-section";
@@ -13,6 +14,7 @@ export default async function Home() {
     <>
       <Header />
       <main className="flex-1">
+        <HomeDiscoveryFlow />
         <Hero />
         <ExperienceIntentions />
         <FeaturedVenues venues={venues} />

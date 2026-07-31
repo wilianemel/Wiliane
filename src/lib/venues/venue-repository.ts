@@ -18,6 +18,20 @@ function warnFallback(scope: "lista" | "slug") {
   console.warn(`[venues] Supabase indisponível na consulta de ${scope}; usando dados locais de segurança.`);
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * `get_recommendation_cards_v3` (usado no fluxo emocional da Home) retorna
+ * `venue_id` (uuid), não o slug. Para o link "Ver experiência" continuar
+ * abrindo `/lugares/[id]` normalmente nesse caso, aceitamos aqui as duas
+ * formas de identificar um estabelecimento, sem alterar a assinatura da
+ * função nem exigir mudança em nenhum dos chamadores existentes (que
+ * continuam passando slug, como sempre).
+ */
+function isUuid(value: string): boolean {
+  return UUID_PATTERN.test(value);
+}
+
 function demoLocalVenues(): Venue[] {
   return localVenues.map((venue) => ({ ...venue, isDemo: true }));
 }
@@ -42,13 +56,13 @@ export async function getPublishedVenues(): Promise<Venue[]> {
   }
 }
 
-export async function getPublishedVenueBySlug(slug: string): Promise<Venue | null> {
+export async function getPublishedVenueBySlug(slugOrId: string): Promise<Venue | null> {
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("venues")
       .select(VENUE_COLUMNS)
-      .eq("slug", slug)
+      .eq(isUuid(slugOrId) ? "id" : "slug", slugOrId)
       .eq("is_published", true)
       .maybeSingle();
 
@@ -56,7 +70,7 @@ export async function getPublishedVenueBySlug(slug: string): Promise<Venue | nul
     return data ? mapVenueRow(data as unknown as VenueRow) : null;
   } catch {
     warnFallback("slug");
-    const venue = localVenues.find((item) => item.id === slug);
+    const venue = localVenues.find((item) => item.id === slugOrId);
     return venue ? { ...venue, isDemo: true } : null;
   }
 }
