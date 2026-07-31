@@ -73,18 +73,21 @@ const MUSIC_LABELS: Partial<Record<MusicPreferenceId, string>> = {
   ambiente: "música ambiente",
 };
 
-/** Locais fechados, fora da distância ou muito acima do orçamento não aparecem. */
+/** Locais fechados, comprovadamente fora da distância ou muito acima do orçamento não aparecem. */
 function isEligible(venue: Venue, answers: DiscoveryAnswers): boolean {
   if (!venue.openNow) return false;
 
   if (
     answers.distanceMax !== null &&
-    (venue.distanceKm === null || venue.distanceKm > answers.distanceMax)
+    venue.distanceKm !== null &&
+    venue.distanceKm > answers.distanceMax
   ) {
-    // Com um limite de distância explícito, um local de distância
-    // desconhecida não pode ser tratado como se estivesse dentro do limite.
     return false;
   }
+  // Distância desconhecida (distance_km nulo, comum nos estabelecimentos
+  // reais ainda sem geolocalização) não elimina o local — só não pontua por
+  // proximidade em scoreDistance() nem aparece com um valor inventado. Sem
+  // essa regra, qualquer filtro de distância zerava os resultados reais.
 
   if (
     answers.budgetMax !== null &&
