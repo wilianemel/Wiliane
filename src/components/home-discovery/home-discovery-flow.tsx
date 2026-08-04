@@ -4,13 +4,13 @@ import { useMemo, useState } from "react";
 import { QuestionCard } from "@/components/discovery/question-card";
 import {
   COMPANION_OPTIONS,
-  DEFAULT_CITY,
   HOME_QUESTIONS,
   INTENTION_OPTIONS,
   SENSATION_OPTIONS,
 } from "@/lib/home-discovery/config";
 import { getRecommendationCards } from "@/lib/home-discovery/get-recommendations";
 import type { RecommendationCard } from "@/lib/home-discovery/types";
+import { useCity } from "@/lib/city-context";
 import { RecommendationResults } from "./recommendation-results";
 
 type Phase = "form" | "loading" | "results" | "empty" | "error";
@@ -64,7 +64,10 @@ export function HomeDiscoveryFlow() {
   const [sensation, setSensation] = useState<string | null>(null);
   const [companion, setCompanion] = useState<string | null>(null);
   const [intention, setIntention] = useState<string | null>(null);
-  const [city, setCity] = useState(DEFAULT_CITY);
+  // Compartilhado com o Header via CityProvider (ver src/lib/city-context.tsx),
+  // para o pin de cidade refletir o que foi pesquisado aqui em vez de um
+  // texto fixo.
+  const { city, setCity } = useCity();
 
   const [phase, setPhase] = useState<Phase>("form");
   const [results, setResults] = useState<RecommendationCard[]>([]);

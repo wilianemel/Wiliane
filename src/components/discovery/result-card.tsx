@@ -1,5 +1,6 @@
 import type { MatchResult } from "@/types/discovery";
 import { humanizeSlug } from "@/lib/format/humanize-slug";
+import { formatRecommendationReason } from "@/lib/format/format-recommendation-reason";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -136,7 +137,7 @@ export function ResultCard({
           {reasons.map((reason) => (
             <li key={reason} className="flex items-start gap-2">
               <span aria-hidden="true" className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-accent" />
-              {reason}
+              {formatRecommendationReason(reason)}
             </li>
           ))}
         </ul>

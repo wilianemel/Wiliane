@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Venue } from "@/data/venues";
 import { humanizeSlug } from "@/lib/format/humanize-slug";
+import { formatRecommendationReason } from "@/lib/format/format-recommendation-reason";
 import { VenueVideoPlayer } from "./venue-video-player";
 
 const focusRing =
@@ -262,7 +263,7 @@ export function VenueProfile({
                   aria-hidden="true"
                   className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-accent"
                 />
-                {reason}
+                {formatRecommendationReason(reason)}
               </li>
             ))}
           </ul>

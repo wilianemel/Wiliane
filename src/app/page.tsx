@@ -7,11 +7,12 @@ import { TrustSection } from "@/components/trust-section";
 import { BusinessCta } from "@/components/business-cta";
 import { Footer } from "@/components/footer";
 import { getPublishedVenues } from "@/lib/venues/venue-repository";
+import { CityProvider } from "@/lib/city-context";
 
 export default async function Home() {
   const venues = await getPublishedVenues();
   return (
-    <>
+    <CityProvider>
       <Header />
       <main className="flex-1">
         <HomeDiscoveryFlow />
@@ -22,6 +23,6 @@ export default async function Home() {
         <BusinessCta />
       </main>
       <Footer />
-    </>
+    </CityProvider>
   );
 }

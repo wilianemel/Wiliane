@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { BrandLogo } from "@/components/shared/brand-logo";
+import { useSelectedCity } from "@/lib/city-context";
 
 const navLinks = [
   { label: "Descobrir", href: "#intencoes" },
@@ -50,6 +51,7 @@ function MenuIcon({ open }: { open: boolean }) {
 
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const city = useSelectedCity();
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur">
@@ -58,7 +60,7 @@ export function Header() {
           <BrandLogo variant="dark" size="medium" priority />
           <span className="hidden items-center gap-1 rounded-full border border-border px-3 py-1 text-xs text-muted sm:flex">
             <PinIcon />
-            São José dos Campos
+            {city}
           </span>
         </a>
 
@@ -110,7 +112,7 @@ export function Header() {
         >
           <span className="mb-2 flex items-center gap-1 text-xs text-muted">
             <PinIcon />
-            São José dos Campos
+            {city}
           </span>
           {navLinks.map((link) => (
             <a

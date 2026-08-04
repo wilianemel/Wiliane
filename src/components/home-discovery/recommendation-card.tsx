@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { RecommendationCard as RecommendationCardData } from "@/lib/home-discovery/types";
 import { registerUserInteraction } from "@/lib/home-discovery/register-interaction";
-import { humanizeSlug, humanizeSlugsInText } from "@/lib/format/humanize-slug";
+import { humanizeSlug } from "@/lib/format/humanize-slug";
+import { formatRecommendationReason } from "@/lib/format/format-recommendation-reason";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -73,7 +74,7 @@ export function RecommendationCard({ card, featured = false }: RecommendationCar
             Por que essa recomendação
           </p>
           <p className="mt-2 text-sm text-foreground">
-            {humanizeSlugsInText(card.why_recommended)}
+            {formatRecommendationReason(card.why_recommended)}
           </p>
         </div>
       )}
