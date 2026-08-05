@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Venue } from "@/data/venues";
 import { humanizeSlug } from "@/lib/format/humanize-slug";
+import { VenueCoverImage } from "@/components/shared/venue-cover-image";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -52,59 +53,66 @@ export function SearchResultCard({ venue }: SearchResultCardProps) {
   );
 
   return (
-    <article className="flex flex-col gap-4 rounded-2xl border border-border bg-background-elevated p-6 sm:p-7">
-      <div>
-        <h3 className="text-lg font-semibold text-foreground sm:text-xl">{venue.name}</h3>
-        <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-muted">
-          <span>{venue.category}</span>
-          <span aria-hidden="true">·</span>
-          <span className="inline-flex items-center gap-1">
-            <PinIcon />
-            {venue.neighborhood}
+    <article className="flex flex-col overflow-hidden rounded-2xl border border-border bg-background-elevated">
+      <VenueCoverImage
+        venue={venue}
+        className="h-32"
+        sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+      />
+      <div className="flex flex-1 flex-col gap-4 p-6 sm:p-7">
+        <div>
+          <h3 className="text-lg font-semibold text-foreground sm:text-xl">{venue.name}</h3>
+          <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-muted">
+            <span>{venue.category}</span>
+            <span aria-hidden="true">·</span>
+            <span className="inline-flex items-center gap-1">
+              <PinIcon />
+              {venue.neighborhood}
+            </span>
+            <span aria-hidden="true">·</span>
+            <span>{venue.priceRange}</span>
+          </p>
+        </div>
+
+        <p className="text-sm leading-relaxed text-muted line-clamp-2">{venue.description}</p>
+
+        <div className="flex flex-wrap gap-2">
+          {highlightTags.map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full border border-border px-3 py-1 text-xs text-muted"
+            >
+              {humanizeSlug(tag)}
+            </span>
+          ))}
+        </div>
+
+        <ul className="flex flex-col gap-1.5">
+          {venue.schedule.map((item) => (
+            <li key={item} className="flex items-start gap-2 text-xs text-muted">
+              <ClockIcon />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+
+        <div className="mt-auto flex items-center justify-between gap-3 pt-1">
+          <span className="inline-flex items-center gap-2 text-xs font-medium text-muted">
+            <span
+              aria-hidden="true"
+              className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                venue.openNow ? "bg-emerald-400" : "bg-red-400"
+              }`}
+            />
+            {venue.openNow ? "Aberto agora" : "Fechado no momento"}
           </span>
-          <span aria-hidden="true">·</span>
-          <span>{venue.priceRange}</span>
-        </p>
-      </div>
-
-      <p className="text-sm leading-relaxed text-muted line-clamp-2">{venue.description}</p>
-
-      <div className="flex flex-wrap gap-2">
-        {highlightTags.map((tag) => (
-          <span
-            key={tag}
-            className="rounded-full border border-border px-3 py-1 text-xs text-muted"
+          <Link
+            href={`/lugares/${venue.id}`}
+            className={`rounded-full border border-accent px-5 py-2 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-accent-foreground ${focusRing}`}
           >
-            {humanizeSlug(tag)}
-          </span>
-        ))}
-      </div>
-
-      <ul className="flex flex-col gap-1.5">
-        {venue.schedule.map((item) => (
-          <li key={item} className="flex items-start gap-2 text-xs text-muted">
-            <ClockIcon />
-            <span>{item}</span>
-          </li>
-        ))}
-      </ul>
-
-      <div className="mt-auto flex items-center justify-between gap-3 pt-1">
-        <span className="inline-flex items-center gap-2 text-xs font-medium text-muted">
-          <span
-            aria-hidden="true"
-            className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-              venue.openNow ? "bg-emerald-400" : "bg-red-400"
-            }`}
-          />
-          {venue.openNow ? "Aberto agora" : "Fechado no momento"}
-        </span>
-        <Link
-          href={`/lugares/${venue.id}`}
-          className={`rounded-full border border-accent px-5 py-2 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-accent-foreground ${focusRing}`}
-        >
-          Ver experiência
-        </Link>
+            Ver experiência
+          </Link>
+        </div>
       </div>
     </article>
   );

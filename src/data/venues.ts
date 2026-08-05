@@ -73,6 +73,14 @@ export interface Venue {
   whatsappNumber: string;
   /** URL pública de um vídeo real do estabelecimento, quando cadastrada. */
   videoUrl?: string;
+  /** URL pública da imagem de capa real, quando cadastrada. */
+  coverImageUrl?: string;
+  /** URL pública do logotipo real, quando cadastrado. */
+  logoUrl?: string;
+  /** URL externa de reserva (ex.: sistema de reservas do estabelecimento), quando cadastrada. */
+  reservationUrl?: string;
+  /** URLs públicas de imagens da galeria no Supabase Storage, listadas por prefixo (sem coluna própria no banco). Ausente ou vazio quando não há nenhuma. */
+  galleryUrls?: string[];
 }
 
 export const venues: Venue[] = [

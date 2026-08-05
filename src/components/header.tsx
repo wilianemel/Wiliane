@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { BrandLogo } from "@/components/shared/brand-logo";
 import { useSelectedCity } from "@/lib/city-context";
 
 const navLinks = [
   { label: "Descobrir", href: "#intencoes" },
   { label: "Buscar", href: "#busca" },
-  { label: "Para empresas", href: "#empresas" },
+  { label: "Para empresas", href: "/para-empresas" },
 ];
 
 function PinIcon() {
@@ -66,13 +67,13 @@ export function Header() {
 
         <nav className="hidden items-center gap-6 md:flex" aria-label="Navegação principal">
           {navLinks.map((link) => (
-            <a
+            <Link
               key={link.href}
               href={link.href}
               className="text-sm font-medium text-muted transition-colors hover:text-accent"
             >
               {link.label}
-            </a>
+            </Link>
           ))}
           <button
             type="button"
@@ -115,14 +116,14 @@ export function Header() {
             {city}
           </span>
           {navLinks.map((link) => (
-            <a
+            <Link
               key={link.href}
               href={link.href}
               onClick={() => setMenuOpen(false)}
               className="rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background-elevated hover:text-accent"
             >
               {link.label}
-            </a>
+            </Link>
           ))}
           <button
             type="button"

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { Venue } from "@/data/venues";
 import { humanizeSlug } from "@/lib/format/humanize-slug";
@@ -107,6 +108,22 @@ function WhatsAppIcon() {
   );
 }
 
+function CalendarIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      className="h-4 w-4"
+      aria-hidden="true"
+    >
+      <rect x="3.5" y="5" width="17" height="15" rx="2" />
+      <path strokeLinecap="round" d="M8 3v4M16 3v4M3.5 10h17" />
+    </svg>
+  );
+}
+
 function InfoIcon() {
   return (
     <svg
@@ -204,10 +221,23 @@ export function VenueProfile({
             Dados demonstrativos para validação do MVP
           </p>
         )}
-        <p className="text-sm text-muted">{venue.category}</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-          {venue.name}
-        </h1>
+        <div className="flex items-center gap-3">
+          {venue.logoUrl && (
+            <Image
+              src={venue.logoUrl}
+              alt={`Logotipo de ${venue.name}`}
+              width={56}
+              height={56}
+              className="h-14 w-14 shrink-0 rounded-full border border-border object-cover"
+            />
+          )}
+          <div>
+            <p className="text-sm text-muted">{venue.category}</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+              {venue.name}
+            </h1>
+          </div>
+        </div>
         <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-muted">
           <span className="inline-flex items-center gap-1">
             <PinIcon />
@@ -231,6 +261,17 @@ export function VenueProfile({
             venueName={venue.name}
             gradient={venue.gradient}
           />
+        ) : venue.coverImageUrl ? (
+          <div className="relative aspect-video overflow-hidden rounded-2xl">
+            <Image
+              src={venue.coverImageUrl}
+              alt={`Foto de capa de ${venue.name}`}
+              fill
+              sizes="(min-width: 768px) 768px, 100vw"
+              className="object-cover"
+              priority
+            />
+          </div>
         ) : (
           <div
             className={`flex aspect-video items-center justify-center rounded-2xl bg-gradient-to-br ${venue.gradient}`}
@@ -246,6 +287,32 @@ export function VenueProfile({
           </div>
         )}
       </section>
+
+      {/* Galeria — listada diretamente do Storage; só aparece quando há arquivos reais */}
+      {venue.galleryUrls && venue.galleryUrls.length > 0 && (
+        <section className="mt-6">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Galeria</h2>
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {venue.galleryUrls.map((url) => (
+              <a
+                key={url}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="relative aspect-square overflow-hidden rounded-xl"
+              >
+                <Image
+                  src={url}
+                  alt={`Foto da galeria de ${venue.name}`}
+                  fill
+                  sizes="(min-width: 640px) 25vw, 50vw"
+                  className="object-cover"
+                />
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Motivos do match — só existe vindo do fluxo de descoberta */}
       {match && (
@@ -364,6 +431,19 @@ export function VenueProfile({
           </a>
         )}
       </div>
+
+      {/* Reserva — só aparece quando o estabelecimento tem uma URL real cadastrada */}
+      {venue.reservationUrl && (
+        <a
+          href={venue.reservationUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full border border-border px-5 py-3 text-sm font-semibold text-foreground transition-colors hover:border-accent hover:text-accent ${focusRing}`}
+        >
+          <CalendarIcon />
+          Fazer reserva
+        </a>
+      )}
 
       <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2">
         {onRestart && (

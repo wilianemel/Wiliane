@@ -60,5 +60,8 @@ export function mapVenueRow(row: VenueRow): Venue {
     menuHighlights: row.menu_highlights ?? [],
     whatsappNumber: row.whatsapp_number ?? "",
     videoUrl: row.video_url ?? undefined,
+    coverImageUrl: row.cover_image_url ?? undefined,
+    logoUrl: row.logo_url ?? undefined,
+    reservationUrl: row.reservation_url ?? undefined,
   };
 }

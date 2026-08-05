@@ -10,7 +10,8 @@ const VENUE_COLUMNS = [
   "cuisine_types", "tags", "music_styles", "atmospheres", "intentions", "companions",
   "menu_highlights", "schedule", "price_range", "average_price_per_person",
   "average_price_for_couple", "distance_km", "whatsapp_number", "instagram_url", "menu_url",
-  "cover_image_url", "video_url", "data_confidence", "is_published", "is_featured",
+  "cover_image_url", "logo_url", "video_url", "reservation_url",
+  "data_confidence", "is_published", "is_featured",
   "open_now", "is_demo", "last_verified_at", "created_at", "updated_at",
 ].join(",");
 
@@ -56,6 +57,25 @@ export async function getPublishedVenues(): Promise<Venue[]> {
   }
 }
 
+/**
+ * Lista a galeria de um venue diretamente pelo prefixo no Storage
+ * (<venue_id>/gallery/) — não existe coluna de galeria em public.venues,
+ * então nunca inventamos uma; apenas listamos o que já foi enviado.
+ */
+async function listGalleryUrls(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  venueId: string,
+): Promise<string[]> {
+  const { data } = await supabase.storage.from("venue-media").list(`${venueId}/gallery`);
+  return (data ?? [])
+    .filter((item) => item.name && !item.name.endsWith("/"))
+    .map(
+      (item) =>
+        supabase.storage.from("venue-media").getPublicUrl(`${venueId}/gallery/${item.name}`).data
+          .publicUrl,
+    );
+}
+
 export async function getPublishedVenueBySlug(slugOrId: string): Promise<Venue | null> {
   try {
     const supabase = await createClient();
@@ -67,7 +87,12 @@ export async function getPublishedVenueBySlug(slugOrId: string): Promise<Venue |
       .maybeSingle();
 
     if (error) throw error;
-    return data ? mapVenueRow(data as unknown as VenueRow) : null;
+    if (!data) return null;
+
+    const row = data as unknown as VenueRow;
+    const venue = mapVenueRow(row);
+    const galleryUrls = await listGalleryUrls(supabase, row.id);
+    return galleryUrls.length > 0 ? { ...venue, galleryUrls } : venue;
   } catch {
     warnFallback("slug");
     const venue = localVenues.find((item) => item.id === slugOrId);

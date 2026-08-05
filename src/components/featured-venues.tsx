@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Venue } from "@/data/venues";
 import { humanizeSlug } from "@/lib/format/humanize-slug";
+import { VenueCoverImage } from "@/components/shared/venue-cover-image";
 
 /** A Home mostra só uma vitrine, não o catálogo inteiro — o restante fica em /buscar. */
 const MAX_FEATURED_VENUES = 6;
@@ -24,19 +25,7 @@ function ClockIcon() {
 function VenueCard({ venue }: { venue: Venue }) {
   return (
     <article className="flex flex-col overflow-hidden rounded-2xl border border-border bg-background-elevated">
-      <div className={`relative h-36 overflow-hidden bg-gradient-to-br ${venue.gradient}`}>
-        <div
-          aria-hidden="true"
-          className="absolute -left-6 -top-8 h-28 w-28 rounded-full bg-white/10 blur-2xl"
-        />
-        <div
-          aria-hidden="true"
-          className="absolute -bottom-10 -right-4 h-32 w-32 rounded-full bg-black/30 blur-2xl"
-        />
-        <span className="absolute left-3 top-3 rounded-full bg-black/50 px-2.5 py-1 text-[11px] text-white/70 backdrop-blur">
-          Área reservada para imagem
-        </span>
-      </div>
+      <VenueCoverImage venue={venue} className="h-36" sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" />
 
       <div className="flex flex-1 flex-col gap-3 p-5">
         <div>

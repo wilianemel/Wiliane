@@ -24,7 +24,9 @@ export interface VenueRow {
   instagram_url: string | null;
   menu_url: string | null;
   cover_image_url: string | null;
+  logo_url: string | null;
   video_url: string | null;
+  reservation_url: string | null;
   data_confidence: number;
   is_published: boolean;
   is_featured: boolean;
