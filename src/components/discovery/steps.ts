@@ -1,4 +1,5 @@
 import type { BudgetOption, DistanceOption, StepOption } from "@/types/discovery";
+import { MOMENT_TAG_GROUPS } from "@/lib/venues/venue-tags";
 
 export const INTENTION_OPTIONS: StepOption[] = [
   { id: "casal", label: "Um momento a dois" },
@@ -49,3 +50,6 @@ export const MUSIC_OPTIONS: StepOption[] = [
   { id: "eletronica", label: "Eletrônica" },
   { id: "ambiente", label: "Música ambiente" },
 ];
+
+/** Achatado a partir de MOMENT_TAG_GROUPS (venue-tags.ts) — mesma fonte de dados do painel da empresa, sem duplicar as opções aqui. */
+export const MOMENT_OPTIONS: StepOption[] = MOMENT_TAG_GROUPS.flatMap((group) => group.options);

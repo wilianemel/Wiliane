@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { VenueAccessGate } from "@/components/empresa/venue-access-gate";
 import type { VenueOwnerRow } from "@/lib/venues/venue-owner";
 
@@ -39,7 +40,28 @@ export default function PreviewEstabelecimentoPage() {
 }
 
 function PreviewContent({ venue }: { venue: VenueOwnerRow }) {
-  const [submitted, setSubmitted] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [published, setPublished] = useState(venue.is_published);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  async function handlePublish() {
+    setPublishing(true);
+    setErrorMessage(null);
+
+    const supabase = createClient();
+    const { error } = await supabase.rpc("publish_owned_venue", {
+      target_venue_id: venue.id,
+    });
+
+    if (error) {
+      setErrorMessage(error.message);
+      setPublishing(false);
+      return;
+    }
+
+    setPublishing(false);
+    setPublished(true);
+  }
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 sm:py-14">
@@ -124,21 +146,26 @@ function PreviewContent({ venue }: { venue: VenueOwnerRow }) {
       </div>
 
       <div className="mt-8 rounded-2xl border border-border bg-background-elevated p-6">
-        {submitted ? (
-          <p className="text-sm text-foreground">
-            Cadastro completo. A publicação será liberada após análise.
-          </p>
+        {published ? (
+          <p className="text-sm text-foreground">Seu estabelecimento foi publicado com sucesso!</p>
         ) : (
           <>
             <p className="text-sm text-muted">
-              Quando terminar de preencher os dados e as mídias, envie para análise.
+              Quando terminar de preencher os dados e as mídias, publique seu estabelecimento no
+              Qual é a Boa.
             </p>
+            {errorMessage && (
+              <p className="mt-3 rounded-xl border border-red-400/40 bg-red-400/5 px-4 py-2 text-sm text-red-300">
+                {errorMessage}
+              </p>
+            )}
             <button
               type="button"
-              onClick={() => setSubmitted(true)}
-              className={`mt-4 inline-flex items-center justify-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] ${focusRing}`}
+              onClick={handlePublish}
+              disabled={publishing}
+              className={`mt-4 inline-flex items-center justify-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 ${focusRing}`}
             >
-              Enviar para análise
+              {publishing ? "Publicando estabelecimento..." : "Publicar estabelecimento"}
             </button>
           </>
         )}

@@ -12,6 +12,7 @@ import {
   COMPANION_OPTIONS,
   DISTANCE_OPTIONS,
   INTENTION_OPTIONS,
+  MOMENT_OPTIONS,
   MUSIC_OPTIONS,
 } from "./steps";
 import { VenueProfile } from "@/components/venues/venue-profile";
@@ -29,6 +30,7 @@ const INITIAL_ANSWERS: DiscoveryAnswers = {
   distanceMax: null,
   atmosphere: null,
   music: "sem-preferencia",
+  moment: null,
 };
 
 type Phase = "questions" | "loading" | "results" | "detail";
@@ -264,6 +266,20 @@ export function DiscoveryFlow({ venues }: { venues: Venue[] }) {
                 setAnswers((current) => ({
                   ...current,
                   music: id as DiscoveryAnswers["music"],
+                }))
+              }
+            />
+            <QuestionCard
+              name="moment"
+              question="Quando você quer viver isso?"
+              helperText="Escolha se quiser deixar a recomendação ainda mais precisa."
+              optional
+              options={MOMENT_OPTIONS}
+              value={answers.moment}
+              onChange={(id) =>
+                setAnswers((current) => ({
+                  ...current,
+                  moment: id as DiscoveryAnswers["moment"],
                 }))
               }
             />

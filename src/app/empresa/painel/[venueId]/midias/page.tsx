@@ -54,6 +54,14 @@ function MidiasContent({
         </Link>
       </div>
 
+      <div className="mt-6 rounded-2xl border border-accent/30 bg-background-elevated p-5">
+        <p className="text-sm font-semibold text-foreground">Mostre sua experiência</p>
+        <p className="mt-1 text-sm text-muted">
+          Fotos e vídeos ajudam as pessoas a escolherem seu estabelecimento. Capa, logo e vídeo
+          têm um espaço fixo cada; a galeria aceita até {MAX_GALLERY_IMAGES} imagens.
+        </p>
+      </div>
+
       <div className="mt-8 flex flex-col gap-8">
         <SingleMediaSlot
           venueId={venue.id}

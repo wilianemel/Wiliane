@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import type { VenueAtmosphereTag, VenueCompanionTag } from "@/lib/venues/venue-tags";
 
 /**
  * Colunas de public.venues expostas ao dono/gestor autenticado no painel.
@@ -34,9 +35,11 @@ export interface VenueOwnerRow {
   cuisine_types: string[] | null;
   tags: string[] | null;
   music_styles: string[] | null;
-  atmospheres: string[] | null;
+  /** Taxonomia estendida (ambiente/estilo/experiência) — ver venue-tags.ts. Coletada aqui para uso futuro do motor de afinidade. */
+  atmospheres: VenueAtmosphereTag[] | null;
   intentions: string[] | null;
-  companions: string[] | null;
+  /** Taxonomia estendida de público — ver venue-tags.ts. Coletada aqui para uso futuro do motor de afinidade. */
+  companions: VenueCompanionTag[] | null;
   menu_highlights: string[] | null;
   schedule: string[] | null;
   price_range: string | null;

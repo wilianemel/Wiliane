@@ -3,6 +3,13 @@ import Link from "next/link";
 import type { Venue } from "@/data/venues";
 import { humanizeSlug } from "@/lib/format/humanize-slug";
 import { formatRecommendationReason } from "@/lib/format/format-recommendation-reason";
+import {
+  ATMOSPHERE_TAG_LABELS,
+  COMPANION_TAG_LABELS,
+  MOMENT_TAG_IDS,
+  MOMENT_TAG_LABELS,
+  type VenueMomentTag,
+} from "@/lib/venues/venue-tags";
 import { VenueVideoPlayer } from "./venue-video-player";
 
 const focusRing =
@@ -124,6 +131,62 @@ function CalendarIcon() {
   );
 }
 
+function SparkleIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      className="h-3.5 w-3.5 shrink-0"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"
+      />
+    </svg>
+  );
+}
+
+function PeopleIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      className="h-3.5 w-3.5 shrink-0"
+      aria-hidden="true"
+    >
+      <circle cx="9" cy="8" r="2.5" />
+      <circle cx="16" cy="9" r="2" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M4 19c0-2.8 2.2-5 5-5s5 2.2 5 5M13.5 14.3c2 .3 3.5 2 3.5 4.2"
+      />
+    </svg>
+  );
+}
+
+/** Pills de destaque para as seções "A experiência" / "Combina com" / "Melhor momento". */
+function TagPillList({ items }: { items: string[] }) {
+  return (
+    <div className="mt-3 flex flex-wrap gap-2">
+      {items.map((label) => (
+        <span
+          key={label}
+          className="rounded-full border border-accent/30 bg-accent/5 px-3 py-1 text-xs font-medium text-accent"
+        >
+          {label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function InfoIcon() {
   return (
     <svg
@@ -184,6 +247,20 @@ export function VenueProfile({
   const whatsappLabel = venue.tags.includes(PICKUP_ONLY_TAG)
     ? PICKUP_ONLY_TAG
     : "Chamar no WhatsApp";
+  // Labels corretos (com acento) vindos de venue-tags.ts — não usa
+  // humanizeSlug() aqui. `tags` mistura tags livres com momentos; só os
+  // ids que pertencem a MOMENT_TAG_GROUPS entram na seção "Melhor momento",
+  // sem tocar PICKUP_ONLY_TAG nem a lógica de WhatsApp acima.
+  const experienceLabels = venue.atmospheres
+    .map((id) => ATMOSPHERE_TAG_LABELS[id])
+    .filter((label): label is string => Boolean(label));
+  const companionLabels = venue.companions
+    .map((id) => COMPANION_TAG_LABELS[id])
+    .filter((label): label is string => Boolean(label));
+  const momentLabels = venue.tags
+    .filter((tag): tag is VenueMomentTag => MOMENT_TAG_IDS.includes(tag as VenueMomentTag))
+    .map((id) => MOMENT_TAG_LABELS[id])
+    .filter((label): label is string => Boolean(label));
   const verificationDate = venue.lastVerifiedAt ?? venue.updatedAt;
   const parsedVerificationDate = new Date(verificationDate);
   const formattedUpdatedAt = Number.isNaN(parsedVerificationDate.getTime())
@@ -334,6 +411,37 @@ export function VenueProfile({
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {/* Informações inteligentes coletadas no cadastro — "esse lugar combina comigo" */}
+      {experienceLabels.length > 0 && (
+        <section className="mt-8">
+          <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted">
+            <SparkleIcon />
+            A experiência
+          </h2>
+          <TagPillList items={experienceLabels} />
+        </section>
+      )}
+
+      {companionLabels.length > 0 && (
+        <section className="mt-8">
+          <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted">
+            <PeopleIcon />
+            Combina com
+          </h2>
+          <TagPillList items={companionLabels} />
+        </section>
+      )}
+
+      {momentLabels.length > 0 && (
+        <section className="mt-8">
+          <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted">
+            <ClockIcon />
+            Melhor momento
+          </h2>
+          <TagPillList items={momentLabels} />
         </section>
       )}
 

@@ -1,11 +1,20 @@
 import type { Venue, PriceRange } from "@/data/venues";
-import type { AtmosphereId, CompanionId, IntentionId, MusicPreferenceId } from "@/types/discovery";
+import type { IntentionId, MusicPreferenceId } from "@/types/discovery";
+import {
+  ATMOSPHERE_TAG_IDS,
+  COMPANION_TAG_IDS,
+  type VenueAtmosphereTag,
+  type VenueCompanionTag,
+} from "./venue-tags";
 import type { VenueRow } from "./venue-row";
 
 const PRICE_RANGES = new Set<PriceRange>(["$", "$$", "$$$"]);
 const INTENTIONS = new Set<IntentionId>(["casal", "familia", "amigos", "musica-ao-vivo", "relaxar", "comemorar", "novidade", "surpreenda"]);
-const COMPANIONS = new Set<CompanionId>(["sozinho", "casal", "familia", "amigos"]);
-const ATMOSPHERES = new Set<AtmosphereId>(["tranquilo", "animado", "romantico", "familiar", "sofisticado", "casual"]);
+// Taxonomia estendida (ver venue-tags.ts) — inclui as opções originais do
+// questionário de /descobrir como subconjunto, mais o vocabulário adicional
+// que um estabelecimento pode usar para se descrever.
+const COMPANIONS = new Set<VenueCompanionTag>(COMPANION_TAG_IDS);
+const ATMOSPHERES = new Set<VenueAtmosphereTag>(ATMOSPHERE_TAG_IDS);
 const MUSIC = new Set<MusicPreferenceId>(["sem-preferencia", "rock", "mpb", "sertanejo", "eletronica", "ambiente"]);
 const GRADIENTS = [
   "from-amber-500/30 via-zinc-900 to-black",

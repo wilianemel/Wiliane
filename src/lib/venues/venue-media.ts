@@ -62,7 +62,6 @@ export async function replaceSingleMedia(
 
   const path = `${prefix}/${sanitizeFileName(file.name)}`;
   const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(path, file, {
-    upsert: true,
     contentType: file.type,
   });
 

@@ -7,6 +7,8 @@ import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { OWNER_VENUE_COLUMNS, type VenueOwnerRow } from "@/lib/venues/venue-owner";
 import { VenueCoverImage } from "@/components/shared/venue-cover-image";
+import { OnboardingChecklist, getOnboardingProgress } from "@/components/empresa/onboarding-checklist";
+import { ExperienceQuestions } from "@/components/empresa/experience-questions";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -49,6 +51,21 @@ function PainelEmpresaContent() {
   const [user, setUser] = useState<User | null>(null);
   const [memberships, setMemberships] = useState<Membership[]>([]);
 
+  // RLS de venue_members já restringe a linhas com user_id = auth.uid(); o
+  // embed de venues só traz o que o vínculo ativo permite enxergar.
+  async function refreshMemberships(userId: string) {
+    const supabase = createClient();
+    const { data: memberRows } = await supabase
+      .from("venue_members")
+      .select(`member_role, venues (${OWNER_VENUE_COLUMNS})`)
+      .eq("user_id", userId)
+      .eq("is_active", true);
+
+    setMemberships(
+      ((memberRows ?? []) as unknown as Membership[]).filter((row) => row.venues != null),
+    );
+  }
+
   useEffect(() => {
     let cancelled = false;
 
@@ -63,20 +80,8 @@ function PainelEmpresaContent() {
 
       if (cancelled) return;
       setUser(data.user);
-
-      // RLS de venue_members já restringe a linhas com user_id = auth.uid();
-      // o embed de venues só traz o que o vínculo ativo permite enxergar.
-      const { data: memberRows } = await supabase
-        .from("venue_members")
-        .select(`member_role, venues (${OWNER_VENUE_COLUMNS})`)
-        .eq("user_id", data.user.id)
-        .eq("is_active", true);
-
-      if (cancelled) return;
-      setMemberships(
-        ((memberRows ?? []) as unknown as Membership[]).filter((row) => row.venues != null),
-      );
-      setLoadState("ready");
+      await refreshMemberships(data.user.id);
+      if (!cancelled) setLoadState("ready");
     }
 
     loadSession();
@@ -91,6 +96,10 @@ function PainelEmpresaContent() {
     router.push("/");
     router.refresh();
   }
+
+  const featuredMembership =
+    memberships.find((membership) => membership.venues.id === createdVenueId) ??
+    memberships.find((membership) => !getOnboardingProgress(membership.venues).isComplete);
 
   if (loadState === "checking") {
     return (
@@ -117,11 +126,17 @@ function PainelEmpresaContent() {
         </button>
       </div>
 
-      {createdVenueId && (
-        <p className="mt-6 rounded-xl border border-emerald-400/40 bg-emerald-400/5 px-4 py-3 text-sm text-emerald-300">
-          Estabelecimento criado como rascunho. Continue preenchendo fotos e detalhes antes de
-          enviar para análise.
-        </p>
+      {featuredMembership && (
+        <div className="mt-8 flex flex-col gap-6">
+          <OnboardingChecklist
+            venue={featuredMembership.venues}
+            justCreated={featuredMembership.venues.id === createdVenueId}
+          />
+          <ExperienceQuestions
+            venue={featuredMembership.venues}
+            onSaved={() => user && refreshMemberships(user.id)}
+          />
+        </div>
       )}
 
       {memberships.length === 0 ? (

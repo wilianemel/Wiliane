@@ -6,6 +6,7 @@ import type {
   MatchResult,
   MusicPreferenceId,
 } from "@/types/discovery";
+import type { VenueMomentTag } from "@/lib/venues/venue-tags";
 
 /**
  * Motor de afinidade determinístico.
@@ -19,7 +20,14 @@ import type {
 
 export const MAX_RESULTS = 3;
 
-/** Pesos máximos por critério. A soma padrão é 100 pontos. */
+/**
+ * Pesos máximos por critério. Soma 100 pontos.
+ *
+ * Reequilibrados ao adicionar `moment` (10 pontos, novo): music, distance e
+ * confidence cederam 4/3/3 pontos respectivamente para abrir espaço, sem
+ * remover nenhum critério existente. intention/companion/atmosphere/budget
+ * ficam exatamente como estavam.
+ */
 const WEIGHTS = {
   intention: 30,
   /** Peso reduzido da intenção quando o usuário escolhe "Surpreenda-me". */
@@ -27,9 +35,10 @@ const WEIGHTS = {
   companion: 20,
   atmosphere: 15,
   budget: 15,
-  music: 10,
-  distance: 5,
-  confidence: 5,
+  moment: 10,
+  music: 6,
+  distance: 2,
+  confidence: 2,
 } as const;
 
 /**
@@ -71,6 +80,30 @@ const MUSIC_LABELS: Partial<Record<MusicPreferenceId, string>> = {
   sertanejo: "sertanejo",
   eletronica: "eletrônica",
   ambiente: "música ambiente",
+};
+
+/** Motivo exibido quando o "melhor momento" escolhido bate com uma tag reconhecida em MOMENT_TAG_IDS. */
+const MOMENT_REASONS: Record<VenueMomentTag, string> = {
+  "cafe-da-manha": "Combina com café da manhã.",
+  almoco: "Combina com almoço.",
+  "fim-de-tarde": "Ótimo para o fim de tarde.",
+  "happy-hour": "Ótimo para happy hour.",
+  jantar: "Combina com jantar.",
+  noite: "Combina com uma noite por lá.",
+  madrugada: "Funciona bem para a madrugada.",
+  "primeiro-encontro": "Ideal para um primeiro encontro.",
+  "encontro-romantico": "Ideal para um encontro romântico.",
+  comemoracao: "Ótimo para comemorar.",
+  aniversario: "Combina com aniversário.",
+  "familia-no-domingo": "Combina com domingo em família.",
+  "role-com-amigos": "Ótimo para um rolê com amigos.",
+  "reuniao-de-trabalho": "Funciona bem para reunião de trabalho.",
+  "viagem-turismo": "Combina com quem está de viagem.",
+  "rapido-e-pratico": "Ótimo para quem quer algo rápido e prático.",
+  "para-ficar-horas": "Combina com quem quer ficar horas por lá.",
+  "para-conversar": "Ótimo para conversar com calma.",
+  "para-celebrar": "Ideal para celebrar.",
+  "para-relaxar": "Combina com quem quer relaxar.",
 };
 
 /** Locais fechados, comprovadamente fora da distância ou muito acima do orçamento não aparecem. */
@@ -141,6 +174,18 @@ function scoreMusic(venue: Venue, answers: DiscoveryAnswers): number {
   return venue.musicStyles.includes(answers.music) ? WEIGHTS.music : 0;
 }
 
+/**
+ * Sem resposta do usuário: 0 (não penaliza). `answers.moment` só pode ser um
+ * id já reconhecido em MOMENT_TAG_IDS (vem das opções fixas do
+ * questionário — ver MOMENT_OPTIONS), então checar `venue.tags.includes`
+ * aqui nunca usa uma tag livre como critério, mesmo que `tags` também
+ * guarde tags livres misturadas.
+ */
+function scoreMoment(venue: Venue, answers: DiscoveryAnswers): number {
+  if (!answers.moment) return 0;
+  return venue.tags.includes(answers.moment) ? WEIGHTS.moment : 0;
+}
+
 /** Quanto mais perto do limite aceito, maior a pontuação de distância. */
 function scoreDistance(venue: Venue, answers: DiscoveryAnswers): number {
   // Distância desconhecida nunca pontua por proximidade — nem para mais,
@@ -179,6 +224,10 @@ function buildReasons(venue: Venue, answers: DiscoveryAnswers): string[] {
 
   if (answers.music !== "sem-preferencia" && venue.musicStyles.includes(answers.music)) {
     reasons.push(`Possui programação de ${MUSIC_LABELS[answers.music]}.`);
+  }
+
+  if (answers.moment && venue.tags.includes(answers.moment)) {
+    reasons.push(MOMENT_REASONS[answers.moment]);
   }
 
   if (answers.budgetMax !== null) {
@@ -223,6 +272,7 @@ export function getRecommendations(
       scoreAtmosphere(venue, answers) +
       scoreBudget(venue, answers) +
       scoreMusic(venue, answers) +
+      scoreMoment(venue, answers) +
       scoreDistance(venue, answers) +
       scoreConfidence(venue);
 

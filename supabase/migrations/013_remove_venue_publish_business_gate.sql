@@ -1,0 +1,79 @@
+-- 013_remove_venue_publish_business_gate.sql
+-- NÃO APLICADA — aguardando autorização explícita antes de qualquer
+-- execução no Supabase.
+--
+-- ============================================================================
+-- Remove SOMENTE o bloqueio criado em 008_enforce_venue_publish_requires_business.sql
+-- ============================================================================
+-- Decisão de produto: a publicação de um estabelecimento deixa de exigir
+-- aprovação manual de admin via cadastro empresarial verificado. Passa a
+-- depender apenas de o perfil estar completo (checagem feita pela função
+-- public.publish_owned_venue, criada em uma migration separada).
+--
+-- Esta migration remove exclusivamente o trigger de 008 e a função que ele
+-- executava. Não remove, não altera e não desabilita nada mais:
+-- - public.venue_business_registrations continua existindo, com todos os
+--   dados que já tiver;
+-- - public.business_type_catalog e public.legal_acceptances continuam
+--   existindo, com suas policies de leitura intactas;
+-- - public.submit_venue_business_registration() e
+--   public.review_venue_business_registration() continuam existindo,
+--   utilizáveis se um fluxo de cadastro empresarial for retomado no futuro;
+-- - public.can_manage_venue_registration() e public.is_admin() continuam
+--   existindo e são reaproveitadas por outras funções (inclusive a nova
+--   publish_owned_venue).
+--
+-- Nenhuma policy de RLS é criada, alterada ou removida por este arquivo.
+-- Nenhuma migration antiga (001-012) é modificada — esta é a forma correta
+-- de desfazer parte de uma migration já aplicada: uma migration nova que
+-- reverte o efeito específico, não uma edição retroativa do arquivo 008.
+
+drop trigger if exists enforce_venue_publish_requires_business on public.venues;
+
+drop function if exists public.enforce_venue_publish_requires_verified_business();
+
+-- ============================================================================
+-- ROLLBACK MANUAL (NÃO executar automaticamente).
+-- Recria o trigger e a função exatamente como definidos em 008, caso seja
+-- preciso reverter especificamente esta migration.
+-- ============================================================================
+--
+-- create or replace function public.enforce_venue_publish_requires_verified_business()
+-- returns trigger
+-- language plpgsql
+-- security definer
+-- set search_path = public
+-- as $$
+-- declare
+--   v_is_new_publish boolean;
+--   v_has_verified_registration boolean;
+-- begin
+--   if tg_op = 'INSERT' then
+--     v_is_new_publish := new.is_published;
+--   else
+--     v_is_new_publish := new.is_published and (old.is_published is distinct from new.is_published);
+--   end if;
+--
+--   if v_is_new_publish then
+--     select exists (
+--       select 1
+--       from public.venue_business_registrations
+--       where venue_id = new.id
+--         and registration_status = 'verified'::public.business_registration_status
+--     )
+--     into v_has_verified_registration;
+--
+--     if not v_has_verified_registration then
+--       raise exception
+--         'Estabelecimento só pode ser publicado após cadastro empresarial verificado.';
+--     end if;
+--   end if;
+--
+--   return new;
+-- end;
+-- $$;
+--
+-- create trigger enforce_venue_publish_requires_business
+-- before insert or update on public.venues
+-- for each row
+-- execute function public.enforce_venue_publish_requires_verified_business();

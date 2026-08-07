@@ -1,4 +1,5 @@
 import type { Venue } from "@/data/venues";
+import type { VenueMomentTag } from "@/lib/venues/venue-tags";
 
 export type IntentionId =
   | "casal"
@@ -39,6 +40,8 @@ export interface DiscoveryAnswers {
   atmosphere: AtmosphereId | null;
   /** Preferência musical opcional; "sem-preferencia" nunca penaliza um local. */
   music: MusicPreferenceId;
+  /** Melhor momento, opcional; `null` quando o usuário não responde e não penaliza nenhum local. */
+  moment: VenueMomentTag | null;
 }
 
 export interface StepOption {

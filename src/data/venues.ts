@@ -1,9 +1,5 @@
-import type {
-  AtmosphereId,
-  CompanionId,
-  IntentionId,
-  MusicPreferenceId,
-} from "@/types/discovery";
+import type { IntentionId, MusicPreferenceId } from "@/types/discovery";
+import type { VenueAtmosphereTag, VenueCompanionTag } from "@/lib/venues/venue-tags";
 
 /**
  * Dados de demonstração (mock).
@@ -51,10 +47,20 @@ export interface Venue {
   distanceKm: number | null;
   /** Momentos com os quais este local combina. */
   intentions: IntentionId[];
-  /** Tipos de companhia para os quais este local é adequado. */
-  companions: CompanionId[];
-  /** Ambientes que descrevem este local. */
-  atmospheres: AtmosphereId[];
+  /**
+   * Tipos de companhia para os quais este local é adequado. Inclui as
+   * opções do questionário de /descobrir (CompanionId) como subconjunto,
+   * mais um vocabulário mais amplo (ver venue-tags.ts) coletado no painel
+   * da empresa — pensado para alimentar o motor de afinidade com mais
+   * sinais de recomendação no futuro, além do que o questionário usa hoje.
+   */
+  companions: VenueCompanionTag[];
+  /**
+   * Ambientes/estilo/experiência que descrevem este local. Mesma lógica de
+   * `companions`: superset de AtmosphereId, coletado no painel da empresa
+   * para uso futuro do motor de afinidade.
+   */
+  atmospheres: VenueAtmosphereTag[];
   /** Estilos musicais presentes na programação do local. */
   musicStyles: MusicPreferenceId[];
   /** Indica se o local está demonstrativamente aberto agora. */
