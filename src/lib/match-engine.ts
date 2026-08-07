@@ -63,6 +63,7 @@ const COMPANION_REASONS: Record<string, string> = {
   casal: "Combina com quem vai a dois.",
   familia: "Preparado para receber famílias.",
   amigos: "Combina com uma saída entre amigos.",
+  pets: "Recebe bem quem vai acompanhado do pet.",
 };
 
 const ATMOSPHERE_LABELS: Record<AtmosphereId, string> = {

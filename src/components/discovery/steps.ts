@@ -17,6 +17,7 @@ export const COMPANION_OPTIONS: StepOption[] = [
   { id: "casal", label: "Casal" },
   { id: "familia", label: "Família" },
   { id: "amigos", label: "Amigos" },
+  { id: "pets", label: "Pets" },
 ];
 
 export const BUDGET_OPTIONS: BudgetOption[] = [

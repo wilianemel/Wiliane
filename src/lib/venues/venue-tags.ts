@@ -39,7 +39,6 @@ export type VenueCompanionTag =
   | CompanionId
   | "criancas"
   | "bebes"
-  | "pets"
   | "lgbtqia-friendly"
   | "terceira-idade"
   | "empresarial"
