@@ -23,22 +23,22 @@ export const MAX_RESULTS = 3;
 /**
  * Pesos máximos por critério. Soma 100 pontos.
  *
- * Reequilibrados ao adicionar `moment` (10 pontos, novo): music, distance e
- * confidence cederam 4/3/3 pontos respectivamente para abrir espaço, sem
- * remover nenhum critério existente. intention/companion/atmosphere/budget
- * ficam exatamente como estavam.
+ * Recalibrados para dar mais peso a distância e confiabilidade, evitando
+ * que um estabelecimento muito distante vença só por alto match emocional:
+ * intention -5, companion -2, budget -1, distance +6, confidence +2 em
+ * relação à distribuição anterior. atmosphere/moment/music ficam iguais.
  */
 const WEIGHTS = {
-  intention: 30,
+  intention: 25,
   /** Peso reduzido da intenção quando o usuário escolhe "Surpreenda-me". */
   intentionSurprise: 10,
-  companion: 20,
+  companion: 18,
   atmosphere: 15,
-  budget: 15,
+  budget: 14,
   moment: 10,
   music: 6,
-  distance: 2,
-  confidence: 2,
+  distance: 8,
+  confidence: 4,
 } as const;
 
 /**
