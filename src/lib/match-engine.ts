@@ -251,6 +251,22 @@ function buildReasons(venue: Venue, answers: DiscoveryAnswers): string[] {
   return reasons.slice(0, 4);
 }
 
+export interface GetRecommendationsOptions {
+  /**
+   * Quando `false`, música e momento saem do cálculo — nem pontuam nem
+   * entram na base de normalização do percentual. Usado por fluxos que não
+   * fazem essas duas perguntas (ex.: o fluxo de decisão da Home), para que
+   * o usuário não seja beneficiado pela pontuação cheia que `scoreMusic`
+   * dá por padrão a quem nunca respondeu, nem penalizado por não ter
+   * respondido música/momento — o percentual final passa a ser calculado
+   * só sobre os pesos dos critérios realmente perguntados.
+   *
+   * Default `true`: preserva exatamente o comportamento original (score
+   * sempre sobre 100, música e momento incluídos).
+   */
+  includeOptionalCriteria?: boolean;
+}
+
 /**
  * Avalia os estabelecimentos elegíveis, calcula uma pontuação de 0 a 100
  * para cada um e retorna, no máximo, `MAX_RESULTS` deles, ordenados do
@@ -259,7 +275,9 @@ function buildReasons(venue: Venue, answers: DiscoveryAnswers): string[] {
 export function getRecommendations(
   answers: DiscoveryAnswers,
   candidateVenues: Venue[],
+  options: GetRecommendationsOptions = {},
 ): MatchResult[] {
+  const includeOptionalCriteria = options.includeOptionalCriteria ?? true;
   const eligibleVenues = candidateVenues.filter((venue) => isEligible(venue, answers));
 
   const maxIntentionBreadth = eligibleVenues.reduce(
@@ -268,19 +286,50 @@ export function getRecommendations(
   );
 
   const results: MatchResult[] = eligibleVenues.map((venue) => {
+    const intentionScore = scoreIntention(venue, answers, maxIntentionBreadth);
+    const companionScore = scoreCompanion(venue, answers);
+    const atmosphereScore = scoreAtmosphere(venue, answers);
+    const budgetScore = scoreBudget(venue, answers);
+    const distanceScore = scoreDistance(venue, answers);
+    const confidenceScore = scoreConfidence(venue);
+    const musicScore = includeOptionalCriteria ? scoreMusic(venue, answers) : 0;
+    const momentScore = includeOptionalCriteria ? scoreMoment(venue, answers) : 0;
+
     const rawScore =
-      scoreIntention(venue, answers, maxIntentionBreadth) +
-      scoreCompanion(venue, answers) +
-      scoreAtmosphere(venue, answers) +
-      scoreBudget(venue, answers) +
-      scoreMusic(venue, answers) +
-      scoreMoment(venue, answers) +
-      scoreDistance(venue, answers) +
-      scoreConfidence(venue);
+      intentionScore +
+      companionScore +
+      atmosphereScore +
+      budgetScore +
+      musicScore +
+      momentScore +
+      distanceScore +
+      confidenceScore;
+
+    let score: number;
+    if (includeOptionalCriteria) {
+      score = Math.round(Math.min(100, Math.max(0, rawScore)));
+    } else {
+      // Sem música/momento: normaliza sobre o máximo possível só dos
+      // critérios ativos, para não penalizar nem beneficiar quem não
+      // respondeu perguntas que este fluxo nunca fez.
+      const intentionMax =
+        answers.intention === "surpreenda" ? WEIGHTS.intentionSurprise : WEIGHTS.intention;
+      const maxPossible =
+        intentionMax +
+        WEIGHTS.companion +
+        WEIGHTS.atmosphere +
+        WEIGHTS.budget +
+        WEIGHTS.distance +
+        WEIGHTS.confidence;
+      score =
+        maxPossible > 0
+          ? Math.round(Math.min(100, Math.max(0, (rawScore / maxPossible) * 100)))
+          : 0;
+    }
 
     return {
       venue,
-      score: Math.round(Math.min(100, Math.max(0, rawScore))),
+      score,
       reasons: buildReasons(venue, answers),
     };
   });
