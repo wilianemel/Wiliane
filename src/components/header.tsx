@@ -6,7 +6,7 @@ import { BrandLogo } from "@/components/shared/brand-logo";
 import { useSelectedCity } from "@/lib/city-context";
 
 const navLinks = [
-  { label: "Descobrir", href: "#intencoes" },
+  { label: "Descobrir", href: "/descobrir" },
   { label: "Buscar", href: "/buscar" },
   { label: "Para empresas", href: "/para-empresas" },
 ];
