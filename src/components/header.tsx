@@ -7,7 +7,7 @@ import { useSelectedCity } from "@/lib/city-context";
 
 const navLinks = [
   { label: "Descobrir", href: "#intencoes" },
-  { label: "Buscar", href: "#busca" },
+  { label: "Buscar", href: "/buscar" },
   { label: "Para empresas", href: "/para-empresas" },
 ];
 
@@ -57,13 +57,13 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-2 sm:px-6">
-        <a href="#hero" className="flex items-center gap-3">
+        <Link href="/" className="flex items-center gap-3">
           <BrandLogo variant="dark" size="medium" priority />
           <span className="hidden items-center gap-1 rounded-full border border-border px-3 py-1 text-xs text-muted sm:flex">
             <PinIcon />
             {city}
           </span>
-        </a>
+        </Link>
 
         <nav className="hidden items-center gap-6 md:flex" aria-label="Navegação principal">
           {navLinks.map((link) => (
