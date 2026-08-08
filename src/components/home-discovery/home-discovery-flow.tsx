@@ -2,12 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { QuestionCard } from "@/components/discovery/question-card";
-import {
-  COMPANION_OPTIONS,
-  HOME_QUESTIONS,
-  INTENTION_OPTIONS,
-  SENSATION_OPTIONS,
-} from "@/lib/home-discovery/config";
+import { HOME_QUESTIONS, INTENTION_OPTIONS, SENSATION_OPTIONS } from "@/lib/home-discovery/config";
+import { COMPANION_OPTIONS } from "@/lib/discovery/companion-options";
 import { getRecommendationCards } from "@/lib/home-discovery/get-recommendations";
 import type { RecommendationCard } from "@/lib/home-discovery/types";
 import { useCity } from "@/lib/city-context";

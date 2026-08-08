@@ -37,7 +37,6 @@ export type VenueAtmosphereTag =
 
 export type VenueCompanionTag =
   | CompanionId
-  | "criancas"
   | "bebes"
   | "lgbtqia-friendly"
   | "terceira-idade"

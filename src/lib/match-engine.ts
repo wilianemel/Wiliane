@@ -64,6 +64,7 @@ const COMPANION_REASONS: Record<string, string> = {
   familia: "Preparado para receber famílias.",
   amigos: "Combina com uma saída entre amigos.",
   pets: "Recebe bem quem vai acompanhado do pet.",
+  criancas: "Cabe bem em um programa com crianças.",
 };
 
 const ATMOSPHERE_LABELS: Record<AtmosphereId, string> = {

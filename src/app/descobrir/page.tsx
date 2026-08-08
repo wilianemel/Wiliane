@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { DiscoveryFlow } from "@/components/discovery/discovery-flow";
+import { ExplorationPage } from "@/components/discovery/exploration-page";
 import { BrandLogo } from "@/components/shared/brand-logo";
 import { getPublishedVenues } from "@/lib/venues/venue-repository";
 
 export const metadata: Metadata = {
   title: "Descobrir — Qual é a Boa!",
   description:
-    "Responda algumas perguntas rápidas e receba três experiências demonstrativas compatíveis com o seu momento.",
+    "Explore experiências por momento, estilo e companhia — jantar, happy hour, música ao vivo e mais, perto de você.",
 };
 
 function ArrowLeftIcon() {
@@ -30,7 +30,7 @@ export default async function DescobrirPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-border/60 bg-background/90 backdrop-blur">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-2 sm:px-6">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-2 sm:px-6">
           <Link href="/" aria-label="Qual é a Boa — página inicial">
             <BrandLogo variant="dark" size="medium" priority />
           </Link>
@@ -45,7 +45,7 @@ export default async function DescobrirPage() {
       </header>
 
       <main className="flex-1">
-        <DiscoveryFlow venues={venues} />
+        <ExplorationPage venues={venues} />
       </main>
     </div>
   );

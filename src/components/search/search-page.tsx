@@ -44,9 +44,11 @@ function CloseIcon() {
 interface SearchPageProps {
   venues: Venue[];
   initialQuery: string;
+  /** Controla o título/subtítulo próprios da busca — útil quando a página que reaproveita este componente já tem seu próprio <h1>. Padrão true, preserva o comportamento atual de /buscar. */
+  showHeader?: boolean;
 }
 
-export function SearchPage({ venues, initialQuery }: SearchPageProps) {
+export function SearchPage({ venues, initialQuery, showHeader = true }: SearchPageProps) {
   const [query, setQuery] = useState(initialQuery);
   const [filters, setFilters] = useState<VenueFilters>(EMPTY_VENUE_FILTERS);
 
@@ -73,13 +75,17 @@ export function SearchPage({ venues, initialQuery }: SearchPageProps) {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
-      <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-        Encontre diretamente o que procura
-      </h1>
-      <p className="mt-2 max-w-2xl text-sm text-muted sm:text-base">
-        Busque por lugar, comida, bairro, evento ou tipo de experiência. Os
-        resultados usam os estabelecimentos publicados na base atual do produto.
-      </p>
+      {showHeader && (
+        <>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            Encontre diretamente o que procura
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted sm:text-base">
+            Busque por lugar, comida, bairro, evento ou tipo de experiência. Os
+            resultados usam os estabelecimentos publicados na base atual do produto.
+          </p>
+        </>
+      )}
 
       <form
         onSubmit={(event) => event.preventDefault()}

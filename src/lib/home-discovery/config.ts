@@ -36,16 +36,6 @@ export const SENSATION_OPTIONS: StepOption[] = [
   { id: "novidade", label: "Descobrir algo novo" },
 ];
 
-/** Com quem a pessoa vai — enviada como `p_companion`. */
-export const COMPANION_OPTIONS: StepOption[] = [
-  { id: "sozinho", label: "Sozinho" },
-  { id: "casal", label: "Casal" },
-  { id: "amigos", label: "Amigos" },
-  { id: "familia", label: "Família" },
-  { id: "criancas", label: "Crianças" },
-  { id: "grupo", label: "Grupo" },
-];
-
 /** O que a pessoa quer viver — enviada como `p_intention`. */
 export const INTENTION_OPTIONS: StepOption[] = [
   { id: "encontro-romantico", label: "Encontro romântico" },

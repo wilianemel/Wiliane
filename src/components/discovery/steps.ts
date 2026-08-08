@@ -12,14 +12,6 @@ export const INTENTION_OPTIONS: StepOption[] = [
   { id: "surpreenda", label: "Surpreenda-me" },
 ];
 
-export const COMPANION_OPTIONS: StepOption[] = [
-  { id: "sozinho", label: "Sozinho" },
-  { id: "casal", label: "Casal" },
-  { id: "familia", label: "Família" },
-  { id: "amigos", label: "Amigos" },
-  { id: "pets", label: "Pets" },
-];
-
 export const BUDGET_OPTIONS: BudgetOption[] = [
   { id: "ate-80", label: "Até R$ 80", maxPerPerson: 80 },
   { id: "81-150", label: "De R$ 81 a R$ 150", maxPerPerson: 150 },

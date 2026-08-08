@@ -9,12 +9,12 @@ import { Results } from "./results";
 import {
   ATMOSPHERE_OPTIONS,
   BUDGET_OPTIONS,
-  COMPANION_OPTIONS,
   DISTANCE_OPTIONS,
   INTENTION_OPTIONS,
   MOMENT_OPTIONS,
   MUSIC_OPTIONS,
 } from "./steps";
+import { COMPANION_OPTIONS } from "@/lib/discovery/companion-options";
 import { VenueProfile } from "@/components/venues/venue-profile";
 import type { Venue } from "@/data/venues";
 

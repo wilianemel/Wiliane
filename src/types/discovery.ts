@@ -11,7 +11,7 @@ export type IntentionId =
   | "novidade"
   | "surpreenda";
 
-export type CompanionId = "sozinho" | "casal" | "familia" | "amigos" | "pets";
+export type CompanionId = "sozinho" | "casal" | "familia" | "amigos" | "criancas" | "pets";
 
 export type AtmosphereId =
   | "tranquilo"
