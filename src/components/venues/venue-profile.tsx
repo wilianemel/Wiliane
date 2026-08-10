@@ -240,11 +240,12 @@ export function VenueProfile({
   const user = useUser();
 
   // Best-effort: nunca bloqueia a navegação (o link abre normalmente mesmo
-  // se isso falhar ou demorar) e nunca lança — trackInteraction já engole
-  // erro/sessão ausente internamente.
+  // se isso falhar ou demorar) e nunca lança. Conta tanto usuário logado
+  // quanto visitante anônimo — trackInteraction decide sozinho qual
+  // identificador usar a partir de userId estar presente ou não.
   function trackBusinessClick(type: "whatsapp_click" | "route_click" | "reservation_click") {
-    if (!user || !venue.venueId) return;
-    void trackInteraction({ userId: user.id, venueId: venue.venueId, type });
+    if (!venue.venueId) return;
+    void trackInteraction({ userId: user?.id, venueId: venue.venueId, type });
   }
 
   const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
@@ -466,7 +467,8 @@ export function VenueProfile({
             Cardápio e faixa de preço
           </h2>
           <span className="text-sm font-medium text-foreground">
-            {venue.priceRange} · média de R$ {venue.averagePricePerPerson} por pessoa
+            {venue.priceRange}
+            {venue.averagePricePerPerson !== null && ` · média de R$ ${venue.averagePricePerPerson} por pessoa`}
           </span>
         </div>
         <ul className="mt-3 flex flex-col gap-1.5 text-sm text-foreground">

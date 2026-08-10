@@ -55,7 +55,8 @@ export function mapVenueRow(row: VenueRow): Venue {
     // Sem coluna "compatibility" no banco: não inventamos um valor, o campo
     // fica ausente (opcional) e a UI oculta o badge quando não há score real.
     gradient: stableGradient(row.slug),
-    averagePricePerPerson: row.average_price_per_person ?? 0,
+    // Preserva null explicitamente: preço não informado não é R$ 0 (grátis).
+    averagePricePerPerson: row.average_price_per_person,
     // Preserva null explicitamente: distância desconhecida não é 0 km.
     distanceKm: row.distance_km,
     intentions: typedValues(row.intentions, INTENTIONS),

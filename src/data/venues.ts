@@ -50,8 +50,8 @@ export interface Venue {
   compatibility?: number;
   /** Classes de gradiente usadas como área reservada para imagem futura. */
   gradient: string;
-  /** Gasto médio por pessoa, em reais, usado no cálculo de orçamento. */
-  averagePricePerPerson: number;
+  /** Gasto médio por pessoa, em reais, usado no cálculo de orçamento; `null` quando o estabelecimento não informou. */
+  averagePricePerPerson: number | null;
   /** Distância até o usuário, em quilômetros; `null` quando desconhecida (sem geolocalização real ainda). */
   distanceKm: number | null;
   /** Momentos com os quais este local combina. */

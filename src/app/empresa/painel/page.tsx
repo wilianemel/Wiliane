@@ -7,7 +7,7 @@ import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { OWNER_VENUE_COLUMNS, type VenueOwnerRow } from "@/lib/venues/venue-owner";
 import { VenueCoverImage } from "@/components/shared/venue-cover-image";
-import { OnboardingChecklist, getOnboardingProgress } from "@/components/empresa/onboarding-checklist";
+import { OnboardingChecklist } from "@/components/empresa/onboarding-checklist";
 import { ExperienceQuestions } from "@/components/empresa/experience-questions";
 
 const focusRing =
@@ -99,7 +99,7 @@ function PainelEmpresaContent() {
 
   const featuredMembership =
     memberships.find((membership) => membership.venues.id === createdVenueId) ??
-    memberships.find((membership) => !getOnboardingProgress(membership.venues).isComplete);
+    memberships.find((membership) => !membership.venues.is_published);
 
   if (loadState === "checking") {
     return (
@@ -131,6 +131,7 @@ function PainelEmpresaContent() {
           <OnboardingChecklist
             venue={featuredMembership.venues}
             justCreated={featuredMembership.venues.id === createdVenueId}
+            onPublished={() => user && refreshMemberships(user.id)}
           />
           <ExperienceQuestions
             venue={featuredMembership.venues}
@@ -183,7 +184,7 @@ function PainelEmpresaContent() {
                             : "bg-amber-400/10 text-amber-300"
                         }`}
                       >
-                        {venue.is_published ? "Publicado" : "Rascunho / em análise"}
+                        {venue.is_published ? "Publicado" : "Não publicado"}
                       </span>
                       <span className="rounded-full bg-border/40 px-3 py-1 text-[11px] text-muted">
                         {member_role === "owner" ? "Proprietário" : "Gestor"}
@@ -200,6 +201,9 @@ function PainelEmpresaContent() {
                     </Link>
                     <Link href={`/empresa/painel/${venue.id}/preview`} className={buttonBase}>
                       Prévia
+                    </Link>
+                    <Link href={`/empresa/painel/${venue.id}/dashboard`} className={buttonBase}>
+                      Dashboard
                     </Link>
                   </div>
                 </div>

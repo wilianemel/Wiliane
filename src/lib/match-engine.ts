@@ -125,8 +125,12 @@ function isEligible(venue: Venue, answers: DiscoveryAnswers): boolean {
   // proximidade em scoreDistance() nem aparece com um valor inventado. Sem
   // essa regra, qualquer filtro de distância zerava os resultados reais.
 
+  // Preço desconhecido nunca elimina o local — só não pontua com certeza em
+  // scoreBudget() (tratado como neutro), mesma lógica já usada para
+  // distância desconhecida logo acima.
   if (
     answers.budgetMax !== null &&
+    venue.averagePricePerPerson !== null &&
     venue.averagePricePerPerson > answers.budgetMax * OVER_BUDGET_ELIMINATION_RATIO
   ) {
     return false;
@@ -160,9 +164,15 @@ function scoreAtmosphere(venue: Venue, answers: DiscoveryAnswers): number {
   return venue.atmospheres.includes(answers.atmosphere) ? WEIGHTS.atmosphere : 0;
 }
 
-/** Dentro do orçamento pontua cheio; acima, perde pontos proporcionalmente ao excedente. */
+/**
+ * Dentro do orçamento pontua cheio; acima, perde pontos proporcionalmente
+ * ao excedente. Preço desconhecido é neutro: nem pontuação cheia (não é
+ * tratado como grátis) nem zero (não é uma certeza de que está fora do
+ * orçamento) — metade do peso do critério.
+ */
 function scoreBudget(venue: Venue, answers: DiscoveryAnswers): number {
   if (answers.budgetMax === null) return WEIGHTS.budget;
+  if (venue.averagePricePerPerson === null) return WEIGHTS.budget / 2;
   if (venue.averagePricePerPerson <= answers.budgetMax) return WEIGHTS.budget;
 
   const overageRatio =
@@ -233,7 +243,7 @@ function buildReasons(venue: Venue, answers: DiscoveryAnswers): string[] {
     reasons.push(MOMENT_REASONS[answers.moment]);
   }
 
-  if (answers.budgetMax !== null) {
+  if (answers.budgetMax !== null && venue.averagePricePerPerson !== null) {
     reasons.push(
       venue.averagePricePerPerson <= answers.budgetMax
         ? "Está dentro do orçamento informado."

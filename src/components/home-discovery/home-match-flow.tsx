@@ -20,6 +20,7 @@ import { useUser } from "@/lib/auth/auth-context";
 import { createClient } from "@/lib/supabase/client";
 import type { UserPreferencesRow } from "@/lib/user-intelligence/preference-score";
 import { saveRecommendationHistory } from "@/lib/recommendations/save-recommendation-history";
+import { VenueViewTracker } from "@/components/analytics/venue-view-tracker";
 
 /**
  * Fluxo de decisão principal da Home — reaproveita as mesmas peças do
@@ -233,13 +234,16 @@ export function HomeMatchFlow({ venues }: { venues: Venue[] }) {
 
   if (phase === "detail" && selectedResult) {
     return (
-      <VenueProfile
-        venue={selectedResult.venue}
-        match={{ score: selectedResult.score, reasons: selectedResult.reasons }}
-        backLabel="Voltar para os resultados"
-        onBack={backToResults}
-        onRestart={restart}
-      />
+      <>
+        <VenueViewTracker venueId={selectedResult.venue.venueId} />
+        <VenueProfile
+          venue={selectedResult.venue}
+          match={{ score: selectedResult.score, reasons: selectedResult.reasons }}
+          backLabel="Voltar para os resultados"
+          onBack={backToResults}
+          onRestart={restart}
+        />
+      </>
     );
   }
 

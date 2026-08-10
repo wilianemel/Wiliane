@@ -76,10 +76,18 @@ export function ExperienceQuestions({ venue, onSaved }: ExperienceQuestionsProps
     ),
   );
   const [description, setDescription] = useState(venue.description);
+  const [averagePricePerPerson, setAveragePricePerPerson] = useState(
+    venue.average_price_per_person != null ? String(venue.average_price_per_person) : "",
+  );
   const [status, setStatus] = useState<Status>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const canSave = description.trim().length > 0;
+  const averagePriceValue = Number(averagePricePerPerson);
+  const hasValidAveragePrice =
+    averagePricePerPerson.trim().length > 0 &&
+    Number.isFinite(averagePriceValue) &&
+    averagePriceValue > 0;
+  const canSave = description.trim().length > 0 && hasValidAveragePrice;
 
   async function handleSave() {
     if (!canSave) return;
@@ -96,7 +104,13 @@ export function ExperienceQuestions({ venue, onSaved }: ExperienceQuestionsProps
     const supabase = createClient();
     const { error } = await supabase
       .from("venues")
-      .update({ atmospheres, companions, description: description.trim(), tags: nextTags })
+      .update({
+        atmospheres,
+        companions,
+        description: description.trim(),
+        tags: nextTags,
+        average_price_per_person: averagePriceValue,
+      })
       .eq("id", venue.id);
 
     if (error) {
@@ -214,6 +228,29 @@ export function ExperienceQuestions({ venue, onSaved }: ExperienceQuestionsProps
           placeholder="Por que alguém deveria escolher você?"
           className={`mt-2 w-full resize-none rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted focus:outline-none ${focusRing}`}
         />
+      </div>
+
+      <div className="mt-6">
+        <label htmlFor="venue-average-price" className="text-sm font-semibold text-foreground">
+          Qual o gasto médio por pessoa?
+        </label>
+        <p className="mt-1 text-xs text-muted">Usado para combinar com o orçamento de quem busca. Ex.: R$ 50.</p>
+        <div className="relative mt-2">
+          <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sm text-muted">
+            R$
+          </span>
+          <input
+            id="venue-average-price"
+            type="number"
+            min="1"
+            step="1"
+            value={averagePricePerPerson}
+            onChange={(event) => setAveragePricePerPerson(event.target.value)}
+            placeholder="50"
+            required
+            className={`w-full rounded-xl border border-border bg-background py-3 pl-11 pr-4 text-sm text-foreground placeholder:text-muted focus:outline-none ${focusRing}`}
+          />
+        </div>
       </div>
 
       {errorMessage && (

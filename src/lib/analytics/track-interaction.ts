@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { getAnonymousId } from "./anonymous-id";
 
 /**
  * Vocabulário novo (inglês, snake_case) para a camada de tracking
@@ -19,7 +20,8 @@ export type TrackedInteractionType =
   | "reservation_click";
 
 export interface TrackInteractionParams {
-  userId: string;
+  /** Ausente/`undefined` para visitante anônimo — a função usa anonymous_id nesse caso. */
+  userId?: string | null;
   /** Ausente para eventos sem estabelecimento associado (ex.: "search"). */
   venueId?: string | null;
   type: TrackedInteractionType;
@@ -30,8 +32,13 @@ export interface TrackInteractionParams {
 /**
  * Registra um evento comportamental em `public.user_interactions` —
  * best-effort, nunca lança e nunca quebra a experiência do usuário. Falhas
- * (rede, RLS, ou o enum ainda não ter sido estendido pelas migrations 017
- * e 019) são só logadas no console, nunca propagadas.
+ * (rede, RLS, ou o enum/colunas ainda não terem sido estendidos pelas
+ * migrations 017/019/023) são só logadas no console, nunca propagadas.
+ *
+ * Decide sozinho quem está gerando o evento — cada chamador só passa
+ * `userId` quando existe uma sessão; sem `userId`, usa o identificador
+ * anônimo local (ver anonymous-id.ts). Nenhum componente precisa
+ * implementar essa decisão.
  */
 export async function trackInteraction({
   userId,
@@ -40,9 +47,19 @@ export async function trackInteraction({
   metadata,
 }: TrackInteractionParams): Promise<void> {
   try {
+    const anonymousId = userId ? null : getAnonymousId();
+
+    if (!userId && !anonymousId) {
+      // Sem sessão e sem identificador anônimo disponível (localStorage
+      // indisponível) — não há como satisfazer a constraint de identidade
+      // da tabela, nada a gravar.
+      return;
+    }
+
     const supabase = createClient();
     const { error } = await supabase.from("user_interactions").insert({
-      user_id: userId,
+      user_id: userId ?? null,
+      anonymous_id: anonymousId,
       venue_id: venueId ?? null,
       interaction_type: type,
       metadata: metadata ?? null,
