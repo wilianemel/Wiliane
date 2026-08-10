@@ -1,0 +1,26 @@
+-- 020_add_customer_role_enum.sql
+-- APLICADA — confirmada ao vivo no Supabase em 2026-08-10: public.user_role
+-- já tem 'customer' além de 'admin'/'owner'. Este arquivo passa a existir só
+-- como registro da estrutura real, para uma instalação nova poder
+-- reproduzi-la — não deve ser reaplicado sem necessidade (é idempotente,
+-- mas não é preciso rodar de novo em cima do banco atual).
+--
+-- Objetivo: adicionar 'customer' ao enum public.user_role (criado em
+-- 004_create_profiles.sql, hoje só 'admin'/'owner'), para suportar o
+-- cadastro de usuários consumidores (ver src/app/cadastro/page.tsx).
+--
+-- Só ALTER TYPE ... ADD VALUE — nenhuma outra alteração nesta migration,
+-- por design. Um valor de enum recém-adicionado não pode ser usado na mesma
+-- transação em que foi criado, e cada migration deste projeto roda como uma
+-- transação própria — por isso a função que passa a usar 'customer'
+-- (handle_new_user, ver 021_update_handle_new_user_customer.sql) precisa
+-- ser uma migration separada e posterior a esta. Mesmo padrão já usado em
+-- 017 e 019.
+--
+-- Este arquivo é seguro para revisar e reexecutar: "add value if not
+-- exists" não falha nem duplica se rodado mais de uma vez.
+--
+-- Não altera nenhum usuário existente: adicionar um valor a um enum não
+-- toca em nenhuma linha de public.profiles já gravada.
+
+alter type public.user_role add value if not exists 'customer';

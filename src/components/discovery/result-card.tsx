@@ -2,6 +2,8 @@ import type { MatchResult } from "@/types/discovery";
 import { humanizeSlug } from "@/lib/format/humanize-slug";
 import { formatRecommendationReason } from "@/lib/format/format-recommendation-reason";
 import { VenueCoverImage } from "@/components/shared/venue-cover-image";
+import { FavoriteButton } from "@/components/favorite-button";
+import { RecommendationFeedbackButton } from "@/components/recommendation-feedback-button";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -48,6 +50,7 @@ interface ResultCardProps {
   featured?: boolean;
   onRestart: () => void;
   onSelect: () => void;
+  recommendationHistoryId?: string;
 }
 
 export function ResultCard({
@@ -56,6 +59,7 @@ export function ResultCard({
   featured = false,
   onRestart,
   onSelect,
+  recommendationHistoryId,
 }: ResultCardProps) {
   const { venue, score, reasons } = result;
 
@@ -67,11 +71,16 @@ export function ResultCard({
           : "border-border bg-background-elevated"
       }`}
     >
-      <VenueCoverImage
-        venue={venue}
-        className="h-36"
-        sizes="(min-width: 1024px) 33vw, 100vw"
-      />
+      <div className="relative">
+        <VenueCoverImage
+          venue={venue}
+          className="h-36"
+          sizes="(min-width: 1024px) 33vw, 100vw"
+        />
+        <div className="absolute right-3 top-3">
+          <FavoriteButton venueId={venue.venueId} />
+        </div>
+      </div>
       <div className="flex flex-1 flex-col gap-4 p-6 sm:p-7">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -148,6 +157,12 @@ export function ResultCard({
               </li>
             ))}
           </ul>
+
+          {recommendationHistoryId && (
+            <div className="mt-3 border-t border-border/60 pt-3">
+              <RecommendationFeedbackButton recommendationHistoryId={recommendationHistoryId} />
+            </div>
+          )}
         </div>
 
         <div className="mt-auto flex flex-col gap-2 pt-1 sm:flex-row sm:items-center sm:justify-between">

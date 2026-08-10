@@ -17,6 +17,15 @@ export type PriceRange = "$" | "$$" | "$$$";
 
 export interface Venue {
   id: string;
+  /**
+   * UUID real de `public.venues.id`. Distinto de `id` acima (que sempre
+   * carrega o slug, usado em rotas como `/lugares/${venue.id}`) — necessário
+   * para gravar em tabelas que referenciam `venues(id)` via foreign key,
+   * como `public.favorites`, que rejeita qualquer valor que não seja um
+   * UUID válido. Vazio para os 6 estabelecimentos de demonstração locais
+   * abaixo, que não correspondem a uma linha real no banco.
+   */
+  venueId: string;
   name: string;
   category: string;
   /** Cidade demonstrativa onde o local está localizado. */
@@ -92,6 +101,7 @@ export interface Venue {
 export const venues: Venue[] = [
   {
     id: "garagem-do-espeto",
+    venueId: "",
     name: "Garagem do Espeto",
     category: "Hamburgueria e casa de carnes",
     city: "São José dos Campos",
@@ -151,6 +161,7 @@ export const venues: Venue[] = [
   },
   {
     id: "bella-serra",
+    venueId: "",
     name: "Bella Serra",
     category: "Restaurante Italiano",
     city: "São José dos Campos",
@@ -189,6 +200,7 @@ export const venues: Venue[] = [
   },
   {
     id: "rooftop-360",
+    venueId: "",
     name: "Rooftop 360",
     category: "Bar & Rooftop",
     city: "São José dos Campos",
@@ -228,6 +240,7 @@ export const venues: Venue[] = [
   },
   {
     id: "cafe-aurora",
+    venueId: "",
     name: "Café Aurora",
     category: "Café & Brunch",
     city: "São José dos Campos",
@@ -265,6 +278,7 @@ export const venues: Venue[] = [
   },
   {
     id: "quintal-da-familia",
+    venueId: "",
     name: "Quintal da Família",
     category: "Restaurante Familiar",
     city: "São José dos Campos",
@@ -302,6 +316,7 @@ export const venues: Venue[] = [
   },
   {
     id: "casa-do-rock",
+    venueId: "",
     name: "Casa do Rock",
     category: "Casa de Shows",
     city: "São José dos Campos",

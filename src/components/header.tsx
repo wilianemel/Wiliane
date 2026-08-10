@@ -2,8 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { BrandLogo } from "@/components/shared/brand-logo";
 import { useSelectedCity } from "@/lib/city-context";
+import { useUser } from "@/lib/auth/auth-context";
+import { createClient } from "@/lib/supabase/client";
 
 const navLinks = [
   { label: "Descobrir", href: "/descobrir" },
@@ -53,6 +56,18 @@ function MenuIcon({ open }: { open: boolean }) {
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const city = useSelectedCity();
+  const user = useUser();
+  const router = useRouter();
+
+  async function handleSignOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    setMenuOpen(false);
+    router.push("/");
+    router.refresh();
+  }
+
+  const displayName = user?.user_metadata?.full_name?.split(" ")[0] ?? user?.email ?? "";
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur">
@@ -75,23 +90,48 @@ export function Header() {
               {link.label}
             </Link>
           ))}
-          <button
-            type="button"
-            title="Disponível em breve"
-            className="text-sm font-medium text-muted transition-colors hover:text-accent"
-          >
-            Favoritos
-          </button>
         </nav>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            title="Acesso disponível em breve"
-            className="hidden rounded-full border border-accent/70 px-4 py-2 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-accent-foreground sm:inline-flex"
-          >
-            Entrar
-          </button>
+          {user ? (
+            <div className="hidden items-center gap-3 sm:flex">
+              <span className="text-sm text-muted">Olá, {displayName}</span>
+              <Link
+                href="/perfil"
+                className="text-sm font-medium text-muted transition-colors hover:text-accent"
+              >
+                Meu perfil
+              </Link>
+              <Link
+                href="/favoritos"
+                className="text-sm font-medium text-muted transition-colors hover:text-accent"
+              >
+                Favoritos
+              </Link>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="rounded-full border border-border px-4 py-2 text-sm font-medium text-muted transition-colors hover:border-accent/60 hover:text-accent"
+              >
+                Sair
+              </button>
+            </div>
+          ) : (
+            <div className="hidden items-center gap-3 sm:flex">
+              <Link
+                href="/cadastro"
+                className="text-sm font-medium text-muted transition-colors hover:text-accent"
+              >
+                Criar conta
+              </Link>
+              <Link
+                href="/entrar"
+                className="rounded-full border border-accent/70 px-4 py-2 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                Entrar
+              </Link>
+            </div>
+          )}
           <button
             type="button"
             onClick={() => setMenuOpen((prev) => !prev)}
@@ -125,20 +165,49 @@ export function Header() {
               {link.label}
             </Link>
           ))}
-          <button
-            type="button"
-            title="Disponível em breve"
-            className="rounded-lg px-3 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-background-elevated hover:text-accent"
-          >
-            Favoritos
-          </button>
-          <button
-            type="button"
-            title="Acesso disponível em breve"
-            className="mt-2 rounded-full border border-accent/70 px-4 py-2 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-accent-foreground"
-          >
-            Entrar
-          </button>
+          {user ? (
+            <>
+              <span className="mb-1 px-3 text-sm text-muted">Olá, {displayName}</span>
+              <Link
+                href="/perfil"
+                onClick={() => setMenuOpen(false)}
+                className="rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background-elevated hover:text-accent"
+              >
+                Meu perfil
+              </Link>
+              <Link
+                href="/favoritos"
+                onClick={() => setMenuOpen(false)}
+                className="rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background-elevated hover:text-accent"
+              >
+                Favoritos
+              </Link>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="mt-2 rounded-full border border-border px-4 py-2 text-sm font-medium text-muted transition-colors hover:border-accent/60 hover:text-accent"
+              >
+                Sair
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/cadastro"
+                onClick={() => setMenuOpen(false)}
+                className="rounded-lg px-3 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-background-elevated hover:text-accent"
+              >
+                Criar conta
+              </Link>
+              <Link
+                href="/entrar"
+                onClick={() => setMenuOpen(false)}
+                className="mt-2 rounded-full border border-accent/70 px-4 py-2 text-center text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                Entrar
+              </Link>
+            </>
+          )}
         </nav>
       )}
     </header>

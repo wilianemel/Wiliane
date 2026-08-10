@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { VenueProfile } from "@/components/venues/venue-profile";
 import { BrandLogo } from "@/components/shared/brand-logo";
 import { getPublishedVenueBySlug } from "@/lib/venues/venue-repository";
+import { VenueViewTracker } from "@/components/analytics/venue-view-tracker";
 
 function ArrowLeftIcon() {
   return (
@@ -48,6 +49,7 @@ export default async function VenuePage({ params }: VenuePageProps) {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <VenueViewTracker venueId={venue.venueId} />
       <header className="border-b border-border/60 bg-background/90 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-2 sm:px-6">
           <Link href="/" aria-label="Qual é a Boa — página inicial">

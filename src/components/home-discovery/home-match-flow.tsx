@@ -16,6 +16,10 @@ import {
 import { COMPANION_OPTIONS } from "@/lib/discovery/companion-options";
 import { registerUserInteraction } from "@/lib/home-discovery/register-interaction";
 import type { Venue } from "@/data/venues";
+import { useUser } from "@/lib/auth/auth-context";
+import { createClient } from "@/lib/supabase/client";
+import type { UserPreferencesRow } from "@/lib/user-intelligence/preference-score";
+import { saveRecommendationHistory } from "@/lib/recommendations/save-recommendation-history";
 
 /**
  * Fluxo de decisão principal da Home — reaproveita as mesmas peças do
@@ -89,17 +93,81 @@ export function HomeMatchFlow({ venues }: { venues: Venue[] }) {
   const [phase, setPhase] = useState<Phase>("questions");
   const [results, setResults] = useState<MatchResult[]>([]);
   const [selectedResult, setSelectedResult] = useState<MatchResult | null>(null);
+  const [recommendationHistoryIds, setRecommendationHistoryIds] = useState<Record<string, string>>(
+    {},
+  );
+  const user = useUser();
+  const [userPreferences, setUserPreferences] = useState<UserPreferencesRow | null>(null);
+
+  // Camada de personalização: busca o histórico declarado do usuário (se
+  // logado) para alimentar o bônus opcional em getRecommendations(). Sem
+  // sessão, ou se a busca falhar, userPreferences fica null — o motor trata
+  // isso como "sem histórico" e não aplica nenhum bônus (ver preference-score.ts).
+  useEffect(() => {
+    let active = true;
+
+    if (!user) {
+      Promise.resolve().then(() => {
+        if (active) setUserPreferences(null);
+      });
+      return () => {
+        active = false;
+      };
+    }
+
+    const supabase = createClient();
+    supabase
+      .from("user_preferences")
+      .select("favorite_categories, favorite_atmospheres, preferred_companions")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error) {
+          console.error("USER PREFERENCES FETCH ERROR:", error);
+          setUserPreferences(null);
+          return;
+        }
+        setUserPreferences(data);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   useEffect(() => {
     if (phase !== "loading") return;
 
     const timer = setTimeout(() => {
-      setResults(getRecommendations(answers, venues, { includeOptionalCriteria: false }));
+      const recommendations = getRecommendations(answers, venues, {
+        includeOptionalCriteria: false,
+        userPreferences,
+      });
+      setResults(recommendations);
       setPhase("results");
+      setRecommendationHistoryIds({});
+
+      // Best-effort: guarda a memória da recomendação. Não bloqueia a tela
+      // se falhar (ver save-recommendation-history.ts). Sem usuário logado,
+      // não há user_id — o histórico simplesmente não é salvo. O vínculo
+      // venue_id → recommendation_history.id chega depois, de forma
+      // assíncrona — o botão de feedback só aparece quando ele existir.
+      if (user) {
+        saveRecommendationHistory({ userId: user.id, results: recommendations, answers }).then(
+          (links) => {
+            const map: Record<string, string> = {};
+            links.forEach((link) => {
+              map[link.venueId] = link.recommendationHistoryId;
+            });
+            setRecommendationHistoryIds(map);
+          },
+        );
+      }
     }, LOADING_DURATION_MS);
 
     return () => clearTimeout(timer);
-  }, [phase, answers, venues]);
+  }, [phase, answers, venues, userPreferences, user]);
 
   // Best-effort: registra a visualização de cada resultado exibido. A
   // própria registerUserInteraction() já engole erro/sessão ausente
@@ -176,7 +244,14 @@ export function HomeMatchFlow({ venues }: { venues: Venue[] }) {
   }
 
   if (phase === "results") {
-    return <Results results={results} onRestart={restart} onSelect={selectResult} />;
+    return (
+      <Results
+        results={results}
+        onRestart={restart}
+        onSelect={selectResult}
+        recommendationHistoryIds={recommendationHistoryIds}
+      />
+    );
   }
 
   const selectedBudgetId =

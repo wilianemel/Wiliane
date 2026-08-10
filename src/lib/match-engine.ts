@@ -7,6 +7,7 @@ import type {
   MusicPreferenceId,
 } from "@/types/discovery";
 import type { VenueMomentTag } from "@/lib/venues/venue-tags";
+import { preferenceScore, type UserPreferencesRow } from "@/lib/user-intelligence/preference-score";
 
 /**
  * Motor de afinidade determinístico.
@@ -265,6 +266,14 @@ export interface GetRecommendationsOptions {
    * sempre sobre 100, música e momento incluídos).
    */
   includeOptionalCriteria?: boolean;
+  /**
+   * Histórico declarado do usuário (`user_preferences`), usado para somar
+   * um bônus de personalização ao score. Ausente/`undefined`: nenhum bônus
+   * é aplicado — comportamento idêntico ao motor sem essa camada, então
+   * usuários sem histórico (ou chamadores que não passam essa opção) nunca
+   * são afetados.
+   */
+  userPreferences?: UserPreferencesRow | null;
 }
 
 /**
@@ -305,9 +314,9 @@ export function getRecommendations(
       distanceScore +
       confidenceScore;
 
-    let score: number;
+    let baseScore: number;
     if (includeOptionalCriteria) {
-      score = Math.round(Math.min(100, Math.max(0, rawScore)));
+      baseScore = rawScore;
     } else {
       // Sem música/momento: normaliza sobre o máximo possível só dos
       // critérios ativos, para não penalizar nem beneficiar quem não
@@ -321,16 +330,28 @@ export function getRecommendations(
         WEIGHTS.budget +
         WEIGHTS.distance +
         WEIGHTS.confidence;
-      score =
-        maxPossible > 0
-          ? Math.round(Math.min(100, Math.max(0, (rawScore / maxPossible) * 100)))
-          : 0;
+      baseScore = maxPossible > 0 ? (rawScore / maxPossible) * 100 : 0;
     }
+
+    // Camada de personalização: bônus adicional a partir do histórico
+    // declarado do usuário (user_preferences), aplicado sobre o score já
+    // convertido para a escala 0-100 — sem `options.userPreferences`
+    // (usuário sem histórico, ou qualquer chamador que não passe essa
+    // opção), o bônus é sempre 0 e o resultado fica idêntico ao motor sem
+    // esta camada. O clamp final garante 0-100 mesmo com o bônus somado.
+    const personalization = preferenceScore({ userPreferences: options.userPreferences, venue });
+    const score = Math.round(Math.min(100, Math.max(0, baseScore + personalization.score)));
+
+    const baseReasons = buildReasons(venue, answers);
+    const personalizationReason = personalization.reasons[0];
+    const reasons = personalizationReason
+      ? [...baseReasons.slice(0, 3), personalizationReason]
+      : baseReasons;
 
     return {
       venue,
       score,
-      reasons: buildReasons(venue, answers),
+      reasons,
     };
   });
 

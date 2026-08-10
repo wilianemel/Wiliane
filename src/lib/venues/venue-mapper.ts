@@ -41,6 +41,7 @@ function mapPriceRange(value: string | null): PriceRange {
 export function mapVenueRow(row: VenueRow): Venue {
   return {
     id: row.slug,
+    venueId: row.id,
     name: row.name,
     category: row.category,
     city: row.city,

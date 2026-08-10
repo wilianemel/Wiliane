@@ -1,8 +1,12 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import type { Venue } from "@/data/venues";
 import { humanizeSlug } from "@/lib/format/humanize-slug";
 import { formatRecommendationReason } from "@/lib/format/format-recommendation-reason";
+import { useUser } from "@/lib/auth/auth-context";
+import { trackInteraction } from "@/lib/analytics/track-interaction";
 import {
   ATMOSPHERE_TAG_LABELS,
   COMPANION_TAG_LABELS,
@@ -233,6 +237,16 @@ export function VenueProfile({
   onRestart,
   showHelpCta = false,
 }: VenueProfileProps) {
+  const user = useUser();
+
+  // Best-effort: nunca bloqueia a navegação (o link abre normalmente mesmo
+  // se isso falhar ou demorar) e nunca lança — trackInteraction já engole
+  // erro/sessão ausente internamente.
+  function trackBusinessClick(type: "whatsapp_click" | "route_click" | "reservation_click") {
+    if (!user || !venue.venueId) return;
+    void trackInteraction({ userId: user.id, venueId: venue.venueId, type });
+  }
+
   const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     venue.address,
   )}`;
@@ -522,6 +536,7 @@ export function VenueProfile({
           href={mapsHref}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => trackBusinessClick("route_click")}
           className={`inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-accent px-5 py-3 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-accent-foreground ${focusRing}`}
         >
           <MapIcon />
@@ -532,6 +547,7 @@ export function VenueProfile({
             href={whatsappHref}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => trackBusinessClick("whatsapp_click")}
             className={`inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] ${focusRing}`}
           >
             <WhatsAppIcon />
@@ -546,6 +562,7 @@ export function VenueProfile({
           href={venue.reservationUrl}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => trackBusinessClick("reservation_click")}
           className={`mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full border border-border px-5 py-3 text-sm font-semibold text-foreground transition-colors hover:border-accent hover:text-accent ${focusRing}`}
         >
           <CalendarIcon />

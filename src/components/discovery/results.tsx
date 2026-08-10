@@ -9,9 +9,11 @@ interface ResultsProps {
   results: MatchResult[];
   onRestart: () => void;
   onSelect: (result: MatchResult) => void;
+  /** venue.venueId → recommendation_history.id, quando disponível (ver home-match-flow.tsx). */
+  recommendationHistoryIds?: Record<string, string>;
 }
 
-export function Results({ results, onRestart, onSelect }: ResultsProps) {
+export function Results({ results, onRestart, onSelect, recommendationHistoryIds }: ResultsProps) {
   const hasResults = results.length > 0;
   const isPartial = hasResults && results.length < MAX_RESULTS;
 
@@ -73,6 +75,7 @@ export function Results({ results, onRestart, onSelect }: ResultsProps) {
               featured={index === 0}
               onRestart={onRestart}
               onSelect={() => onSelect(result)}
+              recommendationHistoryId={recommendationHistoryIds?.[result.venue.venueId]}
             />
           ))}
         </div>

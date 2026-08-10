@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Venue } from "@/data/venues";
 import { humanizeSlug } from "@/lib/format/humanize-slug";
 import { VenueCoverImage } from "@/components/shared/venue-cover-image";
+import { FavoriteButton } from "@/components/favorite-button";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -54,11 +55,16 @@ export function SearchResultCard({ venue }: SearchResultCardProps) {
 
   return (
     <article className="flex flex-col overflow-hidden rounded-2xl border border-border bg-background-elevated">
-      <VenueCoverImage
-        venue={venue}
-        className="h-32"
-        sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-      />
+      <div className="relative">
+        <VenueCoverImage
+          venue={venue}
+          className="h-32"
+          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+        />
+        <div className="absolute right-3 top-3">
+          <FavoriteButton venueId={venue.venueId} />
+        </div>
+      </div>
       <div className="flex flex-1 flex-col gap-4 p-6 sm:p-7">
         <div>
           <h3 className="text-lg font-semibold text-foreground sm:text-xl">{venue.name}</h3>
