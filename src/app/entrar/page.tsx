@@ -35,9 +35,7 @@ export default function EntrarPage() {
       setErrorMessage(
         error.message.toLowerCase().includes("invalid")
           ? "E-mail ou senha incorretos."
-          : error.message.toLowerCase().includes("confirm")
-            ? "Confirme seu e-mail antes de entrar — verifique sua caixa de entrada."
-            : "Não foi possível entrar agora. Tente novamente em instantes.",
+          : "Não foi possível entrar agora. Tente novamente em instantes.",
       );
       setLoading(false);
       return;

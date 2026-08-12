@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 const focusRing =
@@ -10,9 +10,10 @@ const focusRing =
 // text-base (16px): abaixo disso o iOS Safari aplica zoom automático ao focar o campo.
 const inputClasses = `w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder:text-muted focus:outline-none ${focusRing}`;
 
-type Status = "idle" | "loading" | "success" | "error";
+type Status = "idle" | "loading" | "error";
 
 export default function CadastroConsumidorPage() {
+  const router = useRouter();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,7 +31,7 @@ export default function CadastroConsumidorPage() {
     setErrorMessage(null);
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
       options: {
@@ -53,25 +54,16 @@ export default function CadastroConsumidorPage() {
       return;
     }
 
-    setStatus("success");
-  }
-
-  if (status === "success") {
-    return (
-      <div className="mx-auto max-w-md px-4 py-16 text-center sm:px-6">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Confirme seu e-mail</h1>
-        <p className="mt-4 text-sm leading-relaxed text-muted">
-          Enviamos um link de confirmação para <strong className="text-foreground">{email}</strong>.
-          Abra o e-mail e confirme sua conta para poder entrar.
-        </p>
-        <Link
-          href="/"
-          className={`mt-8 inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] ${focusRing}`}
-        >
-          Voltar para a Home
-        </Link>
-      </div>
-    );
+    // Confirmação de e-mail está desligada no projeto — signUp() já retorna
+    // uma sessão válida, que o SDK persiste sozinho (AuthProvider reflete
+    // isso via onAuthStateChange). Sem sessão (caso raro/defensivo), manda
+    // pro login em vez de qualquer tela de "confirme seu e-mail".
+    if (data.session) {
+      router.push("/");
+      router.refresh();
+    } else {
+      router.push("/entrar");
+    }
   }
 
   return (
