@@ -270,15 +270,18 @@ export function HomeMatchFlow({ venues }: { venues: Venue[] }) {
         className="pointer-events-none absolute -top-32 left-1/2 h-96 w-[36rem] -translate-x-1/2 rounded-full bg-accent/20 blur-[120px]"
       />
 
-      <div className="relative mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-24">
+      <div className="relative mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-24">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent sm:text-sm">
           Menos tempo procurando. Mais tempo vivendo.
         </p>
-        <h1 className="mt-4 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-          Vamos encontrar a experiência certa para você.
+        <h1 className="mt-3 text-2xl font-bold tracking-tight text-foreground sm:mt-4 sm:text-3xl">
+          Agora me conta uma coisa...
         </h1>
+        <p className="mt-2 text-sm text-muted sm:text-base">
+          Algumas respostas e encontramos lugares que combinam com você.
+        </p>
 
-        <div className="mt-8">
+        <div className="mt-6 sm:mt-8">
           <ProgressBar
             currentStep={stepIndex + 1}
             totalSteps={TOTAL_STEPS}
@@ -286,7 +289,7 @@ export function HomeMatchFlow({ venues }: { venues: Venue[] }) {
           />
         </div>
 
-        <div className="mt-8">
+        <div className="mt-6 sm:mt-8">
           {stepIndex === 0 && (
             <QuestionCard
               name="intention"
@@ -361,7 +364,7 @@ export function HomeMatchFlow({ venues }: { venues: Venue[] }) {
           )}
         </div>
 
-        <div className="mt-10 flex items-center justify-between gap-4">
+        <div className="mt-6 flex items-center justify-between gap-4 sm:mt-10">
           {stepIndex > 0 ? (
             <button
               type="button"
@@ -379,7 +382,7 @@ export function HomeMatchFlow({ venues }: { venues: Venue[] }) {
             type="button"
             onClick={goNext}
             disabled={!isStepValid}
-            className={`inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 ${focusRing}`}
+            className={`inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition-all hover:scale-[1.02] hover:shadow-[0_0_28px_-8px_rgba(255,194,30,0.55)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-none ${focusRing}`}
           >
             {stepIndex === TOTAL_STEPS - 1 ? "Ver recomendações" : "Continuar"}
             <ArrowIcon direction="right" />

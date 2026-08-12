@@ -7,7 +7,8 @@ import { createClient } from "@/lib/supabase/client";
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
-const inputClasses = `w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted focus:outline-none ${focusRing}`;
+// text-base (16px): abaixo disso o iOS Safari aplica zoom automático ao focar o campo.
+const inputClasses = `w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder:text-muted focus:outline-none ${focusRing}`;
 
 type Status = "idle" | "loading" | "success" | "error";
 

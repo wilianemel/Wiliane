@@ -33,7 +33,7 @@ export function Results({ results, onRestart, onSelect, recommendationHistoryIds
         <button
           type="button"
           onClick={onRestart}
-          className={`inline-flex w-fit shrink-0 items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-medium text-muted transition-colors hover:border-accent hover:text-accent ${focusRing}`}
+          className={`inline-flex min-h-11 w-fit shrink-0 items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-medium text-muted transition-colors hover:border-accent hover:text-accent ${focusRing}`}
         >
           Refazer escolha
         </button>

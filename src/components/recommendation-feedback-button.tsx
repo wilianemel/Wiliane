@@ -9,7 +9,7 @@ const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 function buttonClasses(active: boolean) {
-  return `inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+  return `inline-flex min-h-11 items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
     active
       ? "border-accent bg-accent text-accent-foreground"
       : "border-border text-muted hover:border-accent/60 hover:text-accent"
@@ -60,7 +60,7 @@ export function RecommendationFeedbackButton({
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <span className="text-xs text-muted">Essa recomendação foi útil?</span>
       <button
         type="button"

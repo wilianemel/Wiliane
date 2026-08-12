@@ -32,7 +32,7 @@ export function QuestionCard({
       </legend>
       {helperText && <p className="mt-1 text-sm text-muted">{helperText}</p>}
 
-      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="mt-3 grid grid-cols-1 gap-2 sm:mt-4 sm:gap-3 sm:grid-cols-2">
         {options.map((option) => {
           const inputId = `${name}-${option.id}`;
           const isChecked = value === option.id;
@@ -50,7 +50,7 @@ export function QuestionCard({
               />
               <label
                 htmlFor={inputId}
-                className={`block cursor-pointer rounded-xl border border-border bg-background-elevated px-4 py-3 text-sm font-medium text-foreground transition-colors hover:border-accent/60 peer-checked:border-accent peer-checked:bg-accent/10 peer-checked:text-accent ${focusRing} peer-focus-visible:ring-2`}
+                className={`flex min-h-11 cursor-pointer items-center rounded-xl border border-border bg-background-elevated px-4 py-3 text-sm font-medium text-foreground transition-colors hover:border-accent/60 peer-checked:border-accent peer-checked:bg-accent/10 peer-checked:text-accent ${focusRing} peer-focus-visible:ring-2`}
               >
                 {option.label}
               </label>

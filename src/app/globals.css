@@ -38,3 +38,110 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
+
+/*
+ * Microinterações da Home ("cidade viva" + entradas suaves) — só CSS,
+ * nenhuma dependência nova. Ver src/components/home/home-ambient-background.tsx
+ * e os componentes em src/components/home/ que usam essas classes.
+ */
+@keyframes home-ambient-drift-a {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(3%, -4%, 0) scale(1.08);
+  }
+}
+
+@keyframes home-ambient-drift-b {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-4%, 3%, 0) scale(1.05);
+  }
+}
+
+@keyframes home-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes home-twinkle {
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.6);
+  }
+}
+
+@keyframes home-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes home-ping-slow {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.6;
+  }
+  70%,
+  100% {
+    transform: translate(-50%, -50%) scale(2.6);
+    opacity: 0;
+  }
+}
+
+.animate-ambient-drift-a {
+  animation: home-ambient-drift-a 24s ease-in-out infinite;
+}
+
+.animate-ambient-drift-b {
+  animation: home-ambient-drift-b 30s ease-in-out infinite;
+}
+
+.animate-fade-up {
+  animation: home-fade-up 0.7s ease-out both;
+}
+
+.animate-twinkle {
+  animation: home-twinkle 4.5s ease-in-out infinite;
+}
+
+.animate-glow-pulse {
+  animation: home-glow-pulse 5s ease-in-out infinite;
+}
+
+.animate-ping-slow {
+  animation: home-ping-slow 3s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-ambient-drift-a,
+  .animate-ambient-drift-b,
+  .animate-fade-up,
+  .animate-twinkle,
+  .animate-glow-pulse,
+  .animate-ping-slow {
+    animation: none;
+  }
+}

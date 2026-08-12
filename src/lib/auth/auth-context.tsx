@@ -25,11 +25,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const supabase = createClient();
     let active = true;
 
-    supabase.auth.getUser().then(({ data }) => {
-      if (!active) return;
-      setUser(data.user);
-      setLoading(false);
-    });
+    // Falha de rede ao verificar a sessão (comum no mobile) nunca deve
+    // deixar `loading` preso em true para sempre — tratamos como visitante
+    // sem sessão, igual ao caminho de sucesso sem usuário.
+    supabase.auth
+      .getUser()
+      .then(({ data }) => {
+        if (!active) return;
+        setUser(data.user);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error("AUTH SESSION CHECK ERROR:", error);
+        if (!active) return;
+        setUser(null);
+        setLoading(false);
+      });
 
     const {
       data: { subscription },

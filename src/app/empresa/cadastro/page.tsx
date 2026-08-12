@@ -10,7 +10,8 @@ import { NovoEstabelecimentoForm } from "./novo-estabelecimento-form";
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
-const inputClasses = `w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted focus:outline-none ${focusRing}`;
+// text-base (16px): abaixo disso o iOS Safari aplica zoom automático ao focar o campo.
+const inputClasses = `w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder:text-muted focus:outline-none ${focusRing}`;
 
 /** Versão dos textos legais aceitos no cadastro — some com o próprio texto se ele mudar. */
 const TERMS_VERSION = "v1";
@@ -23,18 +24,27 @@ export default function CadastroEmpresaPage() {
   const router = useRouter();
   const [sessionState, setSessionState] = useState<SessionState>("checking");
   const [user, setUser] = useState<User | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     async function loadSession() {
-      const supabase = createClient();
-      const { data } = await supabase.auth.getUser();
-      if (cancelled) return;
-      if (data.user) {
-        setUser(data.user);
-        setSessionState("authenticated");
-      } else {
-        setSessionState("unauthenticated");
+      try {
+        const supabase = createClient();
+        const { data } = await supabase.auth.getUser();
+        if (cancelled) return;
+        if (data.user) {
+          setUser(data.user);
+          setSessionState("authenticated");
+        } else {
+          setSessionState("unauthenticated");
+        }
+      } catch (error) {
+        // Falha de rede ao verificar a sessão (comum no mobile) nunca deve
+        // travar a tela em "checking" para sempre — tratamos como visitante
+        // não autenticado, que ainda consegue seguir o fluxo de cadastro.
+        console.error("CADASTRO EMPRESA SESSION CHECK ERROR:", error);
+        if (!cancelled) setSessionState("unauthenticated");
       }
     }
     loadSession();
@@ -55,13 +65,42 @@ export default function CadastroEmpresaPage() {
   }
 
   if (sessionState === "authenticated" && user) {
+    if (showCreateForm) {
+      return (
+        <NovoEstabelecimentoForm
+          userEmail={user.email ?? ""}
+          onCreated={(venueId) => {
+            router.push(`/empresa/painel?criado=${venueId}`);
+          }}
+        />
+      );
+    }
+
     return (
-      <NovoEstabelecimentoForm
-        userEmail={user.email ?? ""}
-        onCreated={(venueId) => {
-          router.push(`/empresa/painel?criado=${venueId}`);
-        }}
-      />
+      <div className="mx-auto max-w-md px-4 py-16 text-center sm:px-6">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          Encontrar meu estabelecimento
+        </h1>
+        <p className="mt-2 text-sm text-muted">
+          Seu estabelecimento pode já estar cadastrado. Procure antes de criar um novo.
+        </p>
+
+        <div className="mt-8 flex flex-col gap-3">
+          <Link
+            href="/empresa/reivindicar"
+            className={`inline-flex items-center justify-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] ${focusRing}`}
+          >
+            Buscar estabelecimento
+          </Link>
+          <button
+            type="button"
+            onClick={() => setShowCreateForm(true)}
+            className={`inline-flex items-center justify-center gap-2 rounded-full border border-border px-6 py-3 text-sm font-medium text-muted transition-colors hover:border-accent hover:text-accent ${focusRing}`}
+          >
+            Cadastrar novo estabelecimento
+          </button>
+        </div>
+      </div>
     );
   }
 

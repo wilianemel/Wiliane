@@ -31,6 +31,13 @@ function HeartIcon({ filled }: { filled: boolean }) {
 
 interface FavoriteButtonProps {
   venueId: string;
+  /**
+   * "sm" (36px, padrão) é o tamanho já usado nos cards de resultado — mantido
+   * como default para não alterar nada onde o componente já está em uso.
+   * "lg" (44px) existe para telas de detalhe, onde o botão é um alvo de toque
+   * isolado e precisa da área mínima recomendada.
+   */
+  size?: "sm" | "lg";
 }
 
 /**
@@ -38,7 +45,7 @@ interface FavoriteButtonProps {
  * próprio estado direto no Supabase, sem precisar que o card pai (ou o
  * fluxo/rota que o renderiza) busque ou passe esse dado adiante.
  */
-export function FavoriteButton({ venueId }: FavoriteButtonProps) {
+export function FavoriteButton({ venueId, size = "sm" }: FavoriteButtonProps) {
   const user = useUser();
   const router = useRouter();
   const [favorited, setFavorited] = useState(false);
@@ -87,6 +94,8 @@ export function FavoriteButton({ venueId }: FavoriteButtonProps) {
     setPending(false);
   }
 
+  const sizeClasses = size === "lg" ? "h-11 w-11" : "h-9 w-9";
+
   return (
     <button
       type="button"
@@ -94,7 +103,7 @@ export function FavoriteButton({ venueId }: FavoriteButtonProps) {
       disabled={pending}
       aria-pressed={favorited}
       title={favorited ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-      className={`inline-flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+      className={`inline-flex ${sizeClasses} items-center justify-center rounded-full border backdrop-blur transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
         favorited
           ? "border-accent bg-accent text-accent-foreground"
           : "border-border/60 bg-background/70 text-foreground hover:border-accent/60 hover:text-accent"

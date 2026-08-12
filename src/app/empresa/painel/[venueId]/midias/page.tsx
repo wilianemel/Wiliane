@@ -353,13 +353,13 @@ function GallerySlot({ venueId }: { venueId: string }) {
       ) : (
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {items.map((item) => (
-            <div key={item.name} className="group relative aspect-square overflow-hidden rounded-xl border border-border">
+            <div key={item.name} className="relative aspect-square overflow-hidden rounded-xl border border-border">
               <Image src={item.url} alt="Foto da galeria" fill sizes="200px" className="object-cover" />
               <button
                 type="button"
                 onClick={() => handleRemove(item.name)}
                 disabled={status === "uploading"}
-                className="absolute right-1 top-1 rounded-full bg-black/70 px-2 py-1 text-[10px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 disabled:cursor-not-allowed"
+                className="absolute right-2 top-2 inline-flex min-h-11 items-center justify-center rounded-full bg-black/80 px-3 text-xs font-medium text-white disabled:cursor-not-allowed"
               >
                 Remover
               </button>

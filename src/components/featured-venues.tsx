@@ -61,7 +61,7 @@ function VenueCard({ venue }: { venue: Venue }) {
 
         <Link
           href={`/lugares/${venue.id}`}
-          className="mt-auto rounded-full border border-accent py-2 text-center text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="mt-auto flex min-h-11 items-center justify-center rounded-full border border-accent py-2 text-center text-sm font-semibold text-accent transition-all hover:bg-accent hover:text-accent-foreground hover:shadow-[0_0_24px_-10px_rgba(255,194,30,0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           Ver experiência
         </Link>
@@ -79,11 +79,11 @@ export function FeaturedVenues({ venues }: { venues: Venue[] }) {
     <section id="experiencias" className="scroll-mt-20 border-t border-border/60">
       <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
         <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-          Experiências em destaque
+          Continue descobrindo
         </h2>
         <p className="mt-2 max-w-2xl text-sm text-muted sm:text-base">
-          Lugares publicados na base do MVP. Registros demonstrativos são
-          identificados com transparência em seus perfis.
+          Mais experiências publicadas na base do MVP. Registros demonstrativos
+          são identificados com transparência em seus perfis.
         </p>
 
         {venues.length === 0 ? (

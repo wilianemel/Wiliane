@@ -78,7 +78,7 @@ export function ResultCard({
           sizes="(min-width: 1024px) 33vw, 100vw"
         />
         <div className="absolute right-3 top-3">
-          <FavoriteButton venueId={venue.venueId} />
+          <FavoriteButton venueId={venue.venueId} size="lg" />
         </div>
       </div>
       <div className="flex flex-1 flex-col gap-4 p-6 sm:p-7">
@@ -169,14 +169,14 @@ export function ResultCard({
           <button
             type="button"
             onClick={onSelect}
-            className={`rounded-full border border-accent px-5 py-2 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-accent-foreground ${focusRing}`}
+            className={`inline-flex min-h-11 items-center justify-center rounded-full border border-accent px-5 py-2 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-accent-foreground ${focusRing}`}
           >
             Ver experiência
           </button>
           <button
             type="button"
             onClick={onRestart}
-            className={`text-sm font-medium text-muted underline-offset-4 transition-colors hover:text-accent hover:underline ${focusRing} rounded`}
+            className={`inline-flex min-h-11 items-center justify-center text-sm font-medium text-muted underline-offset-4 transition-colors hover:text-accent hover:underline ${focusRing} rounded`}
           >
             Refazer escolha
           </button>

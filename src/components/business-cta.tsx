@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { BrandLogo } from "@/components/shared/brand-logo";
 
 const highlights = [
@@ -41,15 +42,14 @@ export function BusinessCta() {
             </div>
 
             <div className="flex flex-col items-start gap-2 lg:items-end">
-              <button
-                type="button"
-                title="Cadastro disponível em breve"
-                className="rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] sm:text-base"
+              <Link
+                href="/empresa/cadastro"
+                className="rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition-all hover:scale-[1.02] hover:shadow-[0_0_28px_-8px_rgba(255,194,30,0.55)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:text-base"
               >
                 Cadastrar meu estabelecimento
-              </button>
+              </Link>
               <span className="text-xs text-muted">
-                Cadastro disponível em breve.
+                Cadastro gratuito e rápido.
               </span>
             </div>
           </div>

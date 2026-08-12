@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { Venue } from "@/data/venues";
@@ -7,6 +8,8 @@ import { humanizeSlug } from "@/lib/format/humanize-slug";
 import { formatRecommendationReason } from "@/lib/format/format-recommendation-reason";
 import { useUser } from "@/lib/auth/auth-context";
 import { trackInteraction } from "@/lib/analytics/track-interaction";
+import { FavoriteButton } from "@/components/favorite-button";
+import { BrandLogo } from "@/components/shared/brand-logo";
 import {
   ATMOSPHERE_TAG_LABELS,
   COMPANION_TAG_LABELS,
@@ -33,19 +36,6 @@ function ArrowLeftIcon() {
       aria-hidden="true"
     >
       <path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5M11 18l-6-6 6-6" />
-    </svg>
-  );
-}
-
-function PlayIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className="h-6 w-6"
-      aria-hidden="true"
-    >
-      <path d="M8 5v14l11-7-11-7Z" />
     </svg>
   );
 }
@@ -220,7 +210,13 @@ interface VenueProfileProps {
   backLabel: string;
   /** Navegação client-side (usada dentro do fluxo de descoberta, sem recarregar a página). */
   onBack?: () => void;
-  /** Navegação por link (usada na rota direta `/lugares/[id]`). */
+  /**
+   * Mantido por compatibilidade de props — não é mais usado para renderizar
+   * um link interno. A rota direta `/lugares/[id]` já tem seu próprio
+   * cabeçalho com link de volta; um segundo "voltar" aqui dentro só
+   * duplicava a navegação. Sem `onBack`, nenhum botão de voltar é
+   * renderizado por este componente.
+   */
   backHref?: string;
   /** Só existe dentro do fluxo de descoberta, para refazer as respostas. */
   onRestart?: () => void;
@@ -233,11 +229,11 @@ export function VenueProfile({
   match,
   backLabel,
   onBack,
-  backHref,
   onRestart,
   showHelpCta = false,
 }: VenueProfileProps) {
   const user = useUser();
+  const [coverFailed, setCoverFailed] = useState(false);
 
   // Best-effort: nunca bloqueia a navegação (o link abre normalmente mesmo
   // se isso falhar ou demorar) e nunca lança. Conta tanto usuário logado
@@ -288,7 +284,7 @@ export function VenueProfile({
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-14">
-      {onBack ? (
+      {onBack && (
         <button
           type="button"
           onClick={onBack}
@@ -297,15 +293,48 @@ export function VenueProfile({
           <ArrowLeftIcon />
           {backLabel}
         </button>
-      ) : (
-        <Link
-          href={backHref ?? "/"}
-          className={`inline-flex items-center gap-2 text-sm font-medium text-muted transition-colors hover:text-accent ${focusRing} rounded`}
-        >
-          <ArrowLeftIcon />
-          {backLabel}
-        </Link>
       )}
+
+      {/* Vídeo e fotos — prioridade 1 no mobile: a pessoa vê o lugar antes de ler qualquer texto sobre ele. */}
+      <section className="mt-6">
+        {venue.videoUrl ? (
+          <VenueVideoPlayer
+            videoUrl={venue.videoUrl}
+            venueName={venue.name}
+            gradient={venue.gradient}
+          />
+        ) : venue.coverImageUrl && !coverFailed ? (
+          <div className="relative aspect-video overflow-hidden rounded-2xl">
+            <Image
+              src={venue.coverImageUrl}
+              alt={`Foto de capa de ${venue.name}`}
+              fill
+              sizes="(min-width: 768px) 768px, 100vw"
+              className="object-cover"
+              priority
+              onError={() => setCoverFailed(true)}
+            />
+          </div>
+        ) : (
+          <div
+            className={`relative flex aspect-video items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br ${venue.gradient}`}
+          >
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -top-10 left-1/2 h-40 w-64 -translate-x-1/2 rounded-full bg-accent/25 blur-[80px]"
+            />
+            <div className="relative flex flex-col items-center gap-3 px-6 text-center">
+              <BrandLogo variant="yellow" size="small" />
+              <p className="text-sm font-semibold text-foreground">
+                Este lugar está preparando sua experiência visual.
+              </p>
+              <p className="text-xs text-foreground/70">
+                Em breve, fotos e vídeos reais deste estabelecimento.
+              </p>
+            </div>
+          </div>
+        )}
+      </section>
 
       <header className="mt-6">
         {venue.isDemo && (
@@ -345,68 +374,20 @@ export function VenueProfile({
         <p className="mt-3 text-sm text-foreground sm:text-base">{venue.description}</p>
       </header>
 
-      {/* Vídeo e fotos */}
-      <section className="mt-8">
-        {venue.videoUrl ? (
-          <VenueVideoPlayer
-            videoUrl={venue.videoUrl}
-            venueName={venue.name}
-            gradient={venue.gradient}
-          />
-        ) : venue.coverImageUrl ? (
-          <div className="relative aspect-video overflow-hidden rounded-2xl">
-            <Image
-              src={venue.coverImageUrl}
-              alt={`Foto de capa de ${venue.name}`}
-              fill
-              sizes="(min-width: 768px) 768px, 100vw"
-              className="object-cover"
-              priority
-            />
-          </div>
-        ) : (
-          <div
-            className={`flex aspect-video items-center justify-center rounded-2xl bg-gradient-to-br ${venue.gradient}`}
-          >
-            <div className="flex flex-col items-center gap-2 text-center">
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-background/40 text-foreground">
-                <PlayIcon />
-              </span>
-              <p className="px-4 text-xs text-foreground/80">
-                Vídeo e fotos reais deste local chegam em breve.
-              </p>
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* Galeria — listada diretamente do Storage; só aparece quando há arquivos reais */}
-      {venue.galleryUrls && venue.galleryUrls.length > 0 && (
-        <section className="mt-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Galeria</h2>
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {venue.galleryUrls.map((url) => (
-              <a
-                key={url}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="relative aspect-square overflow-hidden rounded-xl"
-              >
-                <Image
-                  src={url}
-                  alt={`Foto da galeria de ${venue.name}`}
-                  fill
-                  sizes="(min-width: 640px) 25vw, 50vw"
-                  className="object-cover"
-                />
-              </a>
-            ))}
-          </div>
+      {/* Informações inteligentes coletadas no cadastro — "esse lugar combina comigo".
+          Vem antes de "Motivos do match" de propósito: a sensação/experiência do
+          lugar em si importa mais que o cálculo de compatibilidade. */}
+      {experienceLabels.length > 0 && (
+        <section className="mt-8">
+          <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted">
+            <SparkleIcon />
+            A experiência
+          </h2>
+          <TagPillList items={experienceLabels} />
         </section>
       )}
 
-      {/* Motivos do match — só existe vindo do fluxo de descoberta */}
+      {/* Motivos do match — só existe vindo do fluxo de descoberta; é o "por que visitar". */}
       {match && (
         <section className="mt-8 rounded-xl border border-border/80 bg-background-elevated p-5">
           <div className="flex items-center justify-between gap-3">
@@ -426,17 +407,6 @@ export function VenueProfile({
               </li>
             ))}
           </ul>
-        </section>
-      )}
-
-      {/* Informações inteligentes coletadas no cadastro — "esse lugar combina comigo" */}
-      {experienceLabels.length > 0 && (
-        <section className="mt-8">
-          <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted">
-            <SparkleIcon />
-            A experiência
-          </h2>
-          <TagPillList items={experienceLabels} />
         </section>
       )}
 
@@ -484,6 +454,86 @@ export function VenueProfile({
         </ul>
       </section>
 
+      {/* Endereço — prioridade "localização", logo antes dos botões de contato */}
+      <section className="mt-8">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+          Endereço
+        </h2>
+        <p className="mt-2 flex items-start gap-2 text-sm text-foreground">
+          <PinIcon />
+          {venue.address}
+        </p>
+      </section>
+
+      {/* Ações principais — última etapa da vitrine, quando a decisão já foi
+          formada: 1) WhatsApp, 2) Favoritar, 3) Reserva (se existir), 4) Ver
+          rota. As três ações de contato têm o mesmo peso visual dourado —
+          nenhuma delas deve parecer secundária. Empilhadas em coluna no
+          mobile, lado a lado a partir de sm:. */}
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        {whatsappHref && (
+          <a
+            href={whatsappHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => trackBusinessClick("whatsapp_click")}
+            className={`inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-accent px-5 py-3.5 text-sm font-semibold text-accent-foreground transition-all hover:scale-[1.02] hover:shadow-[0_0_28px_-8px_rgba(255,194,30,0.55)] sm:min-w-[45%] ${focusRing}`}
+          >
+            <WhatsAppIcon />
+            {whatsappLabel}
+          </a>
+        )}
+        <FavoriteButton venueId={venue.venueId} size="lg" />
+        {venue.reservationUrl && (
+          <a
+            href={venue.reservationUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => trackBusinessClick("reservation_click")}
+            className={`inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-accent bg-accent/10 px-5 py-3.5 text-sm font-semibold text-accent transition-all hover:bg-accent hover:text-accent-foreground hover:shadow-[0_0_28px_-8px_rgba(255,194,30,0.55)] sm:min-w-[45%] ${focusRing}`}
+          >
+            <CalendarIcon />
+            Fazer reserva
+          </a>
+        )}
+        <a
+          href={mapsHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => trackBusinessClick("route_click")}
+          className={`inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-accent px-5 py-3.5 text-sm font-semibold text-accent transition-all hover:bg-accent hover:text-accent-foreground hover:shadow-[0_0_28px_-8px_rgba(255,194,30,0.55)] sm:min-w-[45%] ${focusRing}`}
+        >
+          <MapIcon />
+          Ver rota
+        </a>
+      </div>
+
+      {/* Galeria — listada diretamente do Storage; só aparece quando há arquivos reais. Detalhe complementar, depois do essencial. */}
+      {venue.galleryUrls && venue.galleryUrls.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Galeria</h2>
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {venue.galleryUrls.map((url) => (
+              <a
+                key={url}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="relative aspect-square overflow-hidden rounded-xl"
+              >
+                <Image
+                  src={url}
+                  alt={`Foto da galeria de ${venue.name}`}
+                  fill
+                  sizes="(min-width: 640px) 25vw, 50vw"
+                  className="object-cover"
+                />
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Programação */}
       <section className="mt-8">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
@@ -520,57 +570,6 @@ export function VenueProfile({
           · confiabilidade {venue.isDemo ? "demonstrativa " : ""}de {venue.dataConfidence}%.
         </p>
       </section>
-
-      {/* Endereço */}
-      <section className="mt-8">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
-          Endereço
-        </h2>
-        <p className="mt-2 flex items-start gap-2 text-sm text-foreground">
-          <PinIcon />
-          {venue.address}
-        </p>
-      </section>
-
-      {/* Rota ou WhatsApp */}
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-        <a
-          href={mapsHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={() => trackBusinessClick("route_click")}
-          className={`inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-accent px-5 py-3 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-accent-foreground ${focusRing}`}
-        >
-          <MapIcon />
-          Ver rota
-        </a>
-        {whatsappHref && (
-          <a
-            href={whatsappHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => trackBusinessClick("whatsapp_click")}
-            className={`inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] ${focusRing}`}
-          >
-            <WhatsAppIcon />
-            {whatsappLabel}
-          </a>
-        )}
-      </div>
-
-      {/* Reserva — só aparece quando o estabelecimento tem uma URL real cadastrada */}
-      {venue.reservationUrl && (
-        <a
-          href={venue.reservationUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={() => trackBusinessClick("reservation_click")}
-          className={`mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full border border-border px-5 py-3 text-sm font-semibold text-foreground transition-colors hover:border-accent hover:text-accent ${focusRing}`}
-        >
-          <CalendarIcon />
-          Fazer reserva
-        </a>
-      )}
 
       <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2">
         {onRestart && (
