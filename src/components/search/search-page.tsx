@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Venue } from "@/data/venues";
 import { EMPTY_VENUE_FILTERS, searchVenues, type VenueFilters } from "@/lib/search-venues";
+import type { RegionWithCities } from "@/lib/venues/city-repository";
 import { SearchFilters } from "./search-filters";
 import { SearchResultCard } from "./search-result-card";
 
@@ -46,9 +47,19 @@ interface SearchPageProps {
   initialQuery: string;
   /** Controla o título/subtítulo próprios da busca — útil quando a página que reaproveita este componente já tem seu próprio <h1>. Padrão true, preserva o comportamento atual de /buscar. */
   showHeader?: boolean;
+  /** Regiões/cidades (regions/cities) para o seletor de cidade. Opcional e
+   * default vazio de propósito — quem não passar (ex.: ExplorationPage em
+   * /descobrir) continua funcionando exatamente como antes, só sem a lista
+   * de cidades ampliada. */
+  regions?: RegionWithCities[];
 }
 
-export function SearchPage({ venues, initialQuery, showHeader = true }: SearchPageProps) {
+export function SearchPage({
+  venues,
+  initialQuery,
+  showHeader = true,
+  regions = [],
+}: SearchPageProps) {
   const [query, setQuery] = useState(initialQuery);
   const [filters, setFilters] = useState<VenueFilters>(EMPTY_VENUE_FILTERS);
 
@@ -58,8 +69,8 @@ export function SearchPage({ venues, initialQuery, showHeader = true }: SearchPa
   );
 
   const hasActiveFilters =
+    filters.city !== null ||
     filters.category !== null ||
-    filters.neighborhood !== null ||
     filters.priceRange !== null ||
     filters.openNowOnly ||
     filters.liveMusicOnly;
@@ -126,6 +137,7 @@ export function SearchPage({ venues, initialQuery, showHeader = true }: SearchPa
 
       <SearchFilters
         venues={venues}
+        regions={regions}
         filters={filters}
         onChange={setFilters}
         onClear={clearFilters}

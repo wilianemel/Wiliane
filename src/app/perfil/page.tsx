@@ -49,7 +49,13 @@ export default function PerfilPage() {
   if (!user) {
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center sm:px-6">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Você não está logado</h1>
+        <Link
+          href="/"
+          className={`inline-flex items-center gap-2 text-sm font-medium text-muted transition-colors hover:text-accent ${focusRing} rounded`}
+        >
+          ← Voltar para Home
+        </Link>
+        <h1 className="mt-6 text-2xl font-bold tracking-tight text-foreground">Você não está logado</h1>
         <p className="mt-4 text-sm text-muted">Entre na sua conta para ver seu perfil.</p>
         <Link
           href="/entrar"
@@ -68,7 +74,14 @@ export default function PerfilPage() {
 
   return (
     <div className="mx-auto max-w-md px-4 py-10 sm:px-6 sm:py-14">
-      <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Meu perfil</h1>
+      <Link
+        href="/"
+        className={`inline-flex items-center gap-2 text-sm font-medium text-muted transition-colors hover:text-accent ${focusRing} rounded`}
+      >
+        ← Voltar para Home
+      </Link>
+
+      <h1 className="mt-6 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Meu perfil</h1>
 
       <div className="mt-8 flex flex-col gap-4">
         <div className="rounded-xl border border-border px-4 py-3">

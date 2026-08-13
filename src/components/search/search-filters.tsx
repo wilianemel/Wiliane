@@ -1,5 +1,6 @@
 import type { PriceRange, Venue } from "@/data/venues";
 import type { VenueFilters } from "@/lib/search-venues";
+import type { RegionWithCities } from "@/lib/venues/city-repository";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -9,8 +10,19 @@ const selectClasses =
 
 const PRICE_RANGES: PriceRange[] = ["$", "$$", "$$$"];
 
+/** Rótulos mais claros para a mesma faixa de preço já usada nos dados existentes — o valor salvo continua "$"/"$$"/"$$$". */
+const PRICE_RANGE_LABELS: Record<PriceRange, string> = {
+  $: "$ - Até R$50",
+  $$: "$$ - R$50 até R$150",
+  $$$: "$$$ - Acima de R$150",
+};
+
+/** Categorias preparadas para estabelecimentos que ainda não existem na base — aparecem no filtro mesmo sem nenhum resultado ainda, mesmo espírito de "preparado para o futuro" já usado em outras partes do projeto. */
+const PREPARED_CATEGORIES = ["Padaria", "Eventos", "Baladas", "Pub"];
+
 interface SearchFiltersProps {
   venues: Venue[];
+  regions: RegionWithCities[];
   filters: VenueFilters;
   onChange: (filters: VenueFilters) => void;
   onClear: () => void;
@@ -19,30 +31,45 @@ interface SearchFiltersProps {
 
 export function SearchFilters({
   venues,
+  regions,
   filters,
   onChange,
   onClear,
   hasActiveFilters,
 }: SearchFiltersProps) {
-  const categories = Array.from(new Set(venues.map((venue) => venue.category))).sort((a, b) =>
-    a.localeCompare(b),
-  );
-  const neighborhoods = Array.from(new Set(venues.map((venue) => venue.neighborhood))).sort(
-    (a, b) => a.localeCompare(b),
-  );
+  const categories = Array.from(
+    new Set([...venues.map((venue) => venue.category), ...PREPARED_CATEGORIES]),
+  ).sort((a, b) => a.localeCompare(b, "pt-BR"));
 
   return (
     <div className="mt-6 rounded-2xl border border-border bg-background-elevated p-4 sm:p-5">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <div className="flex flex-col gap-1">
           <label htmlFor="filtro-cidade" className="text-xs font-medium text-muted">
             Cidade
           </label>
-          <select id="filtro-cidade" className={selectClasses} defaultValue="sjc">
-            <option value="sjc">São José dos Campos</option>
-            <option value="outras" disabled>
-              Outras cidades em breve
-            </option>
+          <select
+            id="filtro-cidade"
+            className={selectClasses}
+            value={filters.city ?? ""}
+            onChange={(event) => onChange({ ...filters, city: event.target.value || null })}
+          >
+            <option value="">Todas as cidades</option>
+            {regions.length > 0 ? (
+              regions.map((region) => (
+                <optgroup key={region.id} label={region.name}>
+                  {region.cities.map((city) => (
+                    <option key={city.id} value={city.name}>
+                      {city.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ))
+            ) : (
+              // Fallback enquanto regions/cities não estiver disponível no
+              // Supabase — mantém pelo menos a cidade que já existe hoje.
+              <option value="São José dos Campos">São José dos Campos</option>
+            )}
           </select>
         </div>
 
@@ -68,27 +95,6 @@ export function SearchFilters({
         </div>
 
         <div className="flex flex-col gap-1">
-          <label htmlFor="filtro-bairro" className="text-xs font-medium text-muted">
-            Bairro
-          </label>
-          <select
-            id="filtro-bairro"
-            className={selectClasses}
-            value={filters.neighborhood ?? ""}
-            onChange={(event) =>
-              onChange({ ...filters, neighborhood: event.target.value || null })
-            }
-          >
-            <option value="">Todos</option>
-            {neighborhoods.map((neighborhood) => (
-              <option key={neighborhood} value={neighborhood}>
-                {neighborhood}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="flex flex-col gap-1">
           <label htmlFor="filtro-preco" className="text-xs font-medium text-muted">
             Faixa de preço
           </label>
@@ -103,10 +109,10 @@ export function SearchFilters({
               })
             }
           >
-            <option value="">Todas</option>
+            <option value="">Todos</option>
             {PRICE_RANGES.map((price) => (
               <option key={price} value={price}>
-                {price}
+                {PRICE_RANGE_LABELS[price]}
               </option>
             ))}
           </select>

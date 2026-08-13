@@ -10,6 +10,8 @@ import { useUser } from "@/lib/auth/auth-context";
 import { trackInteraction } from "@/lib/analytics/track-interaction";
 import { FavoriteButton } from "@/components/favorite-button";
 import { BrandLogo } from "@/components/shared/brand-logo";
+import { VenueRatingSummary } from "./venue-rating-summary";
+import { VenueReviewForm } from "./venue-review-form";
 import {
   ATMOSPHERE_TAG_LABELS,
   COMPANION_TAG_LABELS,
@@ -234,6 +236,7 @@ export function VenueProfile({
 }: VenueProfileProps) {
   const user = useUser();
   const [coverFailed, setCoverFailed] = useState(false);
+  const [showReviewForm, setShowReviewForm] = useState(false);
 
   // Best-effort: nunca bloqueia a navegação (o link abre normalmente mesmo
   // se isso falhar ou demorar) e nunca lança. Conta tanto usuário logado
@@ -247,11 +250,15 @@ export function VenueProfile({
   const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     venue.address,
   )}`;
-  // Sem número real, o link de WhatsApp não é montado — o botão some
-  // (ver seção "Rota ou WhatsApp"), em vez de apontar para um link quebrado.
-  const hasValidWhatsapp = venue.whatsappNumber.trim().length > 0;
+  // Normaliza removendo tudo que não é dígito (espaço, parênteses, hífen,
+  // "+") — o dono pode ter digitado em qualquer formato, mas wa.me só
+  // aceita dígitos. Sem número real, o link de WhatsApp não é montado — o
+  // botão some (ver seção "Rota ou WhatsApp"), em vez de apontar para um
+  // link quebrado.
+  const normalizedWhatsappNumber = venue.whatsappNumber.replace(/\D/g, "");
+  const hasValidWhatsapp = normalizedWhatsappNumber.length > 0;
   const whatsappHref = hasValidWhatsapp
-    ? `https://wa.me/${venue.whatsappNumber}?text=${encodeURIComponent(
+    ? `https://wa.me/${normalizedWhatsappNumber}?text=${encodeURIComponent(
         `Olá! Vim pelo Qual é a Boa e gostaria de saber mais sobre o ${venue.name}.`,
       )}`
     : null;
@@ -373,6 +380,28 @@ export function VenueProfile({
         </p>
         <p className="mt-3 text-sm text-foreground sm:text-base">{venue.description}</p>
       </header>
+
+      {/* Avaliações — resumo público sempre visível; formulário de escrita
+          fica atrás de um link discreto, não exposto de cara, e só some
+          para quem não está logado (VenueReviewForm cuida disso). Depende
+          de public.reviews (028) — funciona com fallback gracioso se essa
+          migration ainda não tiver sido aplicada. */}
+      {venue.venueId && (
+        <section className="mt-4 flex flex-col gap-2">
+          <VenueRatingSummary venueId={venue.venueId} />
+          {!showReviewForm ? (
+            <button
+              type="button"
+              onClick={() => setShowReviewForm(true)}
+              className={`w-fit text-sm text-accent transition-colors hover:underline ${focusRing} rounded`}
+            >
+              Avaliar este lugar
+            </button>
+          ) : (
+            <VenueReviewForm venueId={venue.venueId} onSubmitted={() => setShowReviewForm(false)} />
+          )}
+        </section>
+      )}
 
       {/* Informações inteligentes coletadas no cadastro — "esse lugar combina comigo".
           Vem antes de "Motivos do match" de propósito: a sensação/experiência do

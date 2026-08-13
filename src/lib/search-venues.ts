@@ -8,16 +8,16 @@ import type { PriceRange, Venue } from "@/data/venues";
  */
 
 export interface VenueFilters {
+  city: string | null;
   category: string | null;
-  neighborhood: string | null;
   priceRange: PriceRange | null;
   openNowOnly: boolean;
   liveMusicOnly: boolean;
 }
 
 export const EMPTY_VENUE_FILTERS: VenueFilters = {
+  city: null,
   category: null,
-  neighborhood: null,
   priceRange: null,
   openNowOnly: false,
   liveMusicOnly: false,
@@ -81,8 +81,8 @@ function scoreVenueForQuery(venue: Venue, normalizedQuery: string): number {
 }
 
 function matchesFilters(venue: Venue, filters: VenueFilters): boolean {
+  if (filters.city && normalize(venue.city) !== normalize(filters.city)) return false;
   if (filters.category && venue.category !== filters.category) return false;
-  if (filters.neighborhood && venue.neighborhood !== filters.neighborhood) return false;
   if (filters.priceRange && venue.priceRange !== filters.priceRange) return false;
   if (filters.openNowOnly && !venue.openNow) return false;
   if (filters.liveMusicOnly && !venue.intentions.includes("musica-ao-vivo")) return false;
