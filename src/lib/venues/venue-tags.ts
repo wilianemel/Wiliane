@@ -33,7 +33,11 @@ export type VenueAtmosphereTag =
   | "instagramavel"
   | "cultural"
   | "pet-friendly"
-  | "badalado";
+  | "badalado"
+  | "vista-bonita"
+  | "area-externa"
+  | "estacionamento"
+  | "espaco-kids";
 
 export type VenueCompanionTag =
   | CompanionId
@@ -109,7 +113,7 @@ export const ATMOSPHERE_TAG_GROUPS: TagGroup[] = [
     ],
   },
   {
-    title: "Experiência",
+    title: "Diferenciais",
     options: [
       { id: "musica-ao-vivo", label: "Música ao vivo" },
       { id: "natureza", label: "Natureza" },
@@ -118,6 +122,10 @@ export const ATMOSPHERE_TAG_GROUPS: TagGroup[] = [
       { id: "cultural", label: "Cultural" },
       { id: "pet-friendly", label: "Pet friendly" },
       { id: "badalado", label: "Badalado" },
+      { id: "vista-bonita", label: "Vista bonita" },
+      { id: "area-externa", label: "Área externa" },
+      { id: "estacionamento", label: "Estacionamento" },
+      { id: "espaco-kids", label: "Espaço kids" },
     ],
   },
 ];

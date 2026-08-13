@@ -6,6 +6,17 @@ import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { VenueAccessGate } from "@/components/empresa/venue-access-gate";
 import type { VenueOwnerRow } from "@/lib/venues/venue-owner";
+import { VENUE_CATEGORIES } from "@/lib/venues/venue-categories";
+import {
+  ATMOSPHERE_TAG_GROUPS,
+  COMPANION_TAG_OPTIONS,
+  MOMENT_TAG_GROUPS,
+  MOMENT_TAG_IDS,
+  type VenueAtmosphereTag,
+  type VenueCompanionTag,
+  type VenueMomentTag,
+} from "@/lib/venues/venue-tags";
+import { TagToggleButton, toggleValue } from "@/components/empresa/tag-toggle-button";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -23,11 +34,10 @@ interface FormState {
   neighborhood: string;
   address: string;
   cuisine_types: string;
+  /** Só tags livres — momento (café da manhã, jantar etc.) fica separado, no estado `moments`. */
   tags: string;
   music_styles: string;
-  atmospheres: string;
   intentions: string;
-  companions: string;
   menu_highlights: string;
   schedule: string;
   price_range: string;
@@ -53,6 +63,11 @@ function fromListText(value: string): string[] {
     .filter((item) => item.length > 0);
 }
 
+/** Tags que não são "momento" — as de momento ficam fora do texto livre, no estado `moments` do formulário. */
+function nonMomentTags(tags: string[] | null): string[] {
+  return (tags ?? []).filter((tag) => !MOMENT_TAG_IDS.includes(tag as VenueMomentTag));
+}
+
 function venueToFormState(venue: VenueOwnerRow): FormState {
   return {
     name: venue.name,
@@ -62,11 +77,9 @@ function venueToFormState(venue: VenueOwnerRow): FormState {
     neighborhood: venue.neighborhood,
     address: venue.address,
     cuisine_types: toListText(venue.cuisine_types),
-    tags: toListText(venue.tags),
+    tags: toListText(nonMomentTags(venue.tags)),
     music_styles: toListText(venue.music_styles),
-    atmospheres: toListText(venue.atmospheres),
     intentions: toListText(venue.intentions),
-    companions: toListText(venue.companions),
     menu_highlights: toListText(venue.menu_highlights),
     schedule: toListText(venue.schedule),
     price_range: venue.price_range ?? "$$",
@@ -97,6 +110,13 @@ export default function EditarEstabelecimentoPage() {
 
 function EditForm({ venue }: { venue: VenueOwnerRow; role: string }) {
   const [form, setForm] = useState<FormState>(() => venueToFormState(venue));
+  const [atmospheres, setAtmospheres] = useState<VenueAtmosphereTag[]>(venue.atmospheres ?? []);
+  const [companions, setCompanions] = useState<VenueCompanionTag[]>(venue.companions ?? []);
+  const [moments, setMoments] = useState<VenueMomentTag[]>(
+    (venue.tags ?? []).filter((tag): tag is VenueMomentTag =>
+      MOMENT_TAG_IDS.includes(tag as VenueMomentTag),
+    ),
+  );
   const [status, setStatus] = useState<Status>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -124,11 +144,11 @@ function EditForm({ venue }: { venue: VenueOwnerRow; role: string }) {
         neighborhood: form.neighborhood.trim(),
         address: form.address.trim(),
         cuisine_types: fromListText(form.cuisine_types),
-        tags: fromListText(form.tags),
+        tags: [...fromListText(form.tags), ...moments],
         music_styles: fromListText(form.music_styles),
-        atmospheres: fromListText(form.atmospheres),
+        atmospheres,
         intentions: fromListText(form.intentions),
-        companions: fromListText(form.companions),
+        companions,
         menu_highlights: fromListText(form.menu_highlights),
         schedule: fromListText(form.schedule),
         price_range: form.price_range,
@@ -187,12 +207,23 @@ function EditForm({ venue }: { venue: VenueOwnerRow; role: string }) {
           </div>
           <div>
             <label className={labelClasses}>Categoria</label>
-            <input
+            <select
               value={form.category}
               onChange={(event) => updateField("category", event.target.value)}
               className={`mt-2 ${inputClasses}`}
               required
-            />
+            >
+              <option value="" disabled>
+                Selecione uma categoria
+              </option>
+              {!VENUE_CATEGORIES.includes(form.category as (typeof VENUE_CATEGORIES)[number]) &&
+                form.category && <option value={form.category}>{form.category}</option>}
+              {VENUE_CATEGORIES.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className={labelClasses}>Descrição</label>
@@ -249,11 +280,11 @@ function EditForm({ venue }: { venue: VenueOwnerRow; role: string }) {
             />
           </div>
           <div>
-            <label className={labelClasses}>Tags</label>
+            <label className={labelClasses}>Outras tags</label>
             <input
               value={form.tags}
               onChange={(event) => updateField("tags", event.target.value)}
-              placeholder="Ex.: pet friendly, ao ar livre"
+              placeholder="Ex.: ao ar livre, delivery"
               className={`mt-2 ${inputClasses}`}
             />
           </div>
@@ -266,15 +297,31 @@ function EditForm({ venue }: { venue: VenueOwnerRow; role: string }) {
               className={`mt-2 ${inputClasses}`}
             />
           </div>
-          <div>
-            <label className={labelClasses}>Ambientes</label>
-            <input
-              value={form.atmospheres}
-              onChange={(event) => updateField("atmospheres", event.target.value)}
-              placeholder="Ex.: romantico, casual"
-              className={`mt-2 ${inputClasses}`}
-            />
-          </div>
+          <fieldset>
+            <legend className={labelClasses}>Ambiente</legend>
+            <div className="mt-3 flex flex-col gap-5">
+              {ATMOSPHERE_TAG_GROUPS.map((group) => (
+                <div key={group.title}>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                    {group.title}
+                  </p>
+                  <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {group.options.map((option) => {
+                      const value = option.id as VenueAtmosphereTag;
+                      return (
+                        <TagToggleButton
+                          key={option.id}
+                          label={option.label}
+                          isActive={atmospheres.includes(value)}
+                          onClick={() => setAtmospheres((current) => toggleValue(current, value))}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </fieldset>
           <div>
             <label className={labelClasses}>Intenções</label>
             <input
@@ -284,15 +331,47 @@ function EditForm({ venue }: { venue: VenueOwnerRow; role: string }) {
               className={`mt-2 ${inputClasses}`}
             />
           </div>
-          <div>
-            <label className={labelClasses}>Companhias</label>
-            <input
-              value={form.companions}
-              onChange={(event) => updateField("companions", event.target.value)}
-              placeholder="Ex.: amigos, familia"
-              className={`mt-2 ${inputClasses}`}
-            />
-          </div>
+          <fieldset>
+            <legend className={labelClasses}>Companhias</legend>
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {COMPANION_TAG_OPTIONS.map((option) => {
+                const value = option.id as VenueCompanionTag;
+                return (
+                  <TagToggleButton
+                    key={option.id}
+                    label={option.label}
+                    isActive={companions.includes(value)}
+                    onClick={() => setCompanions((current) => toggleValue(current, value))}
+                  />
+                );
+              })}
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend className={labelClasses}>Momento</legend>
+            <div className="mt-3 flex flex-col gap-5">
+              {MOMENT_TAG_GROUPS.map((group) => (
+                <div key={group.title}>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                    {group.title}
+                  </p>
+                  <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {group.options.map((option) => {
+                      const value = option.id as VenueMomentTag;
+                      return (
+                        <TagToggleButton
+                          key={option.id}
+                          label={option.label}
+                          isActive={moments.includes(value)}
+                          onClick={() => setMoments((current) => toggleValue(current, value))}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </fieldset>
           <div>
             <label className={labelClasses}>Destaques do cardápio</label>
             <input

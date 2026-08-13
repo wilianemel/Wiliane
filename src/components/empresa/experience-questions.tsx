@@ -12,40 +12,12 @@ import {
   type VenueMomentTag,
 } from "@/lib/venues/venue-tags";
 import type { VenueOwnerRow } from "@/lib/venues/venue-owner";
+import { TagToggleButton, toggleValue } from "@/components/empresa/tag-toggle-button";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
-function toggleValue<T>(list: T[], value: T): T[] {
-  return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
-}
-
 type Status = "idle" | "saving" | "saved" | "error";
-
-function TagToggleButton({
-  label,
-  isActive,
-  onClick,
-}: {
-  label: string;
-  isActive: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={isActive}
-      onClick={onClick}
-      className={`rounded-xl border px-4 py-3 text-sm font-medium transition-colors ${focusRing} ${
-        isActive
-          ? "border-accent bg-accent/10 text-accent"
-          : "border-border text-foreground hover:border-accent/60"
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
 
 interface ExperienceQuestionsProps {
   venue: VenueOwnerRow;

@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { VENUE_CATEGORIES } from "@/lib/venues/venue-categories";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -120,15 +121,22 @@ export function NovoEstabelecimentoForm({ userEmail, onCreated }: NovoEstabeleci
           <label htmlFor="venue-category" className="text-sm font-medium text-foreground">
             Categoria
           </label>
-          <input
+          <select
             id="venue-category"
-            type="text"
             value={category}
             onChange={(event) => setCategory(event.target.value)}
-            placeholder="Ex.: Bar, Restaurante, Balada..."
             className={`mt-2 ${inputClasses}`}
             required
-          />
+          >
+            <option value="" disabled>
+              Selecione uma categoria
+            </option>
+            {VENUE_CATEGORIES.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
