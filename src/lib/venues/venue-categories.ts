@@ -29,3 +29,29 @@ export const VENUE_CATEGORIES = [
 ] as const;
 
 export type VenueCategory = (typeof VENUE_CATEGORIES)[number];
+
+export const OTHER_CATEGORY: VenueCategory = "Outros";
+const OTHER_CATEGORY_PREFIX = "Outros - ";
+
+/**
+ * `category` no banco continua sendo uma única string. Quando o dono escolhe
+ * "Outros" e descreve a categoria, salvamos como "Outros - {descrição}" —
+ * essas duas funções convertem entre essa string e o par
+ * (opção do select, texto livre) que o formulário edita.
+ */
+export function splitCategoryValue(category: string): { select: string; custom: string } {
+  if (category.startsWith(OTHER_CATEGORY_PREFIX)) {
+    return { select: OTHER_CATEGORY, custom: category.slice(OTHER_CATEGORY_PREFIX.length) };
+  }
+  if (category.trim() === OTHER_CATEGORY) {
+    return { select: OTHER_CATEGORY, custom: "" };
+  }
+  return { select: category, custom: "" };
+}
+
+export function combineCategoryValue(select: string, custom: string): string {
+  if (select === OTHER_CATEGORY) {
+    return custom.trim() ? `${OTHER_CATEGORY_PREFIX}${custom.trim()}` : OTHER_CATEGORY;
+  }
+  return select;
+}

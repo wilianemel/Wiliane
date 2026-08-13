@@ -9,6 +9,7 @@ import { OWNER_VENUE_COLUMNS, type VenueOwnerRow } from "@/lib/venues/venue-owne
 import { VenueCoverImage } from "@/components/shared/venue-cover-image";
 import { OnboardingChecklist } from "@/components/empresa/onboarding-checklist";
 import { ExperienceQuestions } from "@/components/empresa/experience-questions";
+import { VenueMediaOnboarding } from "@/components/empresa/venue-media-onboarding";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -136,6 +137,10 @@ function PainelEmpresaContent() {
           <ExperienceQuestions
             venue={featuredMembership.venues}
             onSaved={() => user && refreshMemberships(user.id)}
+          />
+          <VenueMediaOnboarding
+            venue={featuredMembership.venues}
+            onVenueUpdated={() => user && refreshMemberships(user.id)}
           />
         </div>
       )}

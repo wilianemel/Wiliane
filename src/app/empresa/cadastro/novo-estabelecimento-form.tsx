@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { VENUE_CATEGORIES } from "@/lib/venues/venue-categories";
+import { VENUE_CATEGORIES, OTHER_CATEGORY, combineCategoryValue } from "@/lib/venues/venue-categories";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -41,6 +41,7 @@ function friendlyRpcError(message: string): string {
 export function NovoEstabelecimentoForm({ userEmail, onCreated }: NovoEstabelecimentoFormProps) {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
+  const [customCategory, setCustomCategory] = useState("");
   const [city, setCity] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
   const [address, setAddress] = useState("");
@@ -51,6 +52,7 @@ export function NovoEstabelecimentoForm({ userEmail, onCreated }: NovoEstabeleci
   const canSubmit =
     name.trim().length > 0 &&
     category.trim().length > 0 &&
+    (category !== OTHER_CATEGORY || customCategory.trim().length > 0) &&
     city.trim().length > 0 &&
     neighborhood.trim().length > 0 &&
     address.trim().length > 0 &&
@@ -68,7 +70,7 @@ export function NovoEstabelecimentoForm({ userEmail, onCreated }: NovoEstabeleci
     // Nunca envia user_id — a função usa auth.uid() internamente.
     const { data, error } = await supabase.rpc("create_owned_venue", {
       p_name: name.trim(),
-      p_category: category.trim(),
+      p_category: combineCategoryValue(category, customCategory).trim(),
       p_city: city.trim(),
       p_neighborhood: neighborhood.trim(),
       p_address: address.trim(),
@@ -138,6 +140,23 @@ export function NovoEstabelecimentoForm({ userEmail, onCreated }: NovoEstabeleci
             ))}
           </select>
         </div>
+
+        {category === OTHER_CATEGORY && (
+          <div>
+            <label htmlFor="venue-custom-category" className="text-sm font-medium text-foreground">
+              Qual categoria descreve melhor seu estabelecimento?
+            </label>
+            <input
+              id="venue-custom-category"
+              type="text"
+              value={customCategory}
+              onChange={(event) => setCustomCategory(event.target.value)}
+              placeholder="Ex.: Casa de shows, Vinícola, Empório..."
+              className={`mt-2 ${inputClasses}`}
+              required
+            />
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>

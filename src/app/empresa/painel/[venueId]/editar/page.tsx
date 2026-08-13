@@ -6,7 +6,12 @@ import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { VenueAccessGate } from "@/components/empresa/venue-access-gate";
 import type { VenueOwnerRow } from "@/lib/venues/venue-owner";
-import { VENUE_CATEGORIES } from "@/lib/venues/venue-categories";
+import {
+  VENUE_CATEGORIES,
+  OTHER_CATEGORY,
+  splitCategoryValue,
+  combineCategoryValue,
+} from "@/lib/venues/venue-categories";
 import {
   ATMOSPHERE_TAG_GROUPS,
   COMPANION_TAG_OPTIONS,
@@ -71,7 +76,7 @@ function nonMomentTags(tags: string[] | null): string[] {
 function venueToFormState(venue: VenueOwnerRow): FormState {
   return {
     name: venue.name,
-    category: venue.category,
+    category: splitCategoryValue(venue.category).select,
     description: venue.description,
     city: venue.city,
     neighborhood: venue.neighborhood,
@@ -110,6 +115,9 @@ export default function EditarEstabelecimentoPage() {
 
 function EditForm({ venue }: { venue: VenueOwnerRow; role: string }) {
   const [form, setForm] = useState<FormState>(() => venueToFormState(venue));
+  const [customCategory, setCustomCategory] = useState(
+    () => splitCategoryValue(venue.category).custom,
+  );
   const [atmospheres, setAtmospheres] = useState<VenueAtmosphereTag[]>(venue.atmospheres ?? []);
   const [companions, setCompanions] = useState<VenueCompanionTag[]>(venue.companions ?? []);
   const [moments, setMoments] = useState<VenueMomentTag[]>(
@@ -138,7 +146,7 @@ function EditForm({ venue }: { venue: VenueOwnerRow; role: string }) {
       .from("venues")
       .update({
         name: form.name.trim(),
-        category: form.category.trim(),
+        category: combineCategoryValue(form.category, customCategory).trim(),
         description: form.description.trim(),
         city: form.city.trim(),
         neighborhood: form.neighborhood.trim(),
@@ -225,6 +233,18 @@ function EditForm({ venue }: { venue: VenueOwnerRow; role: string }) {
               ))}
             </select>
           </div>
+          {form.category === OTHER_CATEGORY && (
+            <div>
+              <label className={labelClasses}>Qual categoria descreve melhor seu estabelecimento?</label>
+              <input
+                value={customCategory}
+                onChange={(event) => setCustomCategory(event.target.value)}
+                placeholder="Ex.: Casa de shows, Vinícola, Empório..."
+                className={`mt-2 ${inputClasses}`}
+                required
+              />
+            </div>
+          )}
           <div>
             <label className={labelClasses}>Descrição</label>
             <textarea
