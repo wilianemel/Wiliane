@@ -9,12 +9,12 @@ export const metadata: Metadata = {
 };
 
 const BENEFITS = [
-  "Perfil completo do estabelecimento",
-  "Fotos e vídeos reais",
-  "Divulgação de cardápio, preços e experiências",
-  "Contato pelo WhatsApp",
-  "Recomendações personalizadas",
-  "Painel para atualizar as informações",
+  "Crie um perfil completo que apresenta sua experiência",
+  "Mostre seu espaço com fotos e vídeos reais",
+  "Informe seus diferenciais, cardápio e valores",
+  "Facilite reservas e contato direto",
+  "Seja encontrado pelas pessoas certas",
+  "Tenha controle do seu estabelecimento",
 ];
 
 function ArrowLeftIcon() {
@@ -86,14 +86,16 @@ export default function ParaEmpresasPage() {
 
             <ul className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-2">
               {BENEFITS.map((benefit) => (
-                <li
-                  key={benefit}
-                  className="flex items-center gap-2 rounded-xl border border-border bg-background-elevated px-4 py-3 text-sm text-foreground"
-                >
-                  <span className="text-accent">
-                    <CheckIcon />
-                  </span>
-                  {benefit}
+                <li key={benefit}>
+                  <Link
+                    href="/empresa/painel"
+                    className="flex cursor-pointer items-center gap-2 rounded-xl border border-border bg-background-elevated px-4 py-3 text-sm text-foreground transition-colors hover:border-accent hover:bg-accent/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  >
+                    <span className="text-accent">
+                      <CheckIcon />
+                    </span>
+                    {benefit}
+                  </Link>
                 </li>
               ))}
             </ul>

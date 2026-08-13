@@ -22,6 +22,7 @@ import {
   type VenueMomentTag,
 } from "@/lib/venues/venue-tags";
 import { TagToggleButton, toggleValue } from "@/components/empresa/tag-toggle-button";
+import { VenueHoursEditor } from "@/components/empresa/venue-hours-editor";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -400,12 +401,23 @@ function EditForm({ venue }: { venue: VenueOwnerRow; role: string }) {
               className={`mt-2 ${inputClasses}`}
             />
           </div>
+        </section>
+
+        <section className="border-t border-border pt-6">
+          <VenueHoursEditor venueId={venue.id} />
+        </section>
+
+        <section className="flex flex-col gap-4 border-t border-border pt-6">
           <div>
-            <label className={labelClasses}>Horário de funcionamento</label>
+            <label className={labelClasses}>Observações</label>
+            <p className="mt-1 text-xs text-muted">
+              Informações adicionais sobre o funcionamento — música ao vivo, eventos, rodízio,
+              avisos.
+            </p>
             <input
               value={form.schedule}
               onChange={(event) => updateField("schedule", event.target.value)}
-              placeholder="Ex.: Ter a Dom, 18h às 00h"
+              placeholder="Ex.: Sexta com música ao vivo às 21h"
               className={`mt-2 ${inputClasses}`}
             />
           </div>
