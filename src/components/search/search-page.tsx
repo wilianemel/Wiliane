@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { Venue } from "@/data/venues";
 import { EMPTY_VENUE_FILTERS, searchVenues, type VenueFilters } from "@/lib/search-venues";
 import type { RegionWithCities } from "@/lib/venues/city-repository";
+import type { VenueHoursStatus } from "@/lib/venues/venue-hours";
 import { SearchFilters } from "./search-filters";
 import { SearchResultCard } from "./search-result-card";
 
@@ -52,6 +53,8 @@ interface SearchPageProps {
    * /descobrir) continua funcionando exatamente como antes, só sem a lista
    * de cidades ampliada. */
   regions?: RegionWithCities[];
+  /** venue.venueId -> status calculado no servidor. Ausente para um venueId = sem horário estruturado, card cai no fallback venue.openNow. */
+  hoursStatusByVenueId?: Record<string, VenueHoursStatus>;
 }
 
 export function SearchPage({
@@ -59,6 +62,7 @@ export function SearchPage({
   initialQuery,
   showHeader = true,
   regions = [],
+  hoursStatusByVenueId,
 }: SearchPageProps) {
   const [query, setQuery] = useState(initialQuery);
   const [filters, setFilters] = useState<VenueFilters>(EMPTY_VENUE_FILTERS);
@@ -175,7 +179,11 @@ export function SearchPage({
       ) : (
         <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {results.map((venue) => (
-            <SearchResultCard key={venue.id} venue={venue} />
+            <SearchResultCard
+              key={venue.id}
+              venue={venue}
+              hoursStatus={hoursStatusByVenueId?.[venue.venueId] ?? null}
+            />
           ))}
         </div>
       )}

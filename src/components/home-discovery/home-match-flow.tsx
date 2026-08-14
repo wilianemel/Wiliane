@@ -21,6 +21,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { UserPreferencesRow } from "@/lib/user-intelligence/preference-score";
 import { saveRecommendationHistory } from "@/lib/recommendations/save-recommendation-history";
 import { VenueViewTracker } from "@/components/analytics/venue-view-tracker";
+import type { VenueHoursStatus } from "@/lib/venues/venue-hours";
 
 /**
  * Fluxo de decisão principal da Home — reaproveita as mesmas peças do
@@ -88,7 +89,14 @@ function LoadingState() {
   );
 }
 
-export function HomeMatchFlow({ venues }: { venues: Venue[] }) {
+export function HomeMatchFlow({
+  venues,
+  hoursStatusByVenueId,
+}: {
+  venues: Venue[];
+  /** venue.venueId -> status calculado no servidor — ver comentário equivalente em search-page.tsx. */
+  hoursStatusByVenueId?: Record<string, VenueHoursStatus>;
+}) {
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<DiscoveryAnswers>(INITIAL_ANSWERS);
   const [phase, setPhase] = useState<Phase>("questions");
@@ -254,6 +262,7 @@ export function HomeMatchFlow({ venues }: { venues: Venue[] }) {
         onRestart={restart}
         onSelect={selectResult}
         recommendationHistoryIds={recommendationHistoryIds}
+        hoursStatusByVenueId={hoursStatusByVenueId}
       />
     );
   }

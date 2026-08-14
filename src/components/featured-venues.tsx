@@ -2,6 +2,8 @@ import Link from "next/link";
 import type { Venue } from "@/data/venues";
 import { humanizeSlug } from "@/lib/format/humanize-slug";
 import { VenueCoverImage } from "@/components/shared/venue-cover-image";
+import { VenueOpenStatusBadge } from "@/components/shared/venue-open-status-badge";
+import type { VenueHoursStatus } from "@/lib/venues/venue-hours";
 
 /** A Home mostra só uma vitrine, não o catálogo inteiro — o restante fica em /buscar. */
 const MAX_FEATURED_VENUES = 6;
@@ -22,7 +24,13 @@ function ClockIcon() {
   );
 }
 
-function VenueCard({ venue }: { venue: Venue }) {
+function VenueCard({
+  venue,
+  hoursStatus,
+}: {
+  venue: Venue;
+  hoursStatus?: VenueHoursStatus | null;
+}) {
   return (
     <article className="flex flex-col overflow-hidden rounded-2xl border border-border bg-background-elevated">
       <VenueCoverImage venue={venue} className="h-36" sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" />
@@ -59,6 +67,8 @@ function VenueCard({ venue }: { venue: Venue }) {
           ))}
         </ul>
 
+        {hoursStatus && <VenueOpenStatusBadge hoursStatus={hoursStatus} openNow={venue.openNow} />}
+
         <Link
           href={`/lugares/${venue.id}`}
           className="mt-auto flex min-h-11 items-center justify-center rounded-full border border-accent py-2 text-center text-sm font-semibold text-accent transition-all hover:bg-accent hover:text-accent-foreground hover:shadow-[0_0_24px_-10px_rgba(255,194,30,0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
@@ -70,7 +80,14 @@ function VenueCard({ venue }: { venue: Venue }) {
   );
 }
 
-export function FeaturedVenues({ venues }: { venues: Venue[] }) {
+export function FeaturedVenues({
+  venues,
+  hoursStatusByVenueId,
+}: {
+  venues: Venue[];
+  /** venue.venueId -> status calculado no servidor — ver comentário equivalente em search-page.tsx. */
+  hoursStatusByVenueId?: Record<string, VenueHoursStatus>;
+}) {
   // A consulta em getPublishedVenues() já ordena is_featured primeiro, então
   // um corte simples aqui preserva os destaques reais sem precisar reordenar.
   const displayedVenues = venues.slice(0, MAX_FEATURED_VENUES);
@@ -93,7 +110,11 @@ export function FeaturedVenues({ venues }: { venues: Venue[] }) {
         ) : (
           <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {displayedVenues.map((venue) => (
-              <VenueCard key={venue.id} venue={venue} />
+              <VenueCard
+                key={venue.id}
+                venue={venue}
+                hoursStatus={hoursStatusByVenueId?.[venue.venueId] ?? null}
+              />
             ))}
           </div>
         )}

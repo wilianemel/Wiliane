@@ -1,6 +1,7 @@
 import type { Venue } from "@/data/venues";
 import { SearchPage } from "@/components/search/search-page";
 import { SearchResultCard } from "@/components/search/search-result-card";
+import type { VenueHoursStatus } from "@/lib/venues/venue-hours";
 
 /** Teto de itens por fileira em carrossel — evita uma seção infinita quando o catálogo crescer. */
 const MAX_SECTION_ITEMS = 8;
@@ -38,12 +39,21 @@ const CURATED_SECTIONS: CuratedSection[] = [
 ];
 
 /** Fileira com scroll horizontal — adaptação mínima: SearchResultCard não muda, só ganha um wrapper com largura fixa. */
-function VenueRow({ venues }: { venues: Venue[] }) {
+function VenueRow({
+  venues,
+  hoursStatusByVenueId,
+}: {
+  venues: Venue[];
+  hoursStatusByVenueId?: Record<string, VenueHoursStatus>;
+}) {
   return (
     <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
       {venues.map((venue) => (
         <div key={venue.id} className="w-72 shrink-0 sm:w-80">
-          <SearchResultCard venue={venue} />
+          <SearchResultCard
+            venue={venue}
+            hoursStatus={hoursStatusByVenueId?.[venue.venueId] ?? null}
+          />
         </div>
       ))}
     </div>
@@ -52,9 +62,11 @@ function VenueRow({ venues }: { venues: Venue[] }) {
 
 interface ExplorationPageProps {
   venues: Venue[];
+  /** venue.venueId -> status calculado no servidor — ver comentário equivalente em search-page.tsx. */
+  hoursStatusByVenueId?: Record<string, VenueHoursStatus>;
 }
 
-export function ExplorationPage({ venues }: ExplorationPageProps) {
+export function ExplorationPage({ venues, hoursStatusByVenueId }: ExplorationPageProps) {
   const sections = CURATED_SECTIONS.map((section) => {
     const matched = venues.filter(section.filter);
     const ordered = section.sort ? [...matched].sort(section.sort) : matched;
@@ -75,7 +87,7 @@ export function ExplorationPage({ venues }: ExplorationPageProps) {
           <section key={section.title} className="mt-10">
             <h2 className="text-lg font-semibold text-foreground sm:text-xl">{section.title}</h2>
             <div className="mt-4">
-              <VenueRow venues={section.venues} />
+              <VenueRow venues={section.venues} hoursStatusByVenueId={hoursStatusByVenueId} />
             </div>
           </section>
         ))}
@@ -83,7 +95,12 @@ export function ExplorationPage({ venues }: ExplorationPageProps) {
 
       {/* Área de exploração completa — busca por texto + filtros + grid, reaproveitada de /buscar sem alterações. */}
       <div className="mt-4 border-t border-border/60">
-        <SearchPage venues={venues} initialQuery="" showHeader={false} />
+        <SearchPage
+          venues={venues}
+          initialQuery=""
+          showHeader={false}
+          hoursStatusByVenueId={hoursStatusByVenueId}
+        />
       </div>
     </div>
   );

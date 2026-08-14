@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SearchPage } from "@/components/search/search-page";
 import { BrandLogo } from "@/components/shared/brand-logo";
-import { getPublishedVenues } from "@/lib/venues/venue-repository";
+import { getPublishedVenues, getVenuesBusinessHours } from "@/lib/venues/venue-repository";
 import { getRegionsWithCities } from "@/lib/venues/city-repository";
+import { buildVenueHoursStatusMap } from "@/lib/venues/venue-hours";
 
 export const metadata: Metadata = {
   title: "Buscar — Qual é a Boa!",
@@ -33,6 +34,9 @@ interface BuscarPageProps {
 export default async function BuscarPage({ searchParams }: BuscarPageProps) {
   const { q } = await searchParams;
   const [venues, regions] = await Promise.all([getPublishedVenues(), getRegionsWithCities()]);
+  // Uma única consulta em lote (evita N+1) — ver comentário equivalente em src/app/page.tsx.
+  const hoursByVenueId = await getVenuesBusinessHours(venues.map((venue) => venue.venueId));
+  const hoursStatusByVenueId = buildVenueHoursStatusMap(hoursByVenueId, new Date());
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -52,7 +56,12 @@ export default async function BuscarPage({ searchParams }: BuscarPageProps) {
       </header>
 
       <main className="flex-1">
-        <SearchPage venues={venues} initialQuery={q ?? ""} regions={regions} />
+        <SearchPage
+          venues={venues}
+          initialQuery={q ?? ""}
+          regions={regions}
+          hoursStatusByVenueId={hoursStatusByVenueId}
+        />
       </main>
     </div>
   );

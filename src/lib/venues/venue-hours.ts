@@ -343,3 +343,23 @@ export function getVenueHoursStatus(
     nextOpeningLabel: `Abre ${dayLabel} às ${next.opens_at}`,
   };
 }
+
+/**
+ * Roda getVenueHoursStatus para vários venues de uma vez, com o mesmo `now`
+ * para todos — usada nas páginas que renderizam listas de cards (Home,
+ * /buscar, /descobrir), depois de um único fetch em lote de
+ * venue_business_hours (getVenuesBusinessHours em venue-repository.ts).
+ * Só inclui no resultado os venues presentes em `hoursByVenueId` — quem não
+ * tem horário estruturado simplesmente não aparece aqui, e cada card cai no
+ * próprio fallback baseado em venue.openNow.
+ */
+export function buildVenueHoursStatusMap(
+  hoursByVenueId: Record<string, VenueBusinessHour[]>,
+  now: Date = new Date(),
+): Record<string, VenueHoursStatus> {
+  const result: Record<string, VenueHoursStatus> = {};
+  for (const [venueId, hours] of Object.entries(hoursByVenueId)) {
+    result[venueId] = getVenueHoursStatus(hours, now);
+  }
+  return result;
+}

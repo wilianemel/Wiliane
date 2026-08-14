@@ -130,3 +130,43 @@ export async function getPublishedVenueBusinessHours(venueId: string): Promise<V
     return null;
   }
 }
+
+/**
+ * Versão em lote de getPublishedVenueBusinessHours, para telas com lista de
+ * cards (Home, /buscar, /descobrir) — uma única consulta
+ * `where venue_id in (...)` em vez de uma por card (evita N+1). Só entram
+ * no objeto retornado os venues que têm pelo menos uma linha cadastrada;
+ * quem não aparece aqui não tem horário estruturado, e o chamador deve
+ * cair no comportamento antigo baseado em venues.open_now para esse venue.
+ */
+export async function getVenuesBusinessHours(
+  venueIds: string[],
+): Promise<Record<string, VenueBusinessHour[]>> {
+  if (venueIds.length === 0) return {};
+
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("venue_business_hours")
+      .select("venue_id, day_of_week, opens_at, closes_at, is_closed")
+      .in("venue_id", venueIds);
+
+    if (error) throw error;
+
+    const rowsByVenueId = new Map<string, VenueBusinessHourRow[]>();
+    for (const row of (data ?? []) as (VenueBusinessHourRow & { venue_id: string })[]) {
+      const rows = rowsByVenueId.get(row.venue_id) ?? [];
+      rows.push(row);
+      rowsByVenueId.set(row.venue_id, rows);
+    }
+
+    const result: Record<string, VenueBusinessHour[]> = {};
+    for (const [venueId, rows] of rowsByVenueId) {
+      result[venueId] = normalizeVenueBusinessHourRows(rows);
+    }
+    return result;
+  } catch {
+    console.warn("[venues] Não foi possível carregar horário estruturado em lote; usando venues.open_now.");
+    return {};
+  }
+}

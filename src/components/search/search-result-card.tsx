@@ -2,7 +2,9 @@ import Link from "next/link";
 import type { Venue } from "@/data/venues";
 import { humanizeSlug } from "@/lib/format/humanize-slug";
 import { VenueCoverImage } from "@/components/shared/venue-cover-image";
+import { VenueOpenStatusBadge } from "@/components/shared/venue-open-status-badge";
 import { FavoriteButton } from "@/components/favorite-button";
+import type { VenueHoursStatus } from "@/lib/venues/venue-hours";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -45,9 +47,11 @@ function ClockIcon() {
 
 interface SearchResultCardProps {
   venue: Venue;
+  /** Calculado no servidor (venue-repository.ts) — ausente = venue sem horário estruturado, cai no venue.openNow. */
+  hoursStatus?: VenueHoursStatus | null;
 }
 
-export function SearchResultCard({ venue }: SearchResultCardProps) {
+export function SearchResultCard({ venue, hoursStatus = null }: SearchResultCardProps) {
   const highlightTags = (venue.cuisineTypes.length > 0 ? venue.cuisineTypes : venue.tags).slice(
     0,
     3,
@@ -103,15 +107,7 @@ export function SearchResultCard({ venue }: SearchResultCardProps) {
         </ul>
 
         <div className="mt-auto flex items-center justify-between gap-3 pt-1">
-          <span className="inline-flex items-center gap-2 text-xs font-medium text-muted">
-            <span
-              aria-hidden="true"
-              className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                venue.openNow ? "bg-emerald-400" : "bg-red-400"
-              }`}
-            />
-            {venue.openNow ? "Aberto agora" : "Fechado no momento"}
-          </span>
+          <VenueOpenStatusBadge hoursStatus={hoursStatus} openNow={venue.openNow} />
           <Link
             href={`/lugares/${venue.id}`}
             className={`rounded-full border border-accent px-5 py-2 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-accent-foreground ${focusRing}`}

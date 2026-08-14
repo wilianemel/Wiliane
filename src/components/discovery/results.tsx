@@ -1,5 +1,6 @@
 import type { MatchResult } from "@/types/discovery";
 import { MAX_RESULTS } from "@/lib/match-engine";
+import type { VenueHoursStatus } from "@/lib/venues/venue-hours";
 import { ResultCard } from "./result-card";
 
 const focusRing =
@@ -11,9 +12,17 @@ interface ResultsProps {
   onSelect: (result: MatchResult) => void;
   /** venue.venueId → recommendation_history.id, quando disponível (ver home-match-flow.tsx). */
   recommendationHistoryIds?: Record<string, string>;
+  /** venue.venueId -> status calculado no servidor — ver comentário equivalente em search-page.tsx. */
+  hoursStatusByVenueId?: Record<string, VenueHoursStatus>;
 }
 
-export function Results({ results, onRestart, onSelect, recommendationHistoryIds }: ResultsProps) {
+export function Results({
+  results,
+  onRestart,
+  onSelect,
+  recommendationHistoryIds,
+  hoursStatusByVenueId,
+}: ResultsProps) {
   const hasResults = results.length > 0;
   const isPartial = hasResults && results.length < MAX_RESULTS;
 
@@ -76,6 +85,7 @@ export function Results({ results, onRestart, onSelect, recommendationHistoryIds
               onRestart={onRestart}
               onSelect={() => onSelect(result)}
               recommendationHistoryId={recommendationHistoryIds?.[result.venue.venueId]}
+              hoursStatus={hoursStatusByVenueId?.[result.venue.venueId] ?? null}
             />
           ))}
         </div>

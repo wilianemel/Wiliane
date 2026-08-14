@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ExplorationPage } from "@/components/discovery/exploration-page";
 import { BrandLogo } from "@/components/shared/brand-logo";
-import { getPublishedVenues } from "@/lib/venues/venue-repository";
+import { getPublishedVenues, getVenuesBusinessHours } from "@/lib/venues/venue-repository";
+import { buildVenueHoursStatusMap } from "@/lib/venues/venue-hours";
 
 export const metadata: Metadata = {
   title: "Descobrir — Qual é a Boa!",
@@ -27,6 +28,10 @@ function ArrowLeftIcon() {
 
 export default async function DescobrirPage() {
   const venues = await getPublishedVenues();
+  // Uma única consulta em lote (evita N+1) — ver comentário equivalente em src/app/page.tsx.
+  const hoursByVenueId = await getVenuesBusinessHours(venues.map((venue) => venue.venueId));
+  const hoursStatusByVenueId = buildVenueHoursStatusMap(hoursByVenueId, new Date());
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-border/60 bg-background/90 backdrop-blur">
@@ -45,7 +50,7 @@ export default async function DescobrirPage() {
       </header>
 
       <main className="flex-1">
-        <ExplorationPage venues={venues} />
+        <ExplorationPage venues={venues} hoursStatusByVenueId={hoursStatusByVenueId} />
       </main>
     </div>
   );

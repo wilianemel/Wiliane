@@ -2,8 +2,10 @@ import type { MatchResult } from "@/types/discovery";
 import { humanizeSlug } from "@/lib/format/humanize-slug";
 import { formatRecommendationReason } from "@/lib/format/format-recommendation-reason";
 import { VenueCoverImage } from "@/components/shared/venue-cover-image";
+import { VenueOpenStatusBadge } from "@/components/shared/venue-open-status-badge";
 import { FavoriteButton } from "@/components/favorite-button";
 import { RecommendationFeedbackButton } from "@/components/recommendation-feedback-button";
+import type { VenueHoursStatus } from "@/lib/venues/venue-hours";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -51,6 +53,8 @@ interface ResultCardProps {
   onRestart: () => void;
   onSelect: () => void;
   recommendationHistoryId?: string;
+  /** Calculado no servidor — ausente = venue sem horário estruturado (nenhum badge, mesmo comportamento de antes). */
+  hoursStatus?: VenueHoursStatus | null;
 }
 
 export function ResultCard({
@@ -60,6 +64,7 @@ export function ResultCard({
   onRestart,
   onSelect,
   recommendationHistoryId,
+  hoursStatus = null,
 }: ResultCardProps) {
   const { venue, score, reasons } = result;
 
@@ -144,6 +149,8 @@ export function ResultCard({
             </li>
           ))}
         </ul>
+
+        {hoursStatus && <VenueOpenStatusBadge hoursStatus={hoursStatus} openNow={venue.openNow} />}
 
         <div className="rounded-xl border border-border/80 bg-background p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted">
