@@ -19,6 +19,12 @@ import {
   MOMENT_TAG_LABELS,
   type VenueMomentTag,
 } from "@/lib/venues/venue-tags";
+import {
+  DAYS_OF_WEEK,
+  DAY_LABELS,
+  type VenueBusinessHour,
+  type VenueHoursStatus,
+} from "@/lib/venues/venue-hours";
 import { VenueVideoPlayer } from "./venue-video-player";
 
 const focusRing =
@@ -224,6 +230,15 @@ interface VenueProfileProps {
   onRestart?: () => void;
   /** Mostra o CTA para iniciar o fluxo guiado, usado na rota direta. */
   showHelpCta?: boolean;
+  /**
+   * Horário estruturado (venue_business_hours), já buscado e calculado no
+   * Server Component da rota `/lugares/[id]` — nunca calculado aqui no
+   * client, para não arriscar hydration mismatch por "agora" divergir entre
+   * servidor e navegador. `null`/ausente = venue sem horário estruturado
+   * ainda: mantém o badge antigo baseado em venue.openNow, sem quebrar.
+   */
+  businessHours?: VenueBusinessHour[] | null;
+  hoursStatus?: VenueHoursStatus | null;
 }
 
 export function VenueProfile({
@@ -233,6 +248,8 @@ export function VenueProfile({
   onBack,
   onRestart,
   showHelpCta = false,
+  businessHours = null,
+  hoursStatus = null,
 }: VenueProfileProps) {
   const user = useUser();
   const [coverFailed, setCoverFailed] = useState(false);
@@ -563,42 +580,117 @@ export function VenueProfile({
         </section>
       )}
 
-      {/* Programação */}
-      <section className="mt-8">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
-          Programação
-        </h2>
-        <ul className="mt-3 flex flex-col gap-2">
-          {venue.schedule.map((item) => (
-            <li key={item} className="flex items-start gap-2 text-sm text-foreground">
-              <ClockIcon />
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {businessHours && hoursStatus ? (
+        <>
+          {/* Horário e status calculado a partir de venue_business_hours */}
+          <section className="mt-8 flex flex-col gap-2 rounded-xl border border-border/80 bg-background p-4 text-sm">
+            <div className="flex items-center gap-2">
+              <span
+                aria-hidden="true"
+                className={`h-2 w-2 shrink-0 rounded-full ${
+                  hoursStatus.isOpen ? "bg-emerald-400" : "bg-red-400"
+                }`}
+              />
+              <span className="font-medium text-foreground">
+                {hoursStatus.isOpen ? "Aberto agora" : "Fechado agora"}
+              </span>
+            </div>
+            <p className="text-muted">{hoursStatus.label}</p>
+            <p className="flex items-center gap-2 text-muted">
+              <InfoIcon />
+              {formattedUpdatedAt
+                ? `Informações verificadas em ${formattedUpdatedAt}`
+                : "Data de verificação não informada"}{" "}
+              · confiabilidade {venue.isDemo ? "demonstrativa " : ""}de {venue.dataConfidence}%.
+            </p>
+          </section>
 
-      {/* Horário e informações atualizadas */}
-      <section className="mt-8 flex flex-col gap-2 rounded-xl border border-border/80 bg-background p-4 text-sm">
-        <div className="flex items-center gap-2">
-          <span
-            aria-hidden="true"
-            className={`h-2 w-2 shrink-0 rounded-full ${
-              venue.openNow ? "bg-emerald-400" : "bg-red-400"
-            }`}
-          />
-          <span className="font-medium text-foreground">
-            {venue.openNow ? "Aberto agora" : "Fechado no momento"}
-          </span>
-        </div>
-        <p className="flex items-center gap-2 text-muted">
-          <InfoIcon />
-          {formattedUpdatedAt
-            ? `Informações verificadas em ${formattedUpdatedAt}`
-            : "Data de verificação não informada"}{" "}
-          · confiabilidade {venue.isDemo ? "demonstrativa " : ""}de {venue.dataConfidence}%.
-        </p>
-      </section>
+          {/* Horário de funcionamento (semanal) */}
+          <section className="mt-8">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+              Horário de funcionamento
+            </h2>
+            <ul className="mt-3 flex flex-col gap-2">
+              {DAYS_OF_WEEK.map((day) => {
+                const hour = businessHours.find((item) => item.day_of_week === day);
+                const isOpenDay = hour && !hour.is_closed && hour.opens_at && hour.closes_at;
+                return (
+                  <li
+                    key={day}
+                    className="flex items-center justify-between gap-2 text-sm text-foreground"
+                  >
+                    <span className="flex items-center gap-2">
+                      <ClockIcon />
+                      {DAY_LABELS[day]}
+                    </span>
+                    <span className="text-muted">
+                      {isOpenDay
+                        ? `${hour.opens_at!.slice(0, 5)} — ${hour.closes_at!.slice(0, 5)}`
+                        : "Fechado"}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+
+          {/* Informações adicionais — venues.schedule, texto livre complementar, não é mais o horário principal */}
+          {venue.schedule.length > 0 && (
+            <section className="mt-8">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+                Informações adicionais
+              </h2>
+              <ul className="mt-3 flex flex-col gap-2">
+                {venue.schedule.map((item) => (
+                  <li key={item} className="flex items-start gap-2 text-sm text-foreground">
+                    <ClockIcon />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </>
+      ) : (
+        <>
+          {/* Programação — venue sem horário estruturado ainda, comportamento antigo intacto */}
+          <section className="mt-8">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+              Programação
+            </h2>
+            <ul className="mt-3 flex flex-col gap-2">
+              {venue.schedule.map((item) => (
+                <li key={item} className="flex items-start gap-2 text-sm text-foreground">
+                  <ClockIcon />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          {/* Horário e informações atualizadas */}
+          <section className="mt-8 flex flex-col gap-2 rounded-xl border border-border/80 bg-background p-4 text-sm">
+            <div className="flex items-center gap-2">
+              <span
+                aria-hidden="true"
+                className={`h-2 w-2 shrink-0 rounded-full ${
+                  venue.openNow ? "bg-emerald-400" : "bg-red-400"
+                }`}
+              />
+              <span className="font-medium text-foreground">
+                {venue.openNow ? "Aberto agora" : "Fechado no momento"}
+              </span>
+            </div>
+            <p className="flex items-center gap-2 text-muted">
+              <InfoIcon />
+              {formattedUpdatedAt
+                ? `Informações verificadas em ${formattedUpdatedAt}`
+                : "Data de verificação não informada"}{" "}
+              · confiabilidade {venue.isDemo ? "demonstrativa " : ""}de {venue.dataConfidence}%.
+            </p>
+          </section>
+        </>
+      )}
 
       <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2">
         {onRestart && (

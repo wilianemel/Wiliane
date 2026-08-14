@@ -3,7 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { VenueProfile } from "@/components/venues/venue-profile";
 import { BrandLogo } from "@/components/shared/brand-logo";
-import { getPublishedVenueBySlug } from "@/lib/venues/venue-repository";
+import { getPublishedVenueBySlug, getPublishedVenueBusinessHours } from "@/lib/venues/venue-repository";
+import { getVenueHoursStatus } from "@/lib/venues/venue-hours";
 import { VenueViewTracker } from "@/components/analytics/venue-view-tracker";
 
 function ArrowLeftIcon() {
@@ -47,6 +48,12 @@ export default async function VenuePage({ params }: VenuePageProps) {
     notFound();
   }
 
+  // Calculado uma única vez aqui no servidor (nunca no client) e repassado
+  // como prop já pronta — evita qualquer risco de hydration mismatch por
+  // "agora" divergir entre o render do servidor e o do navegador.
+  const businessHours = await getPublishedVenueBusinessHours(venue.venueId);
+  const hoursStatus = businessHours ? getVenueHoursStatus(businessHours, new Date()) : null;
+
   return (
     <div className="flex min-h-screen flex-col">
       <VenueViewTracker venueId={venue.venueId} />
@@ -71,6 +78,8 @@ export default async function VenuePage({ params }: VenuePageProps) {
           backLabel="Voltar para a busca"
           backHref="/buscar"
           showHelpCta
+          businessHours={businessHours}
+          hoursStatus={hoursStatus}
         />
       </main>
     </div>

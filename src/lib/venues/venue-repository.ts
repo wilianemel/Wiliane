@@ -4,6 +4,11 @@ import { venues as localVenues, type Venue } from "@/data/venues";
 import { createClient } from "@/lib/supabase/server";
 import { mapVenueRow } from "./venue-mapper";
 import type { VenueRow } from "./venue-row";
+import {
+  normalizeVenueBusinessHourRows,
+  type VenueBusinessHour,
+  type VenueBusinessHourRow,
+} from "./venue-hours";
 
 const VENUE_COLUMNS = [
   "id", "slug", "name", "city", "neighborhood", "address", "category", "description",
@@ -97,5 +102,31 @@ export async function getPublishedVenueBySlug(slugOrId: string): Promise<Venue |
     warnFallback("slug");
     const venue = localVenues.find((item) => item.id === slugOrId);
     return venue ? { ...venue, isDemo: true } : null;
+  }
+}
+
+/**
+ * `null` cobre dois casos que o chamador trata do mesmo jeito — "continuar
+ * com o comportamento antigo baseado em venues.open_now": nenhuma linha
+ * cadastrada em venue_business_hours (venue ainda não migrou para horário
+ * estruturado) ou falha real (rede/RLS). Só retorna as 7 linhas quando pelo
+ * menos uma existe de fato — nunca inventa horário para um venue que nunca
+ * configurou nada.
+ */
+export async function getPublishedVenueBusinessHours(venueId: string): Promise<VenueBusinessHour[] | null> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("venue_business_hours")
+      .select("day_of_week, opens_at, closes_at, is_closed")
+      .eq("venue_id", venueId);
+
+    if (error) throw error;
+    if (!data || data.length === 0) return null;
+
+    return normalizeVenueBusinessHourRows(data as unknown as VenueBusinessHourRow[]);
+  } catch {
+    console.warn("[venues] Não foi possível carregar horário estruturado; usando venues.open_now.");
+    return null;
   }
 }
