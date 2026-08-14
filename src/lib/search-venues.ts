@@ -1,5 +1,5 @@
 import type { PriceRange, Venue } from "@/data/venues";
-import type { VenueHoursStatus } from "@/lib/venues/venue-hours";
+import { resolveVenueOpenNow, type VenueHoursStatus } from "@/lib/venues/venue-hours";
 
 /**
  * Busca direta determinística ("Já sei o que procuro").
@@ -81,18 +81,6 @@ function scoreVenueForQuery(venue: Venue, normalizedQuery: string): number {
   return 0;
 }
 
-/**
- * Status real (venue_business_hours) quando disponível no mapa calculado no
- * servidor; cai para venues.openNow quando o venue ainda não tem horário
- * estruturado. Nunca recalcula horário aqui — só lê o que já veio pronto.
- */
-function isVenueOpenForFilter(
-  venue: Venue,
-  hoursStatusByVenueId: Record<string, VenueHoursStatus> | undefined,
-): boolean {
-  return hoursStatusByVenueId?.[venue.venueId]?.isOpen ?? venue.openNow;
-}
-
 function matchesFilters(
   venue: Venue,
   filters: VenueFilters,
@@ -101,7 +89,7 @@ function matchesFilters(
   if (filters.city && normalize(venue.city) !== normalize(filters.city)) return false;
   if (filters.category && venue.category !== filters.category) return false;
   if (filters.priceRange && venue.priceRange !== filters.priceRange) return false;
-  if (filters.openNowOnly && !isVenueOpenForFilter(venue, hoursStatusByVenueId)) return false;
+  if (filters.openNowOnly && !resolveVenueOpenNow(venue, hoursStatusByVenueId)) return false;
   if (filters.liveMusicOnly && !venue.intentions.includes("musica-ao-vivo")) return false;
   return true;
 }

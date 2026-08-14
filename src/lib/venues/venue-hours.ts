@@ -138,6 +138,23 @@ export interface VenueHoursStatus {
   nextOpeningLabel?: string;
 }
 
+/**
+ * Única fonte de verdade para "esse venue está aberto agora?" fora dos
+ * cálculos internos deste arquivo — usada tanto pelo filtro "Aberto agora"
+ * de /buscar e /descobrir (search-venues.ts) quanto pela elegibilidade do
+ * match-engine (match-engine.ts), pra não duplicar a mesma regra em dois
+ * lugares. Nunca calcula nada sozinha: só lê o status já calculado no
+ * servidor (hoursStatusByVenueId) quando existir, e cai para o booleano
+ * antigo (venue.openNow) quando esse venueId não tem horário estruturado.
+ */
+export function resolveVenueOpenNow(
+  venue: { venueId: string; openNow: boolean },
+  hoursStatusByVenueId?: Record<string, VenueHoursStatus>,
+): boolean {
+  const realStatus = hoursStatusByVenueId?.[venue.venueId];
+  return realStatus ? realStatus.isOpen : venue.openNow;
+}
+
 interface NextOpening {
   dayOffset: number;
   day_of_week: DayOfWeek;

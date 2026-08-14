@@ -7,6 +7,7 @@ import type {
   MusicPreferenceId,
 } from "@/types/discovery";
 import type { VenueMomentTag } from "@/lib/venues/venue-tags";
+import { resolveVenueOpenNow, type VenueHoursStatus } from "@/lib/venues/venue-hours";
 import { preferenceScore, type UserPreferencesRow } from "@/lib/user-intelligence/preference-score";
 
 /**
@@ -110,8 +111,12 @@ const MOMENT_REASONS: Record<VenueMomentTag, string> = {
 };
 
 /** Locais fechados, comprovadamente fora da distância ou muito acima do orçamento não aparecem. */
-function isEligible(venue: Venue, answers: DiscoveryAnswers): boolean {
-  if (!venue.openNow) return false;
+function isEligible(
+  venue: Venue,
+  answers: DiscoveryAnswers,
+  hoursStatusByVenueId?: Record<string, VenueHoursStatus>,
+): boolean {
+  if (!resolveVenueOpenNow(venue, hoursStatusByVenueId)) return false;
 
   if (
     answers.distanceMax !== null &&
@@ -284,6 +289,14 @@ export interface GetRecommendationsOptions {
    * são afetados.
    */
   userPreferences?: UserPreferencesRow | null;
+  /**
+   * venue.venueId -> status calculado no servidor a partir de
+   * venue_business_hours (mesmo mapa já usado nos cards e no filtro "Aberto
+   * agora" de /buscar e /descobrir — ver venue-repository.ts). Ausente ou
+   * sem entrada para um venueId: isEligible cai no venue.openNow antigo
+   * para esse venue, comportamento idêntico ao motor sem esta opção.
+   */
+  hoursStatusByVenueId?: Record<string, VenueHoursStatus>;
 }
 
 /**
@@ -297,7 +310,9 @@ export function getRecommendations(
   options: GetRecommendationsOptions = {},
 ): MatchResult[] {
   const includeOptionalCriteria = options.includeOptionalCriteria ?? true;
-  const eligibleVenues = candidateVenues.filter((venue) => isEligible(venue, answers));
+  const eligibleVenues = candidateVenues.filter((venue) =>
+    isEligible(venue, answers, options.hoursStatusByVenueId),
+  );
 
   const maxIntentionBreadth = eligibleVenues.reduce(
     (max, venue) => Math.max(max, venue.intentions.length),

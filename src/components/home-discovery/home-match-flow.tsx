@@ -152,6 +152,7 @@ export function HomeMatchFlow({
       const recommendations = getRecommendations(answers, venues, {
         includeOptionalCriteria: false,
         userPreferences,
+        hoursStatusByVenueId,
       });
       setResults(recommendations);
       setPhase("results");
@@ -176,7 +177,7 @@ export function HomeMatchFlow({
     }, LOADING_DURATION_MS);
 
     return () => clearTimeout(timer);
-  }, [phase, answers, venues, userPreferences, user]);
+  }, [phase, answers, venues, userPreferences, user, hoursStatusByVenueId]);
 
   // Best-effort: registra a visualização de cada resultado exibido. A
   // própria registerUserInteraction() já engole erro/sessão ausente
