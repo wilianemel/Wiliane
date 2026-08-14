@@ -1,4 +1,5 @@
 import type { PriceRange, Venue } from "@/data/venues";
+import type { VenueHoursStatus } from "@/lib/venues/venue-hours";
 
 /**
  * Busca direta determinística ("Já sei o que procuro").
@@ -80,11 +81,27 @@ function scoreVenueForQuery(venue: Venue, normalizedQuery: string): number {
   return 0;
 }
 
-function matchesFilters(venue: Venue, filters: VenueFilters): boolean {
+/**
+ * Status real (venue_business_hours) quando disponível no mapa calculado no
+ * servidor; cai para venues.openNow quando o venue ainda não tem horário
+ * estruturado. Nunca recalcula horário aqui — só lê o que já veio pronto.
+ */
+function isVenueOpenForFilter(
+  venue: Venue,
+  hoursStatusByVenueId: Record<string, VenueHoursStatus> | undefined,
+): boolean {
+  return hoursStatusByVenueId?.[venue.venueId]?.isOpen ?? venue.openNow;
+}
+
+function matchesFilters(
+  venue: Venue,
+  filters: VenueFilters,
+  hoursStatusByVenueId?: Record<string, VenueHoursStatus>,
+): boolean {
   if (filters.city && normalize(venue.city) !== normalize(filters.city)) return false;
   if (filters.category && venue.category !== filters.category) return false;
   if (filters.priceRange && venue.priceRange !== filters.priceRange) return false;
-  if (filters.openNowOnly && !venue.openNow) return false;
+  if (filters.openNowOnly && !isVenueOpenForFilter(venue, hoursStatusByVenueId)) return false;
   if (filters.liveMusicOnly && !venue.intentions.includes("musica-ao-vivo")) return false;
   return true;
 }
@@ -101,9 +118,13 @@ export function searchVenues(
   query: string,
   filters: VenueFilters,
   candidateVenues: Venue[],
+  /** venue.venueId -> status calculado no servidor a partir de venue_business_hours (ver venue-repository.ts). Opcional: sem isso, o filtro "Aberto agora" usa só venues.openNow, como antes. */
+  hoursStatusByVenueId?: Record<string, VenueHoursStatus>,
 ): Venue[] {
   const normalizedQuery = normalize(query);
-  const filtered = candidateVenues.filter((venue) => matchesFilters(venue, filters));
+  const filtered = candidateVenues.filter((venue) =>
+    matchesFilters(venue, filters, hoursStatusByVenueId),
+  );
 
   if (!normalizedQuery) {
     return [...filtered].sort((a, b) => a.name.localeCompare(b.name));

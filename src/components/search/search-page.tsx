@@ -68,8 +68,8 @@ export function SearchPage({
   const [filters, setFilters] = useState<VenueFilters>(EMPTY_VENUE_FILTERS);
 
   const results = useMemo(
-    () => searchVenues(query, filters, venues),
-    [query, filters, venues],
+    () => searchVenues(query, filters, venues, hoursStatusByVenueId),
+    [query, filters, venues, hoursStatusByVenueId],
   );
 
   const hasActiveFilters =
