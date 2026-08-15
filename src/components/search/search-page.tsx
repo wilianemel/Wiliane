@@ -55,6 +55,8 @@ interface SearchPageProps {
   regions?: RegionWithCities[];
   /** venue.venueId -> status calculado no servidor. Ausente para um venueId = sem horário estruturado, card cai no fallback venue.openNow. */
   hoursStatusByVenueId?: Record<string, VenueHoursStatus>;
+  /** Filtros pré-selecionados ao abrir a página (ex.: atalho de categoria na Home) — mescla com EMPTY_VENUE_FILTERS, mesmo mecanismo de filtro de sempre, só com estado inicial diferente. */
+  initialFilters?: Partial<VenueFilters>;
 }
 
 export function SearchPage({
@@ -63,9 +65,13 @@ export function SearchPage({
   showHeader = true,
   regions = [],
   hoursStatusByVenueId,
+  initialFilters,
 }: SearchPageProps) {
   const [query, setQuery] = useState(initialQuery);
-  const [filters, setFilters] = useState<VenueFilters>(EMPTY_VENUE_FILTERS);
+  const [filters, setFilters] = useState<VenueFilters>(() => ({
+    ...EMPTY_VENUE_FILTERS,
+    ...initialFilters,
+  }));
 
   const results = useMemo(
     () => searchVenues(query, filters, venues, hoursStatusByVenueId),

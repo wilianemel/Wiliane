@@ -52,6 +52,22 @@ function MenuIcon() {
   );
 }
 
+function UserIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      className="h-5 w-5"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="8.5" r="3.5" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 20c1.2-3.6 4-5.5 7-5.5s5.8 1.9 7 5.5" />
+    </svg>
+  );
+}
+
 function CloseIcon() {
   return (
     <svg
@@ -121,7 +137,7 @@ export function Header() {
               priority
               className="!h-10 !w-10 sm:!h-[72px] sm:!w-[72px] md:!h-[104px] md:!w-[104px]"
             />
-            <span className="hidden items-center gap-1 rounded-full border border-border px-3 py-1 text-xs text-muted sm:flex">
+            <span className="flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-[11px] text-muted sm:px-3 sm:py-1 sm:text-xs">
               <PinIcon />
               {city}
             </span>
@@ -179,6 +195,16 @@ export function Header() {
                 </Link>
               </div>
             )}
+            {/* Acesso direto ao perfil visível no topo mobile (não só dentro
+                do menu) — avatar com inicial de quem está logado, ou ícone
+                genérico levando pro login. */}
+            <Link
+              href={user ? "/perfil" : "/entrar"}
+              aria-label={user ? "Meu perfil" : "Entrar"}
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-background-elevated text-sm font-semibold text-foreground transition-colors hover:border-accent hover:text-accent md:hidden"
+            >
+              {user ? displayName.charAt(0).toUpperCase() : <UserIcon />}
+            </Link>
             <button
               type="button"
               disabled={false}

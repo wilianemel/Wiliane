@@ -5,6 +5,7 @@ import { BrandLogo } from "@/components/shared/brand-logo";
 import { getPublishedVenues, getVenuesBusinessHours } from "@/lib/venues/venue-repository";
 import { getRegionsWithCities } from "@/lib/venues/city-repository";
 import { buildVenueHoursStatusMap } from "@/lib/venues/venue-hours";
+import type { VenueFilters } from "@/lib/search-venues";
 
 export const metadata: Metadata = {
   title: "Buscar — Qual é a Boa!",
@@ -28,15 +29,25 @@ function ArrowLeftIcon() {
 }
 
 interface BuscarPageProps {
-  searchParams: Promise<{ q?: string }>;
+  /**
+   * `category`/`liveMusic` vêm dos atalhos de categoria da Home
+   * (HomeCategoryShortcuts) — mesmo VenueFilters de sempre, só pré-
+   * preenchido pela URL em vez de começar sempre vazio.
+   */
+  searchParams: Promise<{ q?: string; category?: string; liveMusic?: string }>;
 }
 
 export default async function BuscarPage({ searchParams }: BuscarPageProps) {
-  const { q } = await searchParams;
+  const { q, category, liveMusic } = await searchParams;
   const [venues, regions] = await Promise.all([getPublishedVenues(), getRegionsWithCities()]);
   // Uma única consulta em lote (evita N+1) — ver comentário equivalente em src/app/page.tsx.
   const hoursByVenueId = await getVenuesBusinessHours(venues.map((venue) => venue.venueId));
   const hoursStatusByVenueId = buildVenueHoursStatusMap(hoursByVenueId, new Date());
+
+  const initialFilters: Partial<VenueFilters> = {
+    ...(category ? { category } : {}),
+    ...(liveMusic ? { liveMusicOnly: true } : {}),
+  };
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -59,6 +70,7 @@ export default async function BuscarPage({ searchParams }: BuscarPageProps) {
         <SearchPage
           venues={venues}
           initialQuery={q ?? ""}
+          initialFilters={initialFilters}
           regions={regions}
           hoursStatusByVenueId={hoursStatusByVenueId}
         />
