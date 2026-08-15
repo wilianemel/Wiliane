@@ -20,14 +20,14 @@ const focusRing =
 export function HomeHero() {
   return (
     <section className="relative overflow-hidden border-b border-border/60">
-      <div className="relative z-10 mx-auto max-w-3xl px-4 pb-10 pt-14 text-center sm:px-6 sm:pb-16 sm:pt-20">
-        <h1 className="animate-fade-up text-4xl font-extrabold leading-[1.05] tracking-tight text-foreground sm:text-6xl">
+      <div className="relative z-10 mx-auto max-w-3xl px-4 pb-8 pt-10 text-center sm:px-6 sm:pb-16 sm:pt-20">
+        <h1 className="animate-fade-up text-5xl font-extrabold leading-[0.98] tracking-tight text-foreground sm:text-6xl">
           Qual é a{" "}
           <span className="relative inline-block text-accent">
             Boa
             <span
               aria-hidden="true"
-              className="animate-glow-pulse absolute -inset-x-3 -inset-y-2 -z-10 rounded-full bg-accent/25 blur-2xl"
+              className="animate-glow-pulse absolute -inset-x-4 -inset-y-3 -z-10 rounded-full bg-accent/30 blur-[28px]"
             />
           </span>
           <br />
@@ -40,7 +40,7 @@ export function HomeHero() {
           Me conta seu momento. Eu encontro sua próxima experiência.
         </p>
 
-        <div className="animate-fade-up [animation-delay:280ms] mt-8 flex flex-wrap items-center justify-center gap-2.5">
+        <div className="animate-fade-up [animation-delay:280ms] mt-7 flex flex-wrap items-center justify-center gap-2.5 sm:mt-8">
           {CHIPS.map((chip) => (
             <Link
               key={chip.label}

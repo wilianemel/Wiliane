@@ -227,14 +227,12 @@ export function Header() {
               </button>
             </div>
 
-            <Link href="/" onClick={closeMenu} className={mobileLinkClasses}>
-              Home
+            {/* Home/Explorar/Buscar/Favoritos/Perfil já vivem na bottom nav
+                mobile (ver bottom-nav.tsx) — este menu fica só com o que
+                não cabe lá: link institucional e ações de conta. */}
+            <Link href="/para-empresas" onClick={closeMenu} className={mobileLinkClasses}>
+              Para empresas
             </Link>
-            {navLinks.map((link) => (
-              <Link key={link.href} href={link.href} onClick={closeMenu} className={mobileLinkClasses}>
-                {link.label}
-              </Link>
-            ))}
             <Link href="/empresa/cadastro" onClick={closeMenu} className={mobileLinkClasses}>
               Cadastrar estabelecimento
             </Link>
@@ -242,12 +240,6 @@ export function Header() {
             {user ? (
               <>
                 <span className="mt-1 px-4 text-sm text-muted">Olá, {displayName}</span>
-                <Link href="/perfil" onClick={closeMenu} className={mobileLinkClasses}>
-                  Meu perfil
-                </Link>
-                <Link href="/favoritos" onClick={closeMenu} className={mobileLinkClasses}>
-                  Favoritos
-                </Link>
                 <button
                   type="button"
                   onClick={handleSignOut}

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/lib/auth/auth-context";
+import { AppShell } from "@/components/app-shell";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -21,6 +22,10 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   colorScheme: "dark",
+  // "cover" é o que faz env(safe-area-inset-*) resolver pra um valor real no
+  // iPhone (notch/home indicator) — sem isso a bottom nav (BottomNav) fica
+  // sempre com padding-bottom: 0, mesmo no CSS já preparado pra safe-area.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -34,7 +39,9 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <AppShell>{children}</AppShell>
+        </AuthProvider>
       </body>
     </html>
   );

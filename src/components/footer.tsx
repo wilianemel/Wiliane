@@ -5,8 +5,8 @@ const institutionalLinks = ["Sobre", "Termos de uso", "Privacidade", "Ajuda"];
 export function Footer() {
   return (
     <footer className="border-t border-border/60">
-      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-        <div className="flex flex-col gap-8 sm:flex-row sm:justify-between">
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+        <div className="flex flex-col gap-6 sm:flex-row sm:justify-between sm:gap-8">
           <div className="max-w-sm">
             <BrandLogo variant="dark" size="small" />
             <p className="mt-3 text-sm text-muted">
@@ -37,7 +37,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-8 flex flex-col gap-2 border-t border-border/60 pt-6 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-6 flex flex-col gap-2 border-t border-border/60 pt-5 text-xs text-muted sm:mt-8 sm:flex-row sm:items-center sm:justify-between sm:pt-6">
           <span>© 2026 Qual é a Boa. Todos os direitos reservados.</span>
           <span className="inline-flex w-fit items-center gap-2 rounded-full border border-border px-3 py-1 text-muted">
             Versão inicial do produto · MVP em desenvolvimento

@@ -29,92 +29,70 @@ function PinIcon() {
   );
 }
 
-function ClockIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.5}
-      className="h-3.5 w-3.5 shrink-0"
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="8.5" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4.3l3 1.7" />
-    </svg>
-  );
-}
-
 interface SearchResultCardProps {
   venue: Venue;
   /** Calculado no servidor (venue-repository.ts) — ausente = venue sem horário estruturado, cai no venue.openNow. */
   hoursStatus?: VenueHoursStatus | null;
 }
 
+/**
+ * Imagem grande com nome/categoria sobre a foto (gradiente por baixo do
+ * texto) + uma linha compacta de contexto abaixo — não mais uma ficha
+ * técnica (tags em série, lista de horários). FavoriteButton fica fora do
+ * <Link> (irmão, sobreposto via position:absolute) porque <button> dentro
+ * de <a> é inválido/ambíguo para acessibilidade.
+ */
 export function SearchResultCard({ venue, hoursStatus = null }: SearchResultCardProps) {
-  const highlightTags = (venue.cuisineTypes.length > 0 ? venue.cuisineTypes : venue.tags).slice(
-    0,
-    3,
-  );
+  const highlightTag = venue.cuisineTypes[0] ?? venue.tags[0] ?? null;
 
   return (
-    <article className="flex flex-col overflow-hidden rounded-2xl border border-border bg-background-elevated">
-      <div className="relative">
-        <VenueCoverImage
-          venue={venue}
-          className="h-32"
-          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-        />
-        <div className="absolute right-3 top-3">
-          <FavoriteButton venueId={venue.venueId} />
+    <article className="group relative flex flex-col overflow-hidden rounded-3xl border border-border/60 bg-background-elevated transition-transform active:scale-[0.98]">
+      <Link href={`/lugares/${venue.id}`} className={`flex flex-1 flex-col ${focusRing}`}>
+        <div className="relative h-48 w-full shrink-0 overflow-hidden">
+          <VenueCoverImage
+            venue={venue}
+            className="h-full w-full transition-transform duration-500 ease-out group-hover:scale-105"
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-black/15 to-transparent"
+          />
+          <div className="absolute inset-x-0 bottom-0 p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-accent">
+              {venue.category}
+            </p>
+            <h3 className="text-lg font-bold leading-tight text-white sm:text-xl">{venue.name}</h3>
+          </div>
         </div>
-      </div>
-      <div className="flex flex-1 flex-col gap-4 p-6 sm:p-7">
-        <div>
-          <h3 className="text-lg font-semibold text-foreground sm:text-xl">{venue.name}</h3>
-          <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-muted">
-            <span>{venue.category}</span>
-            <span aria-hidden="true">·</span>
+
+        <div className="flex flex-1 flex-col gap-3 p-4 sm:p-5">
+          <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted">
             <span className="inline-flex items-center gap-1">
               <PinIcon />
               {venue.neighborhood}
             </span>
             <span aria-hidden="true">·</span>
             <span>{venue.priceRange}</span>
+            {highlightTag && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span>{humanizeSlug(highlightTag)}</span>
+              </>
+            )}
           </p>
+
+          <p className="text-sm leading-relaxed text-muted line-clamp-2">{venue.description}</p>
+
+          <div className="mt-auto flex items-center justify-between gap-3 pt-1">
+            <VenueOpenStatusBadge hoursStatus={hoursStatus} openNow={venue.openNow} />
+            <span className="text-xs font-semibold text-accent">Ver experiência →</span>
+          </div>
         </div>
+      </Link>
 
-        <p className="text-sm leading-relaxed text-muted line-clamp-2">{venue.description}</p>
-
-        <div className="flex flex-wrap gap-2">
-          {highlightTags.map((tag) => (
-            <span
-              key={tag}
-              className="rounded-full border border-border px-3 py-1 text-xs text-muted"
-            >
-              {humanizeSlug(tag)}
-            </span>
-          ))}
-        </div>
-
-        <ul className="flex flex-col gap-1.5">
-          {venue.schedule.map((item) => (
-            <li key={item} className="flex items-start gap-2 text-xs text-muted">
-              <ClockIcon />
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
-
-        <div className="mt-auto flex items-center justify-between gap-3 pt-1">
-          <VenueOpenStatusBadge hoursStatus={hoursStatus} openNow={venue.openNow} />
-          <Link
-            href={`/lugares/${venue.id}`}
-            className={`rounded-full border border-accent px-5 py-2 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-accent-foreground ${focusRing}`}
-          >
-            Ver experiência
-          </Link>
-        </div>
+      <div className="absolute right-3 top-3 z-10">
+        <FavoriteButton venueId={venue.venueId} />
       </div>
     </article>
   );
