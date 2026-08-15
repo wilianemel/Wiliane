@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { VenueCoverImage } from "@/components/shared/venue-cover-image";
 import { AdminGate } from "@/components/admin/admin-gate";
@@ -145,11 +146,18 @@ function AdminEstabelecimentosContent() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 sm:py-14">
-      <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-        Vincular proprietário
+      <Link
+        href="/admin"
+        className={`inline-flex items-center gap-2 text-sm font-medium text-muted transition-colors hover:text-accent ${focusRing} rounded`}
+      >
+        ← Voltar para o painel administrativo
+      </Link>
+
+      <h1 className="mt-6 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+        Gerenciar estabelecimentos
       </h1>
       <p className="mt-2 text-sm text-muted">
-        Busque o estabelecimento e informe o usuário que deve virar o proprietário dele.
+        Encontre um estabelecimento para gerenciar sua verificação ou vincular um proprietário.
       </p>
 
       <section className="mt-8">
@@ -224,84 +232,88 @@ function AdminEstabelecimentosContent() {
       </section>
 
       {selectedVenue && (
-        <section className="mt-8">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
-            Verificação
-          </h2>
-          <div className="mt-2 flex items-center justify-between gap-3 rounded-2xl border border-border bg-background-elevated p-4">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-foreground">
-                {selectedVenue.name}
-              </p>
-              <p className="mt-0.5 text-xs text-muted">
-                {selectedVenue.isVerified
-                  ? "Selo de verificado ativo."
-                  : "Sem selo de verificado."}
-              </p>
+        <>
+          <section className="mt-8">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+              Verificação
+            </h2>
+            <div className="mt-2 flex items-center justify-between gap-3 rounded-2xl border border-border bg-background-elevated p-4">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-foreground">
+                  {selectedVenue.name}
+                </p>
+                <p className="mt-0.5 text-xs text-muted">
+                  {selectedVenue.isVerified
+                    ? "Selo de verificado ativo."
+                    : "Sem selo de verificado."}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleToggleVerified}
+                disabled={verifyStatus === "loading"}
+                className={`shrink-0 rounded-full border px-4 py-2 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${focusRing} ${
+                  selectedVenue.isVerified
+                    ? "border-border text-muted hover:border-red-400 hover:text-red-300"
+                    : "border-accent bg-accent text-accent-foreground"
+                }`}
+              >
+                {verifyStatus === "loading"
+                  ? "Salvando..."
+                  : selectedVenue.isVerified
+                    ? "Remover verificação"
+                    : "Marcar como verificado"}
+              </button>
             </div>
+            {verifyError && (
+              <p className="mt-3 rounded-xl border border-red-400/40 bg-red-400/5 px-4 py-3 text-sm text-red-300">
+                {verifyError}
+              </p>
+            )}
+          </section>
+
+          <section className="mt-8 rounded-2xl border border-border bg-background-elevated p-4">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+              Proprietário
+            </h2>
+            <label htmlFor="owner-code" className="mt-3 block text-sm font-medium text-foreground">
+              Código do usuário
+            </label>
+            <p className="mt-1 text-xs text-muted">
+              Encontre esse código no painel do Supabase, em Authentication → Users, na conta da
+              pessoa que deve virar proprietária.
+            </p>
+            <input
+              id="owner-code"
+              type="text"
+              value={ownerCode}
+              onChange={(event) => setOwnerCode(event.target.value)}
+              placeholder="Código do usuário"
+              className={`mt-2 ${inputClasses}`}
+            />
+
+            {errorMessage && (
+              <p className="mt-3 rounded-xl border border-red-400/40 bg-red-400/5 px-4 py-3 text-sm text-red-300">
+                {errorMessage}
+              </p>
+            )}
+            {linkStatus === "success" && (
+              <p className="mt-3 rounded-xl border border-emerald-400/40 bg-emerald-400/5 px-4 py-3 text-sm text-emerald-300">
+                Proprietário vinculado com sucesso.
+              </p>
+            )}
+
             <button
               type="button"
-              onClick={handleToggleVerified}
-              disabled={verifyStatus === "loading"}
-              className={`shrink-0 rounded-full border px-4 py-2 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${focusRing} ${
-                selectedVenue.isVerified
-                  ? "border-border text-muted hover:border-red-400 hover:text-red-300"
-                  : "border-accent bg-accent text-accent-foreground"
-              }`}
+              onClick={handleLink}
+              disabled={!ownerCode.trim() || linkStatus === "loading"}
+              className={`mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 ${focusRing}`}
             >
-              {verifyStatus === "loading"
-                ? "Salvando..."
-                : selectedVenue.isVerified
-                  ? "Remover verificação"
-                  : "Marcar como verificado"}
+              {linkStatus === "loading" ? "Vinculando..." : "Vincular proprietário"}
             </button>
-          </div>
-          {verifyError && (
-            <p className="mt-3 rounded-xl border border-red-400/40 bg-red-400/5 px-4 py-3 text-sm text-red-300">
-              {verifyError}
-            </p>
-          )}
-        </section>
+          </section>
+        </>
       )}
-
-      <section className="mt-8">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Proprietário</h2>
-        <label htmlFor="owner-code" className="mt-2 block text-sm font-medium text-foreground">
-          Código do usuário
-        </label>
-        <p className="mt-1 text-xs text-muted">
-          Encontre esse código no painel do Supabase, em Authentication → Users, na conta da
-          pessoa que deve virar proprietária.
-        </p>
-        <input
-          id="owner-code"
-          type="text"
-          value={ownerCode}
-          onChange={(event) => setOwnerCode(event.target.value)}
-          placeholder="Código do usuário"
-          className={`mt-2 ${inputClasses}`}
-        />
-      </section>
-
-      {errorMessage && (
-        <p className="mt-6 rounded-xl border border-red-400/40 bg-red-400/5 px-4 py-3 text-sm text-red-300">
-          {errorMessage}
-        </p>
-      )}
-      {linkStatus === "success" && (
-        <p className="mt-6 rounded-xl border border-emerald-400/40 bg-emerald-400/5 px-4 py-3 text-sm text-emerald-300">
-          Proprietário vinculado com sucesso.
-        </p>
-      )}
-
-      <button
-        type="button"
-        onClick={handleLink}
-        disabled={!selectedVenue || !ownerCode.trim() || linkStatus === "loading"}
-        className={`mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 ${focusRing}`}
-      >
-        {linkStatus === "loading" ? "Vinculando..." : "Vincular proprietário"}
-      </button>
     </div>
   );
 }
