@@ -101,6 +101,21 @@ export default function PerfilPage() {
           </p>
         </div>
 
+        <Link
+          href="/perfil/minha-vibe"
+          className={`flex items-center justify-between gap-3 rounded-xl border border-border bg-background-elevated px-4 py-4 transition-colors hover:border-accent ${focusRing}`}
+        >
+          <div>
+            <p className="text-sm font-semibold text-foreground">Minha vibe</p>
+            <p className="mt-0.5 text-xs text-muted">
+              Conte o que você curte e personalize suas recomendações.
+            </p>
+          </div>
+          <span aria-hidden="true" className="shrink-0 text-accent">
+            →
+          </span>
+        </Link>
+
         {role === "admin" && (
           <Link
             href="/admin"
