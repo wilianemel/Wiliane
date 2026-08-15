@@ -80,6 +80,10 @@ export interface Venue {
   updatedAt: string;
   /** Data da última verificação declarada no banco, quando disponível. */
   lastVerifiedAt?: string;
+  /** Selo oficial "Estabelecimento verificado" — só true quando a equipe concede via set_venue_verified_status(). Somente leitura na aplicação; nunca editável pelo dono. Não confundir com lastVerifiedAt. */
+  isVerified?: boolean;
+  /** Momento em que o selo foi concedido; ausente quando isVerified não é true. */
+  verifiedAt?: string;
   /** Identifica os registros fictícios usados para validar o MVP. */
   isDemo?: boolean;
   /** Itens de cardápio demonstrativos, exibidos no perfil do lugar. */

@@ -67,6 +67,8 @@ export function mapVenueRow(row: VenueRow): Venue {
     dataConfidence: row.data_confidence,
     updatedAt: row.updated_at,
     lastVerifiedAt: row.last_verified_at ?? undefined,
+    isVerified: row.is_verified,
+    verifiedAt: row.verified_at ?? undefined,
     isDemo: row.is_demo,
     menuHighlights: row.menu_highlights ?? [],
     whatsappNumber: row.whatsapp_number ?? "",

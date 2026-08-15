@@ -32,6 +32,10 @@ export interface VenueRow {
   is_featured: boolean;
   open_now: boolean;
   is_demo: boolean;
+  /** Selo oficial concedido pela equipe — só alterado via set_venue_verified_status() (030). Somente leitura na aplicação. */
+  is_verified: boolean;
+  /** Momento em que o selo foi concedido; null quando is_verified = false. Não confundir com last_verified_at (frescor dos dados). */
+  verified_at: string | null;
   last_verified_at: string | null;
   created_at: string;
   updated_at: string;

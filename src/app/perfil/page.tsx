@@ -100,6 +100,15 @@ export default function PerfilPage() {
             {roleLoading ? "Carregando..." : (role ?? "Não identificado")}
           </p>
         </div>
+
+        {role === "admin" && (
+          <Link
+            href="/admin"
+            className={`inline-flex items-center justify-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] ${focusRing}`}
+          >
+            Painel administrativo
+          </Link>
+        )}
       </div>
     </div>
   );

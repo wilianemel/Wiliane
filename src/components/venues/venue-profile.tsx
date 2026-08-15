@@ -68,6 +68,22 @@ function PinIcon() {
   );
 }
 
+function VerifiedIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      className="h-3.5 w-3.5 shrink-0"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="m8.5 12.5 2.5 2.5 5-5" />
+    </svg>
+  );
+}
+
 function ClockIcon() {
   return (
     <svg
@@ -378,9 +394,17 @@ export function VenueProfile({
           )}
           <div>
             <p className="text-sm text-muted">{venue.category}</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-              {venue.name}
-            </h1>
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                {venue.name}
+              </h1>
+              {venue.isVerified && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent">
+                  <VerifiedIcon />
+                  Verificado pelo Qual é a Boa
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-muted">

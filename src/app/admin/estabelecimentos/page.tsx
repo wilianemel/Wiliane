@@ -17,6 +17,7 @@ interface SearchableVenue {
   city: string;
   neighborhood: string;
   coverImageUrl: string | null;
+  isVerified: boolean;
 }
 
 export default function AdminEstabelecimentosPage() {
@@ -38,6 +39,9 @@ function AdminEstabelecimentosContent() {
   const [linkStatus, setLinkStatus] = useState<"idle" | "loading" | "success">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const [verifyStatus, setVerifyStatus] = useState<"idle" | "loading">("idle");
+  const [verifyError, setVerifyError] = useState<string | null>(null);
+
   // Sem filtro de is_published/is_active de propósito: quem chega aqui já
   // passou pela checagem de admin, e RLS de venues já libera todo o
   // catálogo (publicado ou não) pra quem passa em is_platform_admin() —
@@ -52,7 +56,7 @@ function AdminEstabelecimentosContent() {
     const supabase = createClient();
     const { data, error } = await supabase
       .from("venues")
-      .select("id, name, category, city, neighborhood, cover_image_url")
+      .select("id, name, category, city, neighborhood, cover_image_url, is_verified")
       .ilike("name", `%${venueQuery.trim()}%`)
       .order("name")
       .limit(20);
@@ -72,6 +76,7 @@ function AdminEstabelecimentosContent() {
         city: row.city as string,
         neighborhood: row.neighborhood as string,
         coverImageUrl: (row.cover_image_url as string | null) ?? null,
+        isVerified: Boolean(row.is_verified),
       })),
     );
     setVenueSearchStatus("idle");
@@ -81,6 +86,37 @@ function AdminEstabelecimentosContent() {
     setSelectedVenue(venue);
     setLinkStatus("idle");
     setErrorMessage(null);
+    setVerifyStatus("idle");
+    setVerifyError(null);
+  }
+
+  async function handleToggleVerified() {
+    if (!selectedVenue || verifyStatus === "loading") return;
+
+    setVerifyStatus("loading");
+    setVerifyError(null);
+
+    const nextVerified = !selectedVenue.isVerified;
+    const supabase = createClient();
+    const { error } = await supabase.rpc("set_venue_verified_status", {
+      target_venue_id: selectedVenue.id,
+      p_verified: nextVerified,
+    });
+
+    if (error) {
+      console.error("SET VENUE VERIFIED STATUS ERROR:", error);
+      setVerifyError("Não foi possível atualizar o selo agora. Tente novamente.");
+      setVerifyStatus("idle");
+      return;
+    }
+
+    setSelectedVenue((current) => (current ? { ...current, isVerified: nextVerified } : current));
+    setVenueResults((current) =>
+      current.map((venue) =>
+        venue.id === selectedVenue.id ? { ...venue, isVerified: nextVerified } : venue,
+      ),
+    );
+    setVerifyStatus("idle");
   }
 
   async function handleLink() {
@@ -186,6 +222,47 @@ function AdminEstabelecimentosContent() {
           </ul>
         )}
       </section>
+
+      {selectedVenue && (
+        <section className="mt-8">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+            Verificação
+          </h2>
+          <div className="mt-2 flex items-center justify-between gap-3 rounded-2xl border border-border bg-background-elevated p-4">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-foreground">
+                {selectedVenue.name}
+              </p>
+              <p className="mt-0.5 text-xs text-muted">
+                {selectedVenue.isVerified
+                  ? "Selo de verificado ativo."
+                  : "Sem selo de verificado."}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleToggleVerified}
+              disabled={verifyStatus === "loading"}
+              className={`shrink-0 rounded-full border px-4 py-2 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${focusRing} ${
+                selectedVenue.isVerified
+                  ? "border-border text-muted hover:border-red-400 hover:text-red-300"
+                  : "border-accent bg-accent text-accent-foreground"
+              }`}
+            >
+              {verifyStatus === "loading"
+                ? "Salvando..."
+                : selectedVenue.isVerified
+                  ? "Remover verificação"
+                  : "Marcar como verificado"}
+            </button>
+          </div>
+          {verifyError && (
+            <p className="mt-3 rounded-xl border border-red-400/40 bg-red-400/5 px-4 py-3 text-sm text-red-300">
+              {verifyError}
+            </p>
+          )}
+        </section>
+      )}
 
       <section className="mt-8">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Proprietário</h2>

@@ -17,7 +17,7 @@ const VENUE_COLUMNS = [
   "average_price_for_couple", "distance_km", "whatsapp_number", "instagram_url", "menu_url",
   "cover_image_url", "logo_url", "video_url", "reservation_url",
   "data_confidence", "is_published", "is_featured",
-  "open_now", "is_demo", "last_verified_at", "created_at", "updated_at",
+  "open_now", "is_demo", "last_verified_at", "is_verified", "verified_at", "created_at", "updated_at",
 ].join(",");
 
 function warnFallback(scope: "lista" | "slug") {

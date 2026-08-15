@@ -19,7 +19,7 @@ export const OWNER_VENUE_COLUMNS = [
   "whatsapp_number", "whatsapp", "whatsapp_url", "instagram_url", "website",
   "menu_url", "reservation_url",
   "cover_image_url", "logo_url", "video_url",
-  "is_published", "is_featured", "data_confidence",
+  "is_published", "is_featured", "data_confidence", "is_verified", "verified_at",
 ].join(",");
 
 /** Representação manual da linha de `public.venues` vista pelo dono/gestor. */
@@ -58,6 +58,9 @@ export interface VenueOwnerRow {
   is_published: boolean;
   is_featured: boolean;
   data_confidence: number;
+  /** Selo oficial concedido pela equipe — somente leitura aqui; alterar só via set_venue_verified_status() (admin). */
+  is_verified: boolean;
+  verified_at: string | null;
 }
 
 /**
