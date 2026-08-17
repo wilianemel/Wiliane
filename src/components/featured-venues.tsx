@@ -85,13 +85,12 @@ export function FeaturedVenues({
 
   return (
     <section id="experiencias" className="scroll-mt-20 border-t border-border/60">
-      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-        <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
+        <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
           Continue descobrindo
         </h2>
-        <p className="mt-2 max-w-2xl text-sm text-muted sm:text-base">
-          Mais experiências publicadas na base do MVP. Registros demonstrativos
-          são identificados com transparência em seus perfis.
+        <p className="mt-1 text-sm text-muted sm:text-base">
+          Mais experiências publicadas na plataforma — demonstrativas quando indicado no perfil.
         </p>
 
         {venues.length === 0 ? (

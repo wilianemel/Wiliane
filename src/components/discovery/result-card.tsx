@@ -88,12 +88,17 @@ export function ResultCard({
               {venue.name}
             </h3>
           </div>
-          <span
+          <div
             title="Compatibilidade calculada com base nas suas respostas"
-            className="shrink-0 text-2xl font-bold text-accent sm:text-3xl"
+            className="flex shrink-0 flex-col items-end"
           >
-            {score}%
-          </span>
+            <span className="text-3xl font-extrabold leading-none text-accent drop-shadow-[0_2px_10px_rgba(255,194,30,0.5)] sm:text-4xl">
+              {score}%
+            </span>
+            <span className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-white/75">
+              combina com você
+            </span>
+          </div>
         </div>
       </div>
 
@@ -119,8 +124,8 @@ export function ResultCard({
           )}
         </div>
 
-        <div className="rounded-xl border border-border/80 bg-background p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+        <div className="rounded-2xl border border-accent/25 bg-accent/[0.04] p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-accent">
             Por que essa recomendação
           </p>
           <ul className="mt-2 flex flex-col gap-1.5 text-sm text-foreground">
