@@ -76,5 +76,6 @@ export function mapVenueRow(row: VenueRow): Venue {
     coverImageUrl: row.cover_image_url ?? undefined,
     logoUrl: row.logo_url ?? undefined,
     reservationUrl: row.reservation_url ?? undefined,
+    menuUrl: row.menu_url ?? undefined,
   };
 }

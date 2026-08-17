@@ -10,7 +10,7 @@ import { useUser } from "@/lib/auth/auth-context";
 import { trackInteraction } from "@/lib/analytics/track-interaction";
 import { FavoriteButton } from "@/components/favorite-button";
 import { BrandLogo } from "@/components/shared/brand-logo";
-import { VenueRatingSummary } from "./venue-rating-summary";
+import { VenueRatingSummary, useVenueRatingSummary } from "./venue-rating-summary";
 import { VenueReviewForm } from "./venue-review-form";
 import {
   ATMOSPHERE_TAG_LABELS,
@@ -32,6 +32,9 @@ const focusRing =
 
 /** Quando o local tem exatamente esta tag, o botão de WhatsApp reflete isso em vez do texto padrão. */
 const PICKUP_ONLY_TAG = "Pedidos para retirada";
+
+/** Quantidade de tags mostradas por padrão em "A vibe desse lugar" antes do "+N mais". */
+const VIBE_PREVIEW_COUNT = 6;
 
 function ArrowLeftIcon() {
   return (
@@ -149,6 +152,26 @@ function CalendarIcon() {
   );
 }
 
+function MenuIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      className="h-4 w-4"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M7 3h10a1 1 0 0 1 1 1v16l-3-2-2 2-2-2-2 2-3-2V4a1 1 0 0 1 1-1Z"
+      />
+      <path strokeLinecap="round" d="M9 8h6M9 11h6M9 14h4" />
+    </svg>
+  );
+}
+
 function SparkleIcon() {
   return (
     <svg
@@ -168,28 +191,7 @@ function SparkleIcon() {
   );
 }
 
-function PeopleIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.5}
-      className="h-3.5 w-3.5 shrink-0"
-      aria-hidden="true"
-    >
-      <circle cx="9" cy="8" r="2.5" />
-      <circle cx="16" cy="9" r="2" />
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M4 19c0-2.8 2.2-5 5-5s5 2.2 5 5M13.5 14.3c2 .3 3.5 2 3.5 4.2"
-      />
-    </svg>
-  );
-}
-
-/** Pills de destaque para as seções "A experiência" / "Combina com" / "Melhor momento". */
+/** Pills de destaque, reaproveitada por "A vibe desse lugar". */
 function TagPillList({ items }: { items: string[] }) {
   return (
     <div className="mt-3 flex flex-wrap gap-2">
@@ -251,7 +253,7 @@ interface VenueProfileProps {
    * Server Component da rota `/lugares/[id]` — nunca calculado aqui no
    * client, para não arriscar hydration mismatch por "agora" divergir entre
    * servidor e navegador. `null`/ausente = venue sem horário estruturado
-   * ainda: mantém o badge antigo baseado em venue.openNow, sem quebrar.
+   * ainda: mantém o status antigo baseado em venue.openNow, sem quebrar.
    */
   businessHours?: VenueBusinessHour[] | null;
   hoursStatus?: VenueHoursStatus | null;
@@ -270,6 +272,10 @@ export function VenueProfile({
   const user = useUser();
   const [coverFailed, setCoverFailed] = useState(false);
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [showAllVibeTags, setShowAllVibeTags] = useState(false);
+  // Buscado uma única vez aqui e reutilizado no resumo compacto (topo) e na
+  // seção "Avaliações" (fim) — evita duas consultas iguais ao Supabase.
+  const ratingSummary = useVenueRatingSummary(venue.venueId);
 
   // Best-effort: nunca bloqueia a navegação (o link abre normalmente mesmo
   // se isso falhar ou demorar) e nunca lança. Conta tanto usuário logado
@@ -286,7 +292,7 @@ export function VenueProfile({
   // Normaliza removendo tudo que não é dígito (espaço, parênteses, hífen,
   // "+") — o dono pode ter digitado em qualquer formato, mas wa.me só
   // aceita dígitos. Sem número real, o link de WhatsApp não é montado — o
-  // botão some (ver seção "Rota ou WhatsApp"), em vez de apontar para um
+  // botão some (ver seção "Ações principais"), em vez de apontar para um
   // link quebrado.
   const normalizedWhatsappNumber = venue.whatsappNumber.replace(/\D/g, "");
   const hasValidWhatsapp = normalizedWhatsappNumber.length > 0;
@@ -300,8 +306,8 @@ export function VenueProfile({
     : "Chamar no WhatsApp";
   // Labels corretos (com acento) vindos de venue-tags.ts — não usa
   // humanizeSlug() aqui. `tags` mistura tags livres com momentos; só os
-  // ids que pertencem a MOMENT_TAG_GROUPS entram na seção "Melhor momento",
-  // sem tocar PICKUP_ONLY_TAG nem a lógica de WhatsApp acima.
+  // ids que pertencem a MOMENT_TAG_GROUPS entram no grupo "momento" da
+  // vibe, sem tocar PICKUP_ONLY_TAG nem a lógica de WhatsApp acima.
   const experienceLabels = venue.atmospheres
     .map((id) => ATMOSPHERE_TAG_LABELS[id])
     .filter((label): label is string => Boolean(label));
@@ -312,6 +318,13 @@ export function VenueProfile({
     .filter((tag): tag is VenueMomentTag => MOMENT_TAG_IDS.includes(tag as VenueMomentTag))
     .map((id) => MOMENT_TAG_LABELS[id])
     .filter((label): label is string => Boolean(label));
+  // "A vibe desse lugar" mostra um único mural de tags em vez de três fichas
+  // técnicas separadas — atmosfera, momento e companhia, nessa ordem, porque
+  // é a ordem de "o que eu sinto → quando ir → com quem ir".
+  const vibeTags = [...experienceLabels, ...momentLabels, ...companionLabels];
+  const visibleVibeTags = showAllVibeTags ? vibeTags : vibeTags.slice(0, VIBE_PREVIEW_COUNT);
+  const hasMoreVibeTags = vibeTags.length > VIBE_PREVIEW_COUNT;
+
   const verificationDate = venue.lastVerifiedAt ?? venue.updatedAt;
   const parsedVerificationDate = new Date(verificationDate);
   const formattedUpdatedAt = Number.isNaN(parsedVerificationDate.getTime())
@@ -322,29 +335,99 @@ export function VenueProfile({
         year: "numeric",
       });
 
+  // Mesma fonte de verdade usada na seção "Horários" mais abaixo: quando há
+  // horário estruturado, o status vem de hoursStatus (calculado no server a
+  // partir de venue_business_hours); sem isso, cai no venue.openNow antigo.
+  // hoursStatus.label já cobre o vocabulário pedido para o hero ("Fecha às
+  // X" / "Abre hoje às X" / "Abre amanhã às X" / "Fechado agora" / "Aberto
+  // agora"), então o hero usa só essa frase — sem duplicar um segundo texto.
+  const isOpenNow = businessHours && hoursStatus ? hoursStatus.isOpen : venue.openNow;
+  const heroStatusLabel =
+    businessHours && hoursStatus
+      ? hoursStatus.label
+      : venue.openNow
+        ? "Aberto agora"
+        : "Fechado no momento";
+
+  const verificationMeta = (
+    <p className="mt-3 flex items-center gap-2 text-xs text-muted">
+      <InfoIcon />
+      {formattedUpdatedAt
+        ? `Informações verificadas em ${formattedUpdatedAt}`
+        : "Data de verificação não informada"}{" "}
+      · confiabilidade {venue.isDemo ? "demonstrativa " : ""}de {venue.dataConfidence}%.
+    </p>
+  );
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-14">
       {onBack && (
         <button
           type="button"
           onClick={onBack}
-          className={`inline-flex items-center gap-2 text-sm font-medium text-muted transition-colors hover:text-accent ${focusRing} rounded`}
+          className={`mb-4 inline-flex items-center gap-2 text-sm font-medium text-muted transition-colors hover:text-accent ${focusRing} rounded`}
         >
           <ArrowLeftIcon />
           {backLabel}
         </button>
       )}
 
-      {/* Vídeo e fotos — prioridade 1 no mobile: a pessoa vê o lugar antes de ler qualquer texto sobre ele. */}
-      <section className="mt-6">
-        {venue.videoUrl ? (
+      {/* Hero — imagem/vídeo protagonista. Vídeo tem controles nativos (a
+          barra de controles do <video> conflita com texto sobreposto), então
+          fica em bloco próprio com um cabeçalho compacto logo abaixo, em vez
+          do gradiente com texto por cima usado para foto/fallback. */}
+      {venue.videoUrl ? (
+        <section className="mt-2">
           <VenueVideoPlayer
             videoUrl={venue.videoUrl}
             venueName={venue.name}
             gradient={venue.gradient}
           />
-        ) : venue.coverImageUrl && !coverFailed ? (
-          <div className="relative aspect-video overflow-hidden rounded-2xl">
+          <div className="mt-4">
+            {venue.isDemo && (
+              <p className="mb-2 w-fit rounded-full border border-border px-3 py-1 text-xs text-muted">
+                Dados demonstrativos
+              </p>
+            )}
+            <div className="flex items-center gap-3">
+              {venue.logoUrl && (
+                <Image
+                  src={venue.logoUrl}
+                  alt={`Logotipo de ${venue.name}`}
+                  width={48}
+                  height={48}
+                  className="h-12 w-12 shrink-0 rounded-full border border-border object-cover"
+                />
+              )}
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                  {venue.category}
+                </p>
+                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                    {venue.name}
+                  </h1>
+                  {venue.isVerified && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent">
+                      <VerifiedIcon />
+                      Verificado pelo Qual é a Boa
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <p className="mt-2 flex items-center gap-2 text-sm">
+              <span
+                aria-hidden="true"
+                className={`h-2 w-2 shrink-0 rounded-full ${isOpenNow ? "bg-emerald-400" : "bg-red-400"}`}
+              />
+              <span className="font-medium text-foreground">{heroStatusLabel}</span>
+            </p>
+          </div>
+        </section>
+      ) : (
+        <section className="relative -mx-4 aspect-[4/5] overflow-hidden sm:mx-0 sm:aspect-[16/9] sm:rounded-3xl">
+          {venue.coverImageUrl && !coverFailed ? (
             <Image
               src={venue.coverImageUrl}
               alt={`Foto de capa de ${venue.name}`}
@@ -354,193 +437,105 @@ export function VenueProfile({
               priority
               onError={() => setCoverFailed(true)}
             />
-          </div>
-        ) : (
-          <div
-            className={`relative flex aspect-video items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br ${venue.gradient}`}
-          >
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute -top-10 left-1/2 h-40 w-64 -translate-x-1/2 rounded-full bg-accent/25 blur-[80px]"
-            />
-            <div className="relative flex flex-col items-center gap-3 px-6 text-center">
-              <BrandLogo variant="yellow" size="small" />
-              <p className="text-sm font-semibold text-foreground">
-                Este lugar está preparando sua experiência visual.
-              </p>
-              <p className="text-xs text-foreground/70">
-                Em breve, fotos e vídeos reais deste estabelecimento.
-              </p>
-            </div>
-          </div>
-        )}
-      </section>
-
-      <header className="mt-6">
-        {venue.isDemo && (
-          <p className="mb-3 w-fit rounded-full border border-border px-3 py-1 text-xs text-muted">
-            Dados demonstrativos para validação do MVP
-          </p>
-        )}
-        <div className="flex items-center gap-3">
-          {venue.logoUrl && (
-            <Image
-              src={venue.logoUrl}
-              alt={`Logotipo de ${venue.name}`}
-              width={56}
-              height={56}
-              className="h-14 w-14 shrink-0 rounded-full border border-border object-cover"
-            />
-          )}
-          <div>
-            <p className="text-sm text-muted">{venue.category}</p>
-            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-              <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                {venue.name}
-              </h1>
-              {venue.isVerified && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent">
-                  <VerifiedIcon />
-                  Verificado pelo Qual é a Boa
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-        <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-muted">
-          <span className="inline-flex items-center gap-1">
-            <PinIcon />
-            {venue.neighborhood} · {venue.city}
-          </span>
-          {venue.distanceKm !== null && (
-            <>
-              <span aria-hidden="true">·</span>
-              <span>{venue.distanceKm.toFixed(1).replace(".", ",")} km</span>
-            </>
-          )}
-        </p>
-        <p className="mt-3 text-sm text-foreground sm:text-base">{venue.description}</p>
-      </header>
-
-      {/* Avaliações — resumo público sempre visível; formulário de escrita
-          fica atrás de um link discreto, não exposto de cara, e só some
-          para quem não está logado (VenueReviewForm cuida disso). Depende
-          de public.reviews (028) — funciona com fallback gracioso se essa
-          migration ainda não tiver sido aplicada. */}
-      {venue.venueId && (
-        <section className="mt-4 flex flex-col gap-2">
-          <VenueRatingSummary venueId={venue.venueId} />
-          {!showReviewForm ? (
-            <button
-              type="button"
-              onClick={() => setShowReviewForm(true)}
-              className={`w-fit text-sm text-accent transition-colors hover:underline ${focusRing} rounded`}
-            >
-              Avaliar este lugar
-            </button>
           ) : (
-            <VenueReviewForm venueId={venue.venueId} onSubmitted={() => setShowReviewForm(false)} />
+            <div className={`absolute inset-0 bg-gradient-to-br ${venue.gradient}`}>
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute -top-10 left-1/2 h-40 w-64 -translate-x-1/2 rounded-full bg-accent/25 blur-[80px]"
+              />
+              <div className="relative flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+                <BrandLogo variant="yellow" size="small" />
+                <p className="text-sm font-semibold text-foreground">
+                  Este lugar está preparando sua experiência visual.
+                </p>
+                <p className="text-xs text-foreground/70">
+                  Em breve, fotos e vídeos reais deste estabelecimento.
+                </p>
+              </div>
+            </div>
           )}
-        </section>
-      )}
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 bg-gradient-to-t from-black via-black/25 to-black/10"
+          />
 
-      {/* Informações inteligentes coletadas no cadastro — "esse lugar combina comigo".
-          Vem antes de "Motivos do match" de propósito: a sensação/experiência do
-          lugar em si importa mais que o cálculo de compatibilidade. */}
-      {experienceLabels.length > 0 && (
-        <section className="mt-8">
-          <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted">
-            <SparkleIcon />
-            A experiência
-          </h2>
-          <TagPillList items={experienceLabels} />
-        </section>
-      )}
-
-      {/* Motivos do match — só existe vindo do fluxo de descoberta; é o "por que visitar". */}
-      {match && (
-        <section className="mt-8 rounded-xl border border-border/80 bg-background-elevated p-5">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-              Motivos do match
+          {venue.isDemo && (
+            <p className="absolute left-4 top-4 w-fit rounded-full border border-white/30 bg-black/40 px-3 py-1 text-xs text-white backdrop-blur sm:left-5 sm:top-5">
+              Dados demonstrativos
             </p>
-            <span className="text-xl font-bold text-accent">{match.score}%</span>
-          </div>
-          <ul className="mt-3 flex flex-col gap-1.5 text-sm text-foreground">
-            {match.reasons.map((reason) => (
-              <li key={reason} className="flex items-start gap-2">
-                <span
-                  aria-hidden="true"
-                  className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-accent"
+          )}
+
+          <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
+            <div className="flex items-center gap-3">
+              {venue.logoUrl && (
+                <Image
+                  src={venue.logoUrl}
+                  alt={`Logotipo de ${venue.name}`}
+                  width={48}
+                  height={48}
+                  className="h-12 w-12 shrink-0 rounded-full border border-white/30 object-cover"
                 />
-                {formatRecommendationReason(reason)}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {companionLabels.length > 0 && (
-        <section className="mt-8">
-          <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted">
-            <PeopleIcon />
-            Combina com
-          </h2>
-          <TagPillList items={companionLabels} />
-        </section>
-      )}
-
-      {momentLabels.length > 0 && (
-        <section className="mt-8">
-          <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted">
-            <ClockIcon />
-            Melhor momento
-          </h2>
-          <TagPillList items={momentLabels} />
-        </section>
-      )}
-
-      {/* Cardápio e faixa de preço */}
-      <section className="mt-8">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
-            Cardápio e faixa de preço
-          </h2>
-          <span className="text-sm font-medium text-foreground">
-            {venue.priceRange}
-            {venue.averagePricePerPerson !== null && ` · média de R$ ${venue.averagePricePerPerson} por pessoa`}
-          </span>
-        </div>
-        <ul className="mt-3 flex flex-col gap-1.5 text-sm text-foreground">
-          {venue.menuHighlights.map((item) => (
-            <li key={item} className="flex items-start gap-2">
+              )}
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-wide text-accent">
+                  {venue.category}
+                </p>
+                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <h1 className="text-2xl font-bold leading-tight text-white sm:text-3xl">
+                    {venue.name}
+                  </h1>
+                  {venue.isVerified && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-accent/40 bg-black/40 px-2.5 py-1 text-xs font-medium text-accent backdrop-blur">
+                      <VerifiedIcon />
+                      Verificado
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <p className="mt-3 flex items-center gap-2 text-sm text-white/90">
               <span
                 aria-hidden="true"
-                className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-accent"
+                className={`h-2 w-2 shrink-0 rounded-full ${isOpenNow ? "bg-emerald-400" : "bg-red-400"}`}
               />
-              {humanizeSlug(item)}
-            </li>
-          ))}
-        </ul>
-      </section>
+              <span className="font-medium">{heroStatusLabel}</span>
+            </p>
+          </div>
+        </section>
+      )}
 
-      {/* Endereço — prioridade "localização", logo antes dos botões de contato */}
-      <section className="mt-8">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
-          Endereço
-        </h2>
-        <p className="mt-2 flex items-start gap-2 text-sm text-foreground">
+      {/* Resumo de decisão — só dados reais: preço médio quando existir,
+          bairro, distância quando calculada, nota quando houver avaliação. */}
+      <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm text-muted sm:mt-5">
+        <span className="font-semibold text-foreground">{venue.priceRange}</span>
+        {venue.averagePricePerPerson !== null && (
+          <span>· R$ {venue.averagePricePerPerson} por pessoa</span>
+        )}
+        <span aria-hidden="true">·</span>
+        <span className="inline-flex items-center gap-1">
           <PinIcon />
-          {venue.address}
-        </p>
-      </section>
+          {venue.neighborhood}
+        </span>
+        {venue.distanceKm !== null && (
+          <>
+            <span aria-hidden="true">·</span>
+            <span>{venue.distanceKm.toFixed(1).replace(".", ",")} km</span>
+          </>
+        )}
+        {venue.venueId && (
+          <>
+            <span aria-hidden="true">·</span>
+            <VenueRatingSummary summary={ratingSummary} variant="compact" />
+          </>
+        )}
+      </div>
 
-      {/* Ações principais — última etapa da vitrine, quando a decisão já foi
-          formada: 1) WhatsApp, 2) Favoritar, 3) Reserva (se existir), 4) Ver
-          rota. As três ações de contato têm o mesmo peso visual dourado —
-          nenhuma delas deve parecer secundária. Empilhadas em coluna no
-          mobile, lado a lado a partir de sm:. */}
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+      {/* Ações principais — logo depois do resumo, antes de qualquer texto
+          longo: 1) WhatsApp, 2) Favoritar, 3) Reserva (se existir), 4) Ver
+          cardápio (se existir menu_url), 5) Ver rota. Mesmo peso visual
+          dourado entre as ações de contato — nenhuma delas é secundária.
+          Empilhadas em coluna no mobile, lado a lado a partir de sm:. */}
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         {whatsappHref && (
           <a
             href={whatsappHref}
@@ -566,6 +561,17 @@ export function VenueProfile({
             Fazer reserva
           </a>
         )}
+        {venue.menuUrl && (
+          <a
+            href={venue.menuUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-accent bg-accent/10 px-5 py-3.5 text-sm font-semibold text-accent transition-all hover:bg-accent hover:text-accent-foreground hover:shadow-[0_0_28px_-8px_rgba(255,194,30,0.55)] sm:min-w-[45%] ${focusRing}`}
+          >
+            <MenuIcon />
+            Ver cardápio
+          </a>
+        )}
         <a
           href={mapsHref}
           target="_blank"
@@ -578,7 +584,83 @@ export function VenueProfile({
         </a>
       </div>
 
-      {/* Galeria — listada diretamente do Storage; só aparece quando há arquivos reais. Detalhe complementar, depois do essencial. */}
+      {/* A vibe desse lugar — atmosfera, momento e companhia num único mural
+          de tags, em vez de três fichas técnicas separadas. Poucas tags por
+          padrão; "+N mais" só aparece quando há mais do que cabe numa
+          primeira leitura. */}
+      {vibeTags.length > 0 && (
+        <section className="mt-8">
+          <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted">
+            <SparkleIcon />A vibe desse lugar
+          </h2>
+          <TagPillList items={visibleVibeTags} />
+          {hasMoreVibeTags && (
+            <button
+              type="button"
+              onClick={() => setShowAllVibeTags((value) => !value)}
+              className={`mt-2 text-xs font-medium text-accent transition-colors hover:underline ${focusRing} rounded`}
+            >
+              {showAllVibeTags ? "Mostrar menos" : `+${vibeTags.length - VIBE_PREVIEW_COUNT} mais`}
+            </button>
+          )}
+        </section>
+      )}
+
+      {/* Por que combina com você — só existe vindo do fluxo de descoberta,
+          onde há um score real calculado; sem isso, a seção não aparece
+          (não inventamos motivo de match fora desse contexto). */}
+      {match && (
+        <section className="mt-8 rounded-2xl border border-accent/30 bg-accent/5 p-5">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-accent">
+              Por que combina com você
+            </p>
+            <span className="text-xl font-bold text-accent">{match.score}%</span>
+          </div>
+          <ul className="mt-3 flex flex-col gap-1.5 text-sm text-foreground">
+            {match.reasons.map((reason) => (
+              <li key={reason} className="flex items-start gap-2">
+                <span
+                  aria-hidden="true"
+                  className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-accent"
+                />
+                {formatRecommendationReason(reason)}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Sobre o lugar — descrição curta, sem título de dashboard. */}
+      <section className="mt-8">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+          Sobre o lugar
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-foreground sm:text-base">
+          {venue.description}
+        </p>
+      </section>
+
+      {/* Cardápio — destaques cadastrados; o link para o cardápio completo
+          (menu_url) já está nas ações principais, no topo. */}
+      {venue.menuHighlights.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Cardápio</h2>
+          <ul className="mt-3 flex flex-col gap-1.5 text-sm text-foreground">
+            {venue.menuHighlights.map((item) => (
+              <li key={item} className="flex items-start gap-2">
+                <span
+                  aria-hidden="true"
+                  className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-accent"
+                />
+                {humanizeSlug(item)}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Galeria — listada diretamente do Storage; só aparece quando há arquivos reais. */}
       {venue.galleryUrls && venue.galleryUrls.length > 0 && (
         <section className="mt-8">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Galeria</h2>
@@ -604,36 +686,12 @@ export function VenueProfile({
         </section>
       )}
 
+      {/* Horários — status resumido já está no hero; aqui entra a semana
+          estruturada (quando existir) ou a programação em texto livre. */}
       {businessHours && hoursStatus ? (
         <>
-          {/* Horário e status calculado a partir de venue_business_hours */}
-          <section className="mt-8 flex flex-col gap-2 rounded-xl border border-border/80 bg-background p-4 text-sm">
-            <div className="flex items-center gap-2">
-              <span
-                aria-hidden="true"
-                className={`h-2 w-2 shrink-0 rounded-full ${
-                  hoursStatus.isOpen ? "bg-emerald-400" : "bg-red-400"
-                }`}
-              />
-              <span className="font-medium text-foreground">
-                {hoursStatus.isOpen ? "Aberto agora" : "Fechado agora"}
-              </span>
-            </div>
-            <p className="text-muted">{hoursStatus.label}</p>
-            <p className="flex items-center gap-2 text-muted">
-              <InfoIcon />
-              {formattedUpdatedAt
-                ? `Informações verificadas em ${formattedUpdatedAt}`
-                : "Data de verificação não informada"}{" "}
-              · confiabilidade {venue.isDemo ? "demonstrativa " : ""}de {venue.dataConfidence}%.
-            </p>
-          </section>
-
-          {/* Horário de funcionamento (semanal) */}
           <section className="mt-8">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
-              Horário de funcionamento
-            </h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Horários</h2>
             <ul className="mt-3 flex flex-col gap-2">
               {DAYS_OF_WEEK.map((day) => {
                 const hour = businessHours.find((item) => item.day_of_week === day);
@@ -656,6 +714,7 @@ export function VenueProfile({
                 );
               })}
             </ul>
+            {verificationMeta}
           </section>
 
           {/* Informações adicionais — venues.schedule, texto livre complementar, não é mais o horário principal */}
@@ -676,47 +735,74 @@ export function VenueProfile({
           )}
         </>
       ) : (
-        <>
-          {/* Programação — venue sem horário estruturado ainda, comportamento antigo intacto */}
-          <section className="mt-8">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
-              Programação
-            </h2>
-            <ul className="mt-3 flex flex-col gap-2">
-              {venue.schedule.map((item) => (
-                <li key={item} className="flex items-start gap-2 text-sm text-foreground">
-                  <ClockIcon />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          {/* Horário e informações atualizadas */}
-          <section className="mt-8 flex flex-col gap-2 rounded-xl border border-border/80 bg-background p-4 text-sm">
-            <div className="flex items-center gap-2">
-              <span
-                aria-hidden="true"
-                className={`h-2 w-2 shrink-0 rounded-full ${
-                  venue.openNow ? "bg-emerald-400" : "bg-red-400"
-                }`}
-              />
-              <span className="font-medium text-foreground">
-                {venue.openNow ? "Aberto agora" : "Fechado no momento"}
-              </span>
-            </div>
-            <p className="flex items-center gap-2 text-muted">
-              <InfoIcon />
-              {formattedUpdatedAt
-                ? `Informações verificadas em ${formattedUpdatedAt}`
-                : "Data de verificação não informada"}{" "}
-              · confiabilidade {venue.isDemo ? "demonstrativa " : ""}de {venue.dataConfidence}%.
-            </p>
-          </section>
-        </>
+        /* Programação — venue sem horário estruturado ainda, comportamento antigo intacto */
+        <section className="mt-8">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+            Programação
+          </h2>
+          <ul className="mt-3 flex flex-col gap-2">
+            {venue.schedule.map((item) => (
+              <li key={item} className="flex items-start gap-2 text-sm text-foreground">
+                <ClockIcon />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+          {verificationMeta}
+        </section>
       )}
 
-      <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2">
+      {/* Como chegar — endereço completo (o resumo do topo só tem o bairro). */}
+      <section className="mt-8">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Como chegar</h2>
+        <p className="mt-2 flex items-start gap-2 text-sm text-foreground">
+          <PinIcon />
+          <span>
+            {venue.address}
+            <span className="block text-muted">
+              {venue.neighborhood} · {venue.city}
+            </span>
+          </span>
+        </p>
+        <a
+          href={mapsHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => trackBusinessClick("route_click")}
+          className={`mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-accent transition-colors hover:underline ${focusRing} rounded`}
+        >
+          <MapIcon />
+          Abrir no mapa
+        </a>
+      </section>
+
+      {/* Avaliações — resumo público completo (variant default) sempre
+          visível; formulário de escrita fica atrás de um link discreto, não
+          exposto de cara, e só some para quem não está logado
+          (VenueReviewForm cuida disso). Depende de public.reviews (028) —
+          funciona com fallback gracioso se essa migration ainda não tiver
+          sido aplicada. */}
+      {venue.venueId && (
+        <section className="mt-8">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Avaliações</h2>
+          <div className="mt-3 flex flex-col gap-2">
+            <VenueRatingSummary summary={ratingSummary} />
+            {!showReviewForm ? (
+              <button
+                type="button"
+                onClick={() => setShowReviewForm(true)}
+                className={`w-fit text-sm text-accent transition-colors hover:underline ${focusRing} rounded`}
+              >
+                Avaliar este lugar
+              </button>
+            ) : (
+              <VenueReviewForm venueId={venue.venueId} onSubmitted={() => setShowReviewForm(false)} />
+            )}
+          </div>
+        </section>
+      )}
+
+      <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2">
         {onRestart && (
           <button
             type="button"
