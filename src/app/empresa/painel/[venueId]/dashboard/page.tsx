@@ -4,6 +4,7 @@ import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { VenueAccessGate } from "@/components/empresa/venue-access-gate";
+import { MostardaCard } from "@/components/empresa/mostarda-card";
 import type { VenueOwnerRow } from "@/lib/venues/venue-owner";
 import { getVenueDashboardStats, type VenueDashboardStats } from "@/lib/venues/venue-dashboard";
 
@@ -420,6 +421,8 @@ function DashboardContent({ venue }: { venue: VenueOwnerRow }) {
           </section>
         </>
       )}
+
+      <MostardaCard />
     </div>
   );
 }

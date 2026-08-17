@@ -10,6 +10,7 @@ import { HomeMatchFlow } from "@/components/home-discovery/home-match-flow";
 import { FeaturedVenues } from "@/components/featured-venues";
 import { TrustSection } from "@/components/trust-section";
 import { BusinessCta } from "@/components/business-cta";
+import { InstagramFollow } from "@/components/instagram-follow";
 import { Footer } from "@/components/footer";
 import { getPublishedVenues, getVenuesBusinessHours } from "@/lib/venues/venue-repository";
 import { buildVenueHoursStatusMap } from "@/lib/venues/venue-hours";
@@ -93,6 +94,8 @@ export default async function Home() {
             <TrustSection />
             <BusinessCta />
           </div>
+
+          <InstagramFollow />
         </main>
         <Footer />
       </div>
