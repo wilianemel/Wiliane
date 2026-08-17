@@ -1,7 +1,11 @@
+import Link from "next/link";
 import type { Venue } from "@/data/venues";
 import { SearchPage } from "@/components/search/search-page";
 import { SearchResultCard } from "@/components/search/search-result-card";
 import type { VenueHoursStatus } from "@/lib/venues/venue-hours";
+
+const focusRing =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 /** Teto de itens por fileira em carrossel — evita uma seção infinita quando o catálogo crescer. */
 const MAX_SECTION_ITEMS = 8;
@@ -64,9 +68,57 @@ interface ExplorationPageProps {
   venues: Venue[];
   /** venue.venueId -> status calculado no servidor — ver comentário equivalente em search-page.tsx. */
   hoursStatusByVenueId?: Record<string, VenueHoursStatus>;
+  /**
+   * Vem dos atalhos de categoria da Home (via /descobrir?category=...
+   * ou ?liveMusic=1, ver descobrir/page.tsx) — quando presente, a tela
+   * mostra só esse recorte já filtrado, como um feed simples (grid de
+   * cards, sem formulário de busca) em vez das seções curadas + área de
+   * busca completa. Continua sendo Explorar, nunca vira uma cópia de
+   * /buscar: sem input de texto, sem dropdowns de filtro nesta tela.
+   */
+  activeFilter?: { label: string; venues: Venue[] } | null;
 }
 
-export function ExplorationPage({ venues, hoursStatusByVenueId }: ExplorationPageProps) {
+export function ExplorationPage({ venues, hoursStatusByVenueId, activeFilter }: ExplorationPageProps) {
+  if (activeFilter) {
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-accent">Explorando</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+              {activeFilter.label}
+            </h1>
+          </div>
+          <Link
+            href="/descobrir"
+            className={`inline-flex shrink-0 items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-medium text-muted transition-colors hover:border-accent hover:text-accent ${focusRing}`}
+          >
+            Ver tudo
+          </Link>
+        </div>
+
+        {activeFilter.venues.length === 0 ? (
+          <div className="mt-8 rounded-2xl border border-border bg-background-elevated p-8 text-center">
+            <p className="text-sm text-muted">
+              Nenhuma experiência publicada para esse filtro no momento.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {activeFilter.venues.map((venue) => (
+              <SearchResultCard
+                key={venue.id}
+                venue={venue}
+                hoursStatus={hoursStatusByVenueId?.[venue.venueId] ?? null}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   const sections = CURATED_SECTIONS.map((section) => {
     const matched = venues.filter(section.filter);
     const ordered = section.sort ? [...matched].sort(section.sort) : matched;

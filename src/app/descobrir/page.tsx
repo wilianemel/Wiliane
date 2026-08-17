@@ -4,6 +4,7 @@ import { ExplorationPage } from "@/components/discovery/exploration-page";
 import { BrandLogo } from "@/components/shared/brand-logo";
 import { getPublishedVenues, getVenuesBusinessHours } from "@/lib/venues/venue-repository";
 import { buildVenueHoursStatusMap } from "@/lib/venues/venue-hours";
+import { EMPTY_VENUE_FILTERS, searchVenues, type VenueFilters } from "@/lib/search-venues";
 
 export const metadata: Metadata = {
   title: "Descobrir — Qual é a Boa!",
@@ -26,11 +27,31 @@ function ArrowLeftIcon() {
   );
 }
 
-export default async function DescobrirPage() {
+interface DescobrirPageProps {
+  /**
+   * Vêm dos atalhos de categoria da Home (HomeCategoryShortcuts) — mesmo
+   * VenueFilters/searchVenues de sempre (search-venues.ts), só aplicado
+   * aqui como recorte de feed, não como formulário de busca. Mesmo padrão
+   * de /buscar (ver buscar/page.tsx), mas para outro objetivo de navegação.
+   */
+  searchParams: Promise<{ category?: string; liveMusic?: string }>;
+}
+
+export default async function DescobrirPage({ searchParams }: DescobrirPageProps) {
+  const { category, liveMusic } = await searchParams;
   const venues = await getPublishedVenues();
   // Uma única consulta em lote (evita N+1) — ver comentário equivalente em src/app/page.tsx.
   const hoursByVenueId = await getVenuesBusinessHours(venues.map((venue) => venue.venueId));
   const hoursStatusByVenueId = buildVenueHoursStatusMap(hoursByVenueId, new Date());
+
+  const filters: VenueFilters = {
+    ...EMPTY_VENUE_FILTERS,
+    ...(category ? { category } : {}),
+    ...(liveMusic ? { liveMusicOnly: true } : {}),
+  };
+  const hasActiveFilter = Boolean(category || liveMusic);
+  const filteredVenues = hasActiveFilter ? searchVenues("", filters, venues, hoursStatusByVenueId) : venues;
+  const activeFilterLabel = category || (liveMusic ? "Música ao vivo" : null);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -50,7 +71,15 @@ export default async function DescobrirPage() {
       </header>
 
       <main className="flex-1">
-        <ExplorationPage venues={venues} hoursStatusByVenueId={hoursStatusByVenueId} />
+        <ExplorationPage
+          venues={venues}
+          hoursStatusByVenueId={hoursStatusByVenueId}
+          activeFilter={
+            hasActiveFilter && activeFilterLabel
+              ? { label: activeFilterLabel, venues: filteredVenues }
+              : null
+          }
+        />
       </main>
     </div>
   );

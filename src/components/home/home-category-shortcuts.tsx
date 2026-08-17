@@ -1,19 +1,22 @@
 import Link from "next/link";
 
 /**
- * Atalhos de categoria — levam pra /buscar já com o filtro certo
- * pré-selecionado (VenueFilters existente, ver search-page.tsx), nunca uma
- * lógica de filtro paralela. "Música ao vivo" usa o filtro liveMusicOnly
- * que já existe; as demais usam o valor exato de VENUE_CATEGORIES.
+ * Atalhos de categoria — levam pra /descobrir (exploração/inspiração), não
+ * /buscar (busca direta/filtros): esta seção é convite de descoberta, não
+ * uma segunda entrada pro formulário de busca. Reaproveita o mesmo
+ * VenueFilters de sempre (ver search-venues.ts), só que /descobrir aplica
+ * como um feed filtrado, não com formulário — ver exploration-page.tsx.
+ * "Música ao vivo" usa o filtro liveMusicOnly que já existe; as demais usam
+ * o valor exato de VENUE_CATEGORIES.
  */
 const CATEGORY_SHORTCUTS = [
-  { label: "Restaurantes", href: "/buscar?category=Restaurante" },
-  { label: "Bares", href: "/buscar?category=Bar" },
-  { label: "Cafeterias", href: "/buscar?category=Cafeteria" },
-  { label: "Música ao vivo", href: "/buscar?liveMusic=1" },
-  { label: "Eventos", href: "/buscar?category=Eventos" },
-  { label: "Baladas", href: "/buscar?category=Balada" },
-  { label: "Pubs", href: "/buscar?category=Pub" },
+  { label: "Restaurantes", href: "/descobrir?category=Restaurante" },
+  { label: "Bares", href: "/descobrir?category=Bar" },
+  { label: "Cafeterias", href: "/descobrir?category=Cafeteria" },
+  { label: "Música ao vivo", href: "/descobrir?liveMusic=1" },
+  { label: "Eventos", href: "/descobrir?category=Eventos" },
+  { label: "Baladas", href: "/descobrir?category=Balada" },
+  { label: "Pubs", href: "/descobrir?category=Pub" },
 ];
 
 export function HomeCategoryShortcuts() {
