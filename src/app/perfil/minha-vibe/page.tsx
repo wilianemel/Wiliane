@@ -43,7 +43,7 @@ export default async function MinhaVibePage() {
   // trabalhar com um retrato desatualizado (ver comentário lá).
   const { data: preferences } = await supabase
     .from("user_preferences")
-    .select("favorite_categories, favorite_atmospheres, preferred_companions")
+    .select("favorite_categories, favorite_atmospheres, preferred_companions, preferred_music_styles")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -53,6 +53,7 @@ export default async function MinhaVibePage() {
       initialCategories={preferences?.favorite_categories ?? []}
       initialAtmospheres={preferences?.favorite_atmospheres ?? []}
       initialCompanions={preferences?.preferred_companions ?? []}
+      initialMusicStyles={preferences?.preferred_music_styles ?? []}
     />
   );
 }

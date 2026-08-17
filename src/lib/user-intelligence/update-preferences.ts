@@ -33,7 +33,7 @@ export async function updatePreferences({
 
     const { data: venue, error: venueError } = await supabase
       .from("venues")
-      .select("category, atmospheres, companions")
+      .select("category, atmospheres, companions, music_styles")
       .eq("id", venueId)
       .maybeSingle();
 
@@ -44,7 +44,7 @@ export async function updatePreferences({
 
     const { data: preferences, error: preferencesError } = await supabase
       .from("user_preferences")
-      .select("favorite_categories, favorite_atmospheres, preferred_companions")
+      .select("favorite_categories, favorite_atmospheres, preferred_companions, preferred_music_styles")
       .eq("user_id", userId)
       .maybeSingle();
 
@@ -65,6 +65,10 @@ export async function updatePreferences({
       preferences?.preferred_companions,
       (venue.companions as string[] | null) ?? [],
     );
+    const preferredMusicStyles = mergeUnique(
+      preferences?.preferred_music_styles,
+      (venue.music_styles as string[] | null) ?? [],
+    );
 
     const { error: upsertError } = await supabase.from("user_preferences").upsert(
       {
@@ -72,6 +76,7 @@ export async function updatePreferences({
         favorite_categories: favoriteCategories,
         favorite_atmospheres: favoriteAtmospheres,
         preferred_companions: preferredCompanions,
+        preferred_music_styles: preferredMusicStyles,
       },
       { onConflict: "user_id" },
     );

@@ -4,11 +4,11 @@ import type {
   DiscoveryAnswers,
   IntentionId,
   MatchResult,
-  MusicPreferenceId,
 } from "@/types/discovery";
 import type { VenueMomentTag } from "@/lib/venues/venue-tags";
 import { resolveVenueOpenNow, type VenueHoursStatus } from "@/lib/venues/venue-hours";
 import { preferenceScore, type UserPreferencesRow } from "@/lib/user-intelligence/preference-score";
+import { MUSIC_PREFERENCE_LABELS as MUSIC_LABELS } from "@/lib/music-preferences";
 
 /**
  * Motor de afinidade determinístico.
@@ -76,14 +76,6 @@ const ATMOSPHERE_LABELS: Record<AtmosphereId, string> = {
   familiar: "familiar",
   sofisticado: "sofisticado",
   casual: "casual",
-};
-
-const MUSIC_LABELS: Partial<Record<MusicPreferenceId, string>> = {
-  rock: "rock",
-  mpb: "MPB",
-  sertanejo: "sertanejo",
-  eletronica: "eletrônica",
-  ambiente: "música ambiente",
 };
 
 /** Motivo exibido quando o "melhor momento" escolhido bate com uma tag reconhecida em MOMENT_TAG_IDS. */

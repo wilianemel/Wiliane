@@ -6,6 +6,13 @@ export interface UserPreferencesRow {
   favorite_categories: string[] | null;
   favorite_atmospheres: string[] | null;
   preferred_companions: string[] | null;
+  /**
+   * Preferência musical declarada (Minha vibe) ou aprendida ao favoritar
+   * (update-preferences.ts). Só o campo — nenhum bônus de música é
+   * calculado ainda em preferenceScore(); isso fica para uma etapa
+   * separada, depois de validar armazenamento/edição/aprendizado.
+   */
+  preferred_music_styles?: string[] | null;
 }
 
 export interface PreferenceScoreResult {

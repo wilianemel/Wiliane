@@ -1,5 +1,6 @@
 import { VENUE_CATEGORIES, OTHER_CATEGORY } from "@/lib/venues/venue-categories";
 import { ATMOSPHERE_TAG_GROUPS, COMPANION_TAG_OPTIONS, type TagOption } from "@/lib/venues/venue-tags";
+import { REAL_MUSIC_PREFERENCE_IDS, capitalizeMusicLabel } from "@/lib/music-preferences";
 
 /**
  * Categorias que a tela "Minha vibe" exibe/gerencia — todas as
@@ -21,6 +22,18 @@ const AMBIENTE_GROUP = ATMOSPHERE_TAG_GROUPS.find((group) => group.title === "Am
 export const VIBE_ATMOSPHERE_OPTIONS: TagOption[] = AMBIENTE_GROUP?.options ?? [];
 
 export const VIBE_COMPANION_OPTIONS: TagOption[] = COMPANION_TAG_OPTIONS;
+
+/**
+ * Mesma fonte única de taxonomia musical usada pelo match-engine
+ * (src/lib/music-preferences.ts) — "sem-preferencia" já vem excluído de
+ * REAL_MUSIC_PREFERENCE_IDS (não é uma vibe, é ausência de escolha). Só
+ * ajusta a capitalização pra chip (capitalizeMusicLabel); o rótulo em si
+ * não é duplicado.
+ */
+export const VIBE_MUSIC_OPTIONS: TagOption[] = REAL_MUSIC_PREFERENCE_IDS.map((id) => ({
+  id,
+  label: capitalizeMusicLabel(id),
+}));
 
 /**
  * "Minha vibe" só gerencia um SUBCONJUNTO de cada array de

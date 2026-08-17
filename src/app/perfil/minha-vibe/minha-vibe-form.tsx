@@ -8,6 +8,7 @@ import {
   VIBE_CATEGORY_OPTIONS,
   VIBE_ATMOSPHERE_OPTIONS,
   VIBE_COMPANION_OPTIONS,
+  VIBE_MUSIC_OPTIONS,
   mergeManagedSelection,
 } from "@/lib/user-intelligence/vibe-preferences";
 import type { TagOption } from "@/lib/venues/venue-tags";
@@ -22,6 +23,7 @@ interface MinhaVibeFormProps {
   initialCategories: string[];
   initialAtmospheres: string[];
   initialCompanions: string[];
+  initialMusicStyles: string[];
 }
 
 function VibeGroup({
@@ -57,6 +59,7 @@ export function MinhaVibeForm({
   initialCategories,
   initialAtmospheres,
   initialCompanions,
+  initialMusicStyles,
 }: MinhaVibeFormProps) {
   // Só os valores que esta tela realmente exibe entram no estado inicial —
   // qualquer coisa fora da taxonomia gerenciada (categoria antiga, atmosfera
@@ -71,10 +74,14 @@ export function MinhaVibeForm({
   const [companions, setCompanions] = useState<string[]>(() =>
     initialCompanions.filter((value) => VIBE_COMPANION_OPTIONS.some((option) => option.id === value)),
   );
+  const [musicStyles, setMusicStyles] = useState<string[]>(() =>
+    initialMusicStyles.filter((value) => VIBE_MUSIC_OPTIONS.some((option) => option.id === value)),
+  );
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const totalSelected = categories.length + atmospheres.length + companions.length;
+  const totalSelected =
+    categories.length + atmospheres.length + companions.length + musicStyles.length;
 
   async function handleSave() {
     if (status === "saving") return;
@@ -91,7 +98,7 @@ export function MinhaVibeForm({
     // um valor já desatualizado em vez do mais recente.
     const { data: current, error: fetchError } = await supabase
       .from("user_preferences")
-      .select("favorite_categories, favorite_atmospheres, preferred_companions")
+      .select("favorite_categories, favorite_atmospheres, preferred_companions, preferred_music_styles")
       .eq("user_id", userId)
       .maybeSingle();
 
@@ -117,6 +124,11 @@ export function MinhaVibeForm({
       VIBE_COMPANION_OPTIONS.map((option) => option.id),
       companions,
     );
+    const nextMusicStyles = mergeManagedSelection(
+      current?.preferred_music_styles ?? [],
+      VIBE_MUSIC_OPTIONS.map((option) => option.id),
+      musicStyles,
+    );
 
     const { error } = await supabase.from("user_preferences").upsert(
       {
@@ -124,6 +136,7 @@ export function MinhaVibeForm({
         favorite_categories: nextCategories,
         favorite_atmospheres: nextAtmospheres,
         preferred_companions: nextCompanions,
+        preferred_music_styles: nextMusicStyles,
       },
       { onConflict: "user_id" },
     );
@@ -172,6 +185,12 @@ export function MinhaVibeForm({
           options={VIBE_COMPANION_OPTIONS}
           selected={companions}
           onToggle={(id) => setCompanions((current) => toggleValue(current, id))}
+        />
+        <VibeGroup
+          title="Música"
+          options={VIBE_MUSIC_OPTIONS}
+          selected={musicStyles}
+          onToggle={(id) => setMusicStyles((current) => toggleValue(current, id))}
         />
       </div>
 
