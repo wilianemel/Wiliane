@@ -10,19 +10,24 @@ import type { VenueHoursStatus } from "@/lib/venues/venue-hours";
  * (foto grande, gradiente, texto sobre a imagem), só menor e pensado pra
  * scroll lateral. Prioriza exatamente o que a Fase 2 pediu: imagem, nome,
  * categoria, aberto agora, distância/preço — sem lista de horário, sem tags
- * em série.
+ * em série. Também reaproveitado pela Fase 2 de Explorar (exploration-page.tsx)
+ * nas fileiras curadas e no grid filtrado — `className` permite ajustar o
+ * tamanho/proporção para cada contexto sem duplicar o card; o padrão abaixo
+ * preserva exatamente o visual original da Home.
  */
 export function HomeVenueRowCard({
   venue,
   hoursStatus,
+  className = "h-64 w-52 shrink-0 snap-start sm:h-72 sm:w-60",
 }: {
   venue: Venue;
   hoursStatus?: VenueHoursStatus | null;
+  className?: string;
 }) {
   return (
     <Link
       href={`/lugares/${venue.id}`}
-      className="group relative block h-64 w-52 shrink-0 snap-start overflow-hidden rounded-2xl shadow-lg shadow-black/40 transition-transform active:scale-[0.97] sm:h-72 sm:w-60"
+      className={`group relative block overflow-hidden rounded-2xl shadow-lg shadow-black/40 transition-transform active:scale-[0.97] ${className}`}
     >
       <VenueCoverImage
         venue={venue}

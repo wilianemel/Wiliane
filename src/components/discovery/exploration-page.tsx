@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Venue } from "@/data/venues";
-import { SearchPage } from "@/components/search/search-page";
-import { SearchResultCard } from "@/components/search/search-result-card";
+import { HomeVenueRow } from "@/components/home/home-venue-row";
+import { HomeVenueRowCard } from "@/components/home/home-venue-row-card";
 import type { VenueHoursStatus } from "@/lib/venues/venue-hours";
 
 const focusRing =
@@ -12,20 +12,23 @@ const MAX_SECTION_ITEMS = 8;
 
 interface CuratedSection {
   title: string;
+  /** Texto curto opcional — só quando explica o critério real da seção, sem inventar popularidade. */
+  subtitle?: string;
   filter: (venue: Venue) => boolean;
   sort?: (a: Venue, b: Venue) => number;
 }
 
 /**
- * Fase 1 da exploração: só seções com critério real nos dados existentes
- * (ver análise). De propósito, NÃO inclui "Para você" (depende de alguma
- * noção de preferência do usuário — decisão de produto em aberto),
- * "Bombando agora" (sem métrica real de popularidade) nem "Hoje"
- * (schedule é texto livre, não estruturado por dia da semana).
+ * Mesmas seções da Fase 1, só com critério real nos dados existentes. De
+ * propósito, NÃO inclui "Para você" (isso já é resolvido na Home via
+ * getForYouVenues, não duplicado aqui), "Bombando agora" (sem métrica real
+ * de popularidade) nem "Hoje" (schedule é texto livre, não estruturado por
+ * dia da semana).
  */
 const CURATED_SECTIONS: CuratedSection[] = [
   {
     title: "Perto de você",
+    subtitle: "Pela distância cadastrada de cada estabelecimento.",
     filter: (venue) => venue.distanceKm !== null,
     sort: (a, b) => (a.distanceKm as number) - (b.distanceKm as number),
   },
@@ -42,24 +45,43 @@ const CURATED_SECTIONS: CuratedSection[] = [
   { title: "Novidades", filter: (venue) => venue.intentions.includes("novidade") },
 ];
 
-/** Fileira com scroll horizontal — adaptação mínima: SearchResultCard não muda, só ganha um wrapper com largura fixa. */
-function VenueRow({
-  venues,
-  hoursStatusByVenueId,
-}: {
-  venues: Venue[];
-  hoursStatusByVenueId?: Record<string, VenueHoursStatus>;
-}) {
+function SearchIcon() {
   return (
-    <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
-      {venues.map((venue) => (
-        <div key={venue.id} className="w-72 shrink-0 sm:w-80">
-          <SearchResultCard
-            venue={venue}
-            hoursStatus={hoursStatusByVenueId?.[venue.venueId] ?? null}
-          />
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      className="h-4 w-4"
+      aria-hidden="true"
+    >
+      <circle cx="11" cy="11" r="7" />
+      <path strokeLinecap="round" d="m20 20-3.5-3.5" />
+    </svg>
+  );
+}
+
+/**
+ * CTA discreto de fim de página — Explorar não deve terminar virando uma
+ * cópia de /buscar. Em vez de embutir o formulário completo de busca aqui
+ * dentro (como na Fase 1), só um convite curto pra quem quer algo
+ * específico. /buscar continua existindo e intacto, sem filtros duplicados.
+ */
+function SearchCta() {
+  return (
+    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
+      <div className="flex flex-col items-start gap-3 rounded-2xl border border-border/70 bg-background-elevated px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div>
+          <p className="text-sm font-semibold text-foreground">Quer algo específico?</p>
+          <p className="mt-0.5 text-sm text-muted">Filtre por nome, culinária, bairro ou música.</p>
         </div>
-      ))}
+        <Link
+          href="/buscar"
+          className={`inline-flex w-full items-center justify-center gap-2 rounded-full border border-accent px-5 py-2.5 text-sm font-semibold text-accent transition-all hover:bg-accent hover:text-accent-foreground sm:w-auto ${focusRing}`}
+        >
+          Buscar com filtros
+        </Link>
+      </div>
     </div>
   );
 }
@@ -71,10 +93,9 @@ interface ExplorationPageProps {
   /**
    * Vem dos atalhos de categoria da Home (via /descobrir?category=...
    * ou ?liveMusic=1, ver descobrir/page.tsx) — quando presente, a tela
-   * mostra só esse recorte já filtrado, como um feed simples (grid de
-   * cards, sem formulário de busca) em vez das seções curadas + área de
-   * busca completa. Continua sendo Explorar, nunca vira uma cópia de
-   * /buscar: sem input de texto, sem dropdowns de filtro nesta tela.
+   * mostra só esse recorte já filtrado, como um grid de cards editoriais
+   * (mesma linguagem visual das fileiras curadas), nunca o formulário de
+   * busca. Continua sendo Explorar, nunca vira uma cópia de /buscar.
    */
   activeFilter?: { label: string; venues: Venue[] } | null;
 }
@@ -82,39 +103,44 @@ interface ExplorationPageProps {
 export function ExplorationPage({ venues, hoursStatusByVenueId, activeFilter }: ExplorationPageProps) {
   if (activeFilter) {
     return (
-      <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-accent">Explorando</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-              {activeFilter.label}
-            </h1>
+      <div>
+        <div className="mx-auto max-w-6xl px-4 pt-8 sm:px-6 sm:pt-12">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-accent">Explorando</p>
+              <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                {activeFilter.label}
+              </h1>
+            </div>
+            <Link
+              href="/descobrir"
+              className={`inline-flex shrink-0 items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-medium text-muted transition-colors hover:border-accent hover:text-accent ${focusRing}`}
+            >
+              Ver tudo
+            </Link>
           </div>
-          <Link
-            href="/descobrir"
-            className={`inline-flex shrink-0 items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-medium text-muted transition-colors hover:border-accent hover:text-accent ${focusRing}`}
-          >
-            Ver tudo
-          </Link>
+
+          {activeFilter.venues.length === 0 ? (
+            <div className="mt-8 rounded-2xl border border-border bg-background-elevated p-8 text-center">
+              <p className="text-sm text-muted">
+                Nenhuma experiência publicada para esse filtro no momento.
+              </p>
+            </div>
+          ) : (
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+              {activeFilter.venues.map((venue) => (
+                <HomeVenueRowCard
+                  key={venue.id}
+                  venue={venue}
+                  hoursStatus={hoursStatusByVenueId?.[venue.venueId] ?? null}
+                  className="aspect-[3/4] w-full"
+                />
+              ))}
+            </div>
+          )}
         </div>
 
-        {activeFilter.venues.length === 0 ? (
-          <div className="mt-8 rounded-2xl border border-border bg-background-elevated p-8 text-center">
-            <p className="text-sm text-muted">
-              Nenhuma experiência publicada para esse filtro no momento.
-            </p>
-          </div>
-        ) : (
-          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {activeFilter.venues.map((venue) => (
-              <SearchResultCard
-                key={venue.id}
-                venue={venue}
-                hoursStatus={hoursStatusByVenueId?.[venue.venueId] ?? null}
-              />
-            ))}
-          </div>
-        )}
+        <SearchCta />
       </div>
     );
   }
@@ -122,38 +148,46 @@ export function ExplorationPage({ venues, hoursStatusByVenueId, activeFilter }: 
   const sections = CURATED_SECTIONS.map((section) => {
     const matched = venues.filter(section.filter);
     const ordered = section.sort ? [...matched].sort(section.sort) : matched;
-    return { title: section.title, venues: ordered.slice(0, MAX_SECTION_ITEMS) };
+    return {
+      title: section.title,
+      subtitle: section.subtitle,
+      venues: ordered.slice(0, MAX_SECTION_ITEMS),
+    };
   }).filter((section) => section.venues.length > 0);
 
   return (
     <div>
-      <div className="mx-auto max-w-5xl px-4 pt-10 sm:px-6 sm:pt-14">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-          Descubra a sua próxima experiência
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted sm:text-base">
-          Explore lugares por momento, estilo e companhia.
-        </p>
+      <div className="mx-auto max-w-6xl px-4 pt-8 sm:px-6 sm:pt-12">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Explorar</h1>
+            <p className="mt-1 text-sm text-muted sm:text-base">
+              Descubra experiências para o seu momento.
+            </p>
+          </div>
+          <Link
+            href="/buscar"
+            className={`inline-flex shrink-0 items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-medium text-muted transition-colors hover:border-accent hover:text-accent ${focusRing}`}
+          >
+            <SearchIcon />
+            Buscar
+          </Link>
+        </div>
+      </div>
 
+      <div className="mt-6">
         {sections.map((section) => (
-          <section key={section.title} className="mt-10">
-            <h2 className="text-lg font-semibold text-foreground sm:text-xl">{section.title}</h2>
-            <div className="mt-4">
-              <VenueRow venues={section.venues} hoursStatusByVenueId={hoursStatusByVenueId} />
-            </div>
-          </section>
+          <HomeVenueRow
+            key={section.title}
+            title={section.title}
+            subtitle={section.subtitle}
+            venues={section.venues}
+            hoursStatusByVenueId={hoursStatusByVenueId}
+          />
         ))}
       </div>
 
-      {/* Área de exploração completa — busca por texto + filtros + grid, reaproveitada de /buscar sem alterações. */}
-      <div className="mt-4 border-t border-border/60">
-        <SearchPage
-          venues={venues}
-          initialQuery=""
-          showHeader={false}
-          hoursStatusByVenueId={hoursStatusByVenueId}
-        />
-      </div>
+      <SearchCta />
     </div>
   );
 }
