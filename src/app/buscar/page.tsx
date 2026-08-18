@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SearchPage } from "@/components/search/search-page";
+import { SearchHero } from "@/components/search/search-hero";
 import { BrandLogo } from "@/components/shared/brand-logo";
 import { getPublishedVenues, getVenuesBusinessHours } from "@/lib/venues/venue-repository";
 import { getRegionsWithCities } from "@/lib/venues/city-repository";
@@ -67,12 +68,14 @@ export default async function BuscarPage({ searchParams }: BuscarPageProps) {
       </header>
 
       <main className="flex-1">
+        <SearchHero />
         <SearchPage
           venues={venues}
           initialQuery={q ?? ""}
           initialFilters={initialFilters}
           regions={regions}
           hoursStatusByVenueId={hoursStatusByVenueId}
+          showHeader={false}
         />
       </main>
     </div>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Venue } from "@/data/venues";
 import { HomeVenueRow } from "@/components/home/home-venue-row";
 import { HomeVenueRowCard } from "@/components/home/home-venue-row-card";
+import { ExploreHero } from "@/components/discovery/explore-hero";
 import type { VenueHoursStatus } from "@/lib/venues/venue-hours";
 
 const focusRing =
@@ -44,22 +45,6 @@ const CURATED_SECTIONS: CuratedSection[] = [
   { title: "Pet friendly", filter: (venue) => venue.companions.includes("pets") },
   { title: "Novidades", filter: (venue) => venue.intentions.includes("novidade") },
 ];
-
-function SearchIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.5}
-      className="h-4 w-4"
-      aria-hidden="true"
-    >
-      <circle cx="11" cy="11" r="7" />
-      <path strokeLinecap="round" d="m20 20-3.5-3.5" />
-    </svg>
-  );
-}
 
 /**
  * CTA discreto de fim de página — Explorar não deve terminar virando uma
@@ -104,13 +89,15 @@ export function ExplorationPage({ venues, hoursStatusByVenueId, activeFilter }: 
   if (activeFilter) {
     return (
       <div>
+        <ExploreHero />
+
         <div className="mx-auto max-w-6xl px-4 pt-8 sm:px-6 sm:pt-12">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-accent">Explorando</p>
-              <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+              <h2 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
                 {activeFilter.label}
-              </h1>
+              </h2>
             </div>
             <Link
               href="/descobrir"
@@ -157,23 +144,7 @@ export function ExplorationPage({ venues, hoursStatusByVenueId, activeFilter }: 
 
   return (
     <div>
-      <div className="mx-auto max-w-6xl px-4 pt-8 sm:px-6 sm:pt-12">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Explorar</h1>
-            <p className="mt-1 text-sm text-muted sm:text-base">
-              Descubra experiências para o seu momento.
-            </p>
-          </div>
-          <Link
-            href="/buscar"
-            className={`inline-flex shrink-0 items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-medium text-muted transition-colors hover:border-accent hover:text-accent ${focusRing}`}
-          >
-            <SearchIcon />
-            Buscar
-          </Link>
-        </div>
-      </div>
+      <ExploreHero />
 
       <div className="mt-6">
         {sections.map((section) => (
