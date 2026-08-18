@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { Suspense, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { PasswordInput } from "@/components/shared/password-input";
@@ -22,7 +22,30 @@ type Status = "idle" | "loading" | "error";
 type SessionState = "checking" | "unauthenticated" | "authenticated";
 
 export default function CadastroEmpresaPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-md px-4 py-16 text-center sm:px-6">
+          <div
+            aria-hidden="true"
+            className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-border border-t-accent"
+          />
+        </div>
+      }
+    >
+      <CadastroEmpresaContent />
+    </Suspense>
+  );
+}
+
+function CadastroEmpresaContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // "novo" (padrão) mantém o cadastro de empresa nova como sempre foi;
+  // "existente" é o caminho de quem acha que o Qual é a Boa já pode ter
+  // criado a página do estabelecimento (ver /para-empresas) — só muda para
+  // onde o cadastro de conta redireciona depois de criado.
+  const fluxo = searchParams.get("fluxo") === "existente" ? "existente" : "novo";
   const [sessionState, setSessionState] = useState<SessionState>("checking");
   const [user, setUser] = useState<User | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -105,10 +128,10 @@ export default function CadastroEmpresaPage() {
     );
   }
 
-  return <CriarContaForm />;
+  return <CriarContaForm fluxo={fluxo} />;
 }
 
-function CriarContaForm() {
+function CriarContaForm({ fluxo }: { fluxo: "novo" | "existente" }) {
   const router = useRouter();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -169,10 +192,12 @@ function CriarContaForm() {
     // sessão, segue direto para o painel da empresa; sem sessão (caso
     // raro/defensivo), cai no login da empresa.
     if (data.session) {
-      router.push("/empresa/painel");
+      router.push(fluxo === "existente" ? "/empresa/reivindicar" : "/empresa/painel");
       router.refresh();
     } else {
-      router.push("/empresa/entrar");
+      router.push(
+        fluxo === "existente" ? "/empresa/entrar?next=/empresa/reivindicar" : "/empresa/entrar",
+      );
     }
   }
 
@@ -182,7 +207,9 @@ function CriarContaForm() {
         Criar conta da empresa
       </h1>
       <p className="mt-2 text-sm text-muted">
-        Depois de criar sua conta, você cadastra os dados do seu estabelecimento.
+        {fluxo === "existente"
+          ? "Depois de criar sua conta, você procura seu estabelecimento e solicita o gerenciamento."
+          : "Depois de criar sua conta, você cadastra os dados do seu estabelecimento."}
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">

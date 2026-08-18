@@ -22,6 +22,16 @@ interface SearchableVenue {
   coverImageUrl: string | null;
 }
 
+/** Formato exato retornado por search_claimable_venues (RPC) — 6 colunas, nunca mais que isso. */
+interface ClaimableVenueRow {
+  id: string;
+  name: string;
+  category: string;
+  city: string;
+  neighborhood: string;
+  cover_image_url: string | null;
+}
+
 type AuthState = "checking" | "unauthenticated" | "authenticated";
 
 export default function ReivindicarEstabelecimentoPage() {
@@ -65,7 +75,7 @@ export default function ReivindicarEstabelecimentoPage() {
           Você precisa criar uma conta empresarial para assumir este estabelecimento.
         </h1>
         <Link
-          href="/empresa/cadastro"
+          href="/empresa/cadastro?fluxo=existente"
           className={`mt-8 inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] ${focusRing}`}
         >
           Criar conta empresarial
@@ -100,25 +110,25 @@ function ReivindicarContent({ user }: { user: User }) {
   const [sending, setSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Busca só estabelecimentos publicados — mesmo filtro que a policy
-  // pública de venues já aplica (is_published = true; venues não tem
-  // coluna is_active); um usuário comum (não-admin) nunca enxergaria um
-  // venue fora disso de qualquer forma, RLS já garante isso.
+  // RPC search_claimable_venues (SECURITY DEFINER) em vez de consultar
+  // "venues" direto — só assim alcançamos estabelecimentos ainda não
+  // publicados (ex.: pré-cadastrados pela equipe, sem dono ainda), que a
+  // policy pública de venues nunca deixaria um usuário comum ler. A função
+  // já filtra pra fora qualquer venue com venue_members ativo e exige
+  // autenticação + 2 caracteres — nunca cria vínculo, só retorna os 6
+  // campos públicos declarados nela.
   async function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!query.trim() || searchStatus === "loading") return;
+    const trimmedQuery = query.trim();
+    if (trimmedQuery.length < 2 || searchStatus === "loading") return;
 
     setSearchStatus("loading");
     setSearched(true);
 
     const supabase = createClient();
-    const { data, error } = await supabase
-      .from("venues")
-      .select("id, name, category, city, neighborhood, cover_image_url")
-      .eq("is_published", true)
-      .ilike("name", `%${query.trim()}%`)
-      .order("name")
-      .limit(20);
+    const { data, error } = await supabase.rpc("search_claimable_venues", {
+      search_query: trimmedQuery,
+    });
 
     if (error) {
       console.error("VENUE SEARCH ERROR:", error);
@@ -127,14 +137,15 @@ function ReivindicarContent({ user }: { user: User }) {
       return;
     }
 
+    const rows = (data ?? []) as ClaimableVenueRow[];
     setResults(
-      (data ?? []).map((row) => ({
-        id: row.id as string,
-        name: row.name as string,
-        category: row.category as string,
-        city: row.city as string,
-        neighborhood: row.neighborhood as string,
-        coverImageUrl: (row.cover_image_url as string | null) ?? null,
+      rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        category: row.category,
+        city: row.city,
+        neighborhood: row.neighborhood,
+        coverImageUrl: row.cover_image_url ?? null,
       })),
     );
     setSearchStatus("idle");

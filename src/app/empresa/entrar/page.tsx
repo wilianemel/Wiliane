@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { Suspense, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { PasswordInput } from "@/components/shared/password-input";
 
@@ -12,8 +12,37 @@ const focusRing =
 // text-base (16px): abaixo disso o iOS Safari aplica zoom automático ao focar o campo.
 const inputClasses = `w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder:text-muted focus:outline-none ${focusRing}`;
 
+/** Únicos destinos internos aceitos em ?next= — nunca um domínio externo, nunca um caminho fora dessa lista. */
+const ALLOWED_NEXT_PATHS = ["/empresa/painel", "/empresa/reivindicar"];
+
+function resolveNextPath(next: string | null): string {
+  if (next && ALLOWED_NEXT_PATHS.includes(next)) {
+    return next;
+  }
+  return "/empresa/painel";
+}
+
 export default function EntrarEmpresaPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-md px-4 py-16 text-center sm:px-6">
+          <div
+            aria-hidden="true"
+            className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-border border-t-accent"
+          />
+        </div>
+      }
+    >
+      <EntrarEmpresaContent />
+    </Suspense>
+  );
+}
+
+function EntrarEmpresaContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = resolveNextPath(searchParams.get("next"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -44,7 +73,7 @@ export default function EntrarEmpresaPage() {
       return;
     }
 
-    router.push("/empresa/painel");
+    router.push(nextPath);
     router.refresh();
   }
 
@@ -113,7 +142,14 @@ export default function EntrarEmpresaPage() {
 
         <p className="text-center text-sm text-muted">
           Ainda não tem conta?{" "}
-          <Link href="/empresa/cadastro" className="text-accent hover:underline">
+          <Link
+            href={
+              nextPath === "/empresa/reivindicar"
+                ? "/empresa/cadastro?fluxo=existente"
+                : "/empresa/cadastro?fluxo=novo"
+            }
+            className="text-accent hover:underline"
+          >
             Cadastrar minha empresa
           </Link>
         </p>

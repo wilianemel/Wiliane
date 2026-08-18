@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { HomeSearchShortcut } from "@/components/home/home-search-shortcut";
 
 /**
  * Cada chip só rola até `#match-flow` por enquanto (ver comentário abaixo)
@@ -56,9 +55,10 @@ function ChevronDownIcon() {
  * todos sobre a imagem, com fundo de vidro/gradiente para legibilidade —
  * não um bloco de texto separado sobre fundo liso como antes.
  *
- * A busca (HomeSearchShortcut) foi movida para dentro do Hero — não existe
- * mais como seção própria antes dele (ver src/app/page.tsx), para não
- * duplicar a busca.
+ * Sem campo de busca aqui — a Home é a etapa de intenção/descoberta, não
+ * de busca direta (ver bottom-nav.tsx, que já tem seu próprio item
+ * "Buscar" levando pra /buscar; HomeSearchShortcut continua existindo,
+ * só não é mais renderizado neste componente).
  *
  * Os chips continuam só um convite: rolam até `#match-flow`, nunca filtram
  * nada sozinhos.
@@ -97,9 +97,7 @@ export function HomeHero() {
 
           <div className="flex-1" aria-hidden="true" />
 
-          <div className="animate-fade-up [animation-delay:220ms] flex flex-col gap-3 pb-5 sm:pb-7">
-            <HomeSearchShortcut />
-
+          <div className="animate-fade-up [animation-delay:220ms] flex flex-col gap-4 pb-5 sm:pb-7">
             <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] snap-x snap-mandatory [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0">
               {CHIPS.map((chip) => (
                 <Link

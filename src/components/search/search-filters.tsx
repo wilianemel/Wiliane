@@ -1,6 +1,8 @@
 import type { PriceRange, Venue } from "@/data/venues";
 import type { VenueFilters } from "@/lib/search-venues";
-import type { RegionWithCities } from "@/lib/venues/city-repository";
+import { CityAutocomplete } from "@/components/shared/city-autocomplete";
+
+const ALL_CITIES_OPTION = "Todas as cidades";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -22,7 +24,6 @@ const PREPARED_CATEGORIES = ["Padaria", "Eventos", "Baladas", "Pub"];
 
 interface SearchFiltersProps {
   venues: Venue[];
-  regions: RegionWithCities[];
   filters: VenueFilters;
   onChange: (filters: VenueFilters) => void;
   onClear: () => void;
@@ -31,7 +32,6 @@ interface SearchFiltersProps {
 
 export function SearchFilters({
   venues,
-  regions,
   filters,
   onChange,
   onClear,
@@ -48,29 +48,13 @@ export function SearchFilters({
           <label htmlFor="filtro-cidade" className="text-xs font-medium text-muted">
             Cidade
           </label>
-          <select
+          <CityAutocomplete
             id="filtro-cidade"
-            className={selectClasses}
             value={filters.city ?? ""}
-            onChange={(event) => onChange({ ...filters, city: event.target.value || null })}
-          >
-            <option value="">Todas as cidades</option>
-            {regions.length > 0 ? (
-              regions.map((region) => (
-                <optgroup key={region.id} label={region.name}>
-                  {region.cities.map((city) => (
-                    <option key={city.id} value={city.name}>
-                      {city.name}
-                    </option>
-                  ))}
-                </optgroup>
-              ))
-            ) : (
-              // Fallback enquanto regions/cities não estiver disponível no
-              // Supabase — mantém pelo menos a cidade que já existe hoje.
-              <option value="São José dos Campos">São José dos Campos</option>
-            )}
-          </select>
+            onChange={(value) => onChange({ ...filters, city: value || null })}
+            placeholder={ALL_CITIES_OPTION}
+            allOption={ALL_CITIES_OPTION}
+          />
         </div>
 
         <div className="flex flex-col gap-1">

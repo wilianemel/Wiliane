@@ -102,18 +102,29 @@ export default function ParaEmpresasPage() {
 
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
               <Link
-                href="/empresa/cadastro"
+                href="/empresa/cadastro?fluxo=novo"
                 className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:flex-none"
               >
-                Cadastrar minha empresa
+                Cadastrar uma nova empresa
               </Link>
               <Link
-                href="/empresa/entrar"
+                href="/empresa/cadastro?fluxo=existente"
                 className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-border px-6 py-3 text-sm font-semibold text-foreground transition-colors hover:border-accent hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:flex-none"
               >
-                Já tenho cadastro
+                Minha empresa já está cadastrada
               </Link>
             </div>
+            <p className="mt-3 max-w-2xl text-sm text-muted">
+              O Qual é a Boa já pode ter criado a página do seu estabelecimento. Crie seu
+              acesso, encontre sua empresa e solicite o gerenciamento para completar o
+              perfil e enviar suas mídias.
+            </p>
+            <Link
+              href="/empresa/entrar"
+              className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-muted underline-offset-4 transition-colors hover:text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded"
+            >
+              Já tenho uma conta empresarial
+            </Link>
           </div>
         </section>
       </main>

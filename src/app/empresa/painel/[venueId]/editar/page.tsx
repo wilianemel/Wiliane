@@ -28,6 +28,7 @@ import {
 import { TagToggleButton, toggleValue } from "@/components/empresa/tag-toggle-button";
 import { AtmosphereGroupFields } from "@/components/empresa/atmosphere-group-fields";
 import { VenueHoursEditor } from "@/components/empresa/venue-hours-editor";
+import { CityAutocomplete } from "@/components/shared/city-autocomplete";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -277,10 +278,11 @@ function EditForm({ venue }: { venue: VenueOwnerRow; role: string }) {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className={labelClasses}>Cidade</label>
-              <input
+              <CityAutocomplete
+                id="venue-edit-city"
                 value={form.city}
-                onChange={(event) => updateField("city", event.target.value)}
-                className={`mt-2 ${inputClasses}`}
+                onChange={(value) => updateField("city", value)}
+                wrapperClassName="mt-2"
                 required
               />
             </div>

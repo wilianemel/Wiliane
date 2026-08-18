@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { VENUE_CATEGORIES, OTHER_CATEGORY, combineCategoryValue } from "@/lib/venues/venue-categories";
+import { CityAutocomplete } from "@/components/shared/city-autocomplete";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -163,12 +164,11 @@ export function NovoEstabelecimentoForm({ userEmail, onCreated }: NovoEstabeleci
             <label htmlFor="venue-city" className="text-sm font-medium text-foreground">
               Cidade
             </label>
-            <input
+            <CityAutocomplete
               id="venue-city"
-              type="text"
               value={city}
-              onChange={(event) => setCity(event.target.value)}
-              className={`mt-2 ${inputClasses}`}
+              onChange={setCity}
+              wrapperClassName="mt-2"
               required
             />
           </div>

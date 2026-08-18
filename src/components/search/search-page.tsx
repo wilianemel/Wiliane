@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Venue } from "@/data/venues";
 import { EMPTY_VENUE_FILTERS, searchVenues, type VenueFilters } from "@/lib/search-venues";
-import type { RegionWithCities } from "@/lib/venues/city-repository";
 import type { VenueHoursStatus } from "@/lib/venues/venue-hours";
 import { SearchFilters } from "./search-filters";
 import { SearchResultCard } from "./search-result-card";
@@ -84,10 +83,6 @@ interface SearchPageProps {
   initialQuery: string;
   /** Controla o título/subtítulo próprios da busca — útil quando a página que reaproveita este componente já tem seu próprio <h1>. Padrão true, preserva o comportamento atual de /buscar. */
   showHeader?: boolean;
-  /** Regiões/cidades (regions/cities) para o seletor de cidade. Opcional e
-   * default vazio de propósito — quem não passar continua funcionando
-   * exatamente como antes, só sem a lista de cidades ampliada. */
-  regions?: RegionWithCities[];
   /** venue.venueId -> status calculado no servidor. Ausente para um venueId = sem horário estruturado, card cai no fallback venue.openNow. */
   hoursStatusByVenueId?: Record<string, VenueHoursStatus>;
   /** Filtros pré-selecionados ao abrir a página (ex.: atalho de categoria na Home) — mescla com EMPTY_VENUE_FILTERS, mesmo mecanismo de filtro de sempre, só com estado inicial diferente. */
@@ -98,7 +93,6 @@ export function SearchPage({
   venues,
   initialQuery,
   showHeader = true,
-  regions = [],
   hoursStatusByVenueId,
   initialFilters,
 }: SearchPageProps) {
@@ -251,7 +245,6 @@ export function SearchPage({
         <div className="animate-fade-up mt-3">
           <SearchFilters
             venues={venues}
-            regions={regions}
             filters={filters}
             onChange={setFilters}
             onClear={clearFilters}
