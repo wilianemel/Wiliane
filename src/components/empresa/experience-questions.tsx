@@ -3,16 +3,21 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
-  ATMOSPHERE_TAG_GROUPS,
   COMPANION_TAG_OPTIONS,
   MOMENT_TAG_GROUPS,
   MOMENT_TAG_IDS,
+  buildAtmospheresToSave,
+  extractCustomAtmosphereDescriptions,
+  hasEmptyCustomAtmosphereDescription,
+  isCustomAtmosphereValue,
+  type CustomAtmosphereDescriptions,
   type VenueAtmosphereTag,
   type VenueCompanionTag,
   type VenueMomentTag,
 } from "@/lib/venues/venue-tags";
 import type { VenueOwnerRow } from "@/lib/venues/venue-owner";
 import { TagToggleButton, toggleValue } from "@/components/empresa/tag-toggle-button";
+import { AtmosphereGroupFields } from "@/components/empresa/atmosphere-group-fields";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -37,7 +42,15 @@ interface ExperienceQuestionsProps {
  * das opções mais restritas que o questionário de /descobrir usa hoje.
  */
 export function ExperienceQuestions({ venue, onSaved }: ExperienceQuestionsProps) {
-  const [atmospheres, setAtmospheres] = useState<VenueAtmosphereTag[]>(venue.atmospheres ?? []);
+  // Só os valores fixos ficam aqui — os personalizados ("Outro" por grupo)
+  // vivem em `customAtmosphereDescriptions`, nunca duplicados nos dois estados.
+  const [atmospheres, setAtmospheres] = useState<VenueAtmosphereTag[]>(
+    (venue.atmospheres ?? []).filter((value) => !isCustomAtmosphereValue(value)),
+  );
+  const [customAtmosphereDescriptions, setCustomAtmosphereDescriptions] =
+    useState<CustomAtmosphereDescriptions>(() =>
+      extractCustomAtmosphereDescriptions(venue.atmospheres ?? []),
+    );
   const [companions, setCompanions] = useState<VenueCompanionTag[]>(venue.companions ?? []);
   // Momentos ainda não têm coluna própria — ficam dentro de `tags` (ver
   // venue-tags.ts). Ao carregar, separamos o que já foi salvo como momento
@@ -59,7 +72,10 @@ export function ExperienceQuestions({ venue, onSaved }: ExperienceQuestionsProps
     averagePricePerPerson.trim().length > 0 &&
     Number.isFinite(averagePriceValue) &&
     averagePriceValue > 0;
-  const canSave = description.trim().length > 0 && hasValidAveragePrice;
+  const canSave =
+    description.trim().length > 0 &&
+    hasValidAveragePrice &&
+    !hasEmptyCustomAtmosphereDescription(customAtmosphereDescriptions);
 
   async function handleSave() {
     if (!canSave) return;
@@ -77,7 +93,7 @@ export function ExperienceQuestions({ venue, onSaved }: ExperienceQuestionsProps
     const { error } = await supabase
       .from("venues")
       .update({
-        atmospheres,
+        atmospheres: buildAtmospheresToSave(atmospheres, customAtmosphereDescriptions),
         companions,
         description: description.trim(),
         tags: nextTags,
@@ -112,27 +128,13 @@ export function ExperienceQuestions({ venue, onSaved }: ExperienceQuestionsProps
           Escolha quantos combinarem, em qualquer grupo — não são categorias excludentes.
         </p>
 
-        <div className="mt-4 flex flex-col gap-5">
-          {ATMOSPHERE_TAG_GROUPS.map((group) => (
-            <div key={group.title}>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-                {group.title}
-              </p>
-              <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {group.options.map((option) => {
-                  const value = option.id as VenueAtmosphereTag;
-                  return (
-                    <TagToggleButton
-                      key={option.id}
-                      label={option.label}
-                      isActive={atmospheres.includes(value)}
-                      onClick={() => setAtmospheres((current) => toggleValue(current, value))}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+        <div className="mt-4">
+          <AtmosphereGroupFields
+            atmospheres={atmospheres}
+            onAtmospheresChange={setAtmospheres}
+            customDescriptions={customAtmosphereDescriptions}
+            onCustomDescriptionsChange={setCustomAtmosphereDescriptions}
+          />
         </div>
       </fieldset>
 

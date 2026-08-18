@@ -13,10 +13,10 @@ import { BrandLogo } from "@/components/shared/brand-logo";
 import { VenueRatingSummary, useVenueRatingSummary } from "./venue-rating-summary";
 import { VenueReviewForm } from "./venue-review-form";
 import {
-  ATMOSPHERE_TAG_LABELS,
   COMPANION_TAG_LABELS,
   MOMENT_TAG_IDS,
   MOMENT_TAG_LABELS,
+  getAtmosphereDisplayLabel,
   type VenueMomentTag,
 } from "@/lib/venues/venue-tags";
 import {
@@ -309,7 +309,7 @@ export function VenueProfile({
   // ids que pertencem a MOMENT_TAG_GROUPS entram no grupo "momento" da
   // vibe, sem tocar PICKUP_ONLY_TAG nem a lógica de WhatsApp acima.
   const experienceLabels = venue.atmospheres
-    .map((id) => ATMOSPHERE_TAG_LABELS[id])
+    .map((id) => getAtmosphereDisplayLabel(id))
     .filter((label): label is string => Boolean(label));
   const companionLabels = venue.companions
     .map((id) => COMPANION_TAG_LABELS[id])

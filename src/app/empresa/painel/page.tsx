@@ -19,7 +19,12 @@ const buttonBase = `rounded-full border border-border px-4 py-2 text-xs font-med
 /** Fallback neutro para os cards do painel — não é a mesma paleta cosmética usada nos cards públicos. */
 const OWNER_CARD_GRADIENT = "from-zinc-700/40 via-zinc-900 to-black";
 
-type LoadState = "checking" | "ready";
+/**
+ * "error" é um estado distinto de "ready com memberships vazio" — a consulta
+ * pode falhar (RLS, embed do PostgREST, sessão, etc.) sem que isso signifique
+ * que o usuário realmente não tem estabelecimento. Ver refreshMemberships().
+ */
+type LoadState = "checking" | "ready" | "error";
 
 interface Membership {
   member_role: string;
@@ -54,17 +59,45 @@ function PainelEmpresaContent() {
 
   // RLS de venue_members já restringe a linhas com user_id = auth.uid(); o
   // embed de venues só traz o que o vínculo ativo permite enxergar.
-  async function refreshMemberships(userId: string) {
+  //
+  // Retorna true/false (sucesso ou falha da consulta) em vez de void — quem
+  // chama decide o que fazer com o loadState a partir disso. Antes, o `error`
+  // do Supabase era descartado e qualquer falha virava silenciosamente um
+  // array vazio, indistinguível de "usuário realmente não tem
+  // estabelecimento" (causa raiz do loop de cadastro duplicado).
+  async function refreshMemberships(userId: string): Promise<boolean> {
     const supabase = createClient();
-    const { data: memberRows } = await supabase
+    const { data: memberRows, error } = await supabase
       .from("venue_members")
       .select(`member_role, venues (${OWNER_VENUE_COLUMNS})`)
       .eq("user_id", userId)
       .eq("is_active", true);
 
+    if (error) {
+      // LOG TEMPORÁRIO — remover assim que a causa raiz real for confirmada
+      // e corrigida. Objetivo: capturar código/mensagem/detalhes exatos do
+      // PostgREST em vez de continuar adivinhando por que o painel não
+      // reconhece um vínculo que existe no banco.
+      console.error("PAINEL EMPRESA — falha ao buscar venue_members:", {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
+      return false;
+    }
+
     setMemberships(
       ((memberRows ?? []) as unknown as Membership[]).filter((row) => row.venues != null),
     );
+    return true;
+  }
+
+  async function handleRetry() {
+    if (!user) return;
+    setLoadState("checking");
+    const ok = await refreshMemberships(user.id);
+    setLoadState(ok ? "ready" : "error");
   }
 
   useEffect(() => {
@@ -72,7 +105,15 @@ function PainelEmpresaContent() {
 
     async function loadSession() {
       const supabase = createClient();
-      const { data } = await supabase.auth.getUser();
+      const { data, error } = await supabase.auth.getUser();
+
+      if (error) {
+        // LOG TEMPORÁRIO — mesma finalidade do log acima, para a etapa de
+        // verificação de sessão.
+        console.error("PAINEL EMPRESA — falha ao buscar sessão:", {
+          message: error.message,
+        });
+      }
 
       if (!data.user) {
         router.replace("/empresa/entrar");
@@ -81,8 +122,9 @@ function PainelEmpresaContent() {
 
       if (cancelled) return;
       setUser(data.user);
-      await refreshMemberships(data.user.id);
-      if (!cancelled) setLoadState("ready");
+      const ok = await refreshMemberships(data.user.id);
+      if (cancelled) return;
+      setLoadState(ok ? "ready" : "error");
     }
 
     loadSession();
@@ -102,6 +144,17 @@ function PainelEmpresaContent() {
     memberships.find((membership) => membership.venues.id === createdVenueId) ??
     memberships.find((membership) => !membership.venues.is_published);
 
+  // `?criado=<id>` só existe na URL logo após um cadastro bem-sucedido
+  // (ver novo-estabelecimento-form.tsx → onCreated). Se chegamos aqui e
+  // `memberships` está vazio mesmo assim, o venue e o vínculo existem no
+  // banco (create_owned_venue já criou os dois atomicamente) — o que falhou
+  // foi só a LEITURA de volta (RLS ou atraso de propagação), não a criação.
+  // Nunca mostramos "você ainda não tem um estabelecimento" nesse caso: essa
+  // mensagem é falsa e é exatamente o que levava a pessoa a clicar em
+  // "Cadastrar" de novo e criar um estabelecimento duplicado a cada
+  // tentativa.
+  const justCreatedButNotVisibleYet = Boolean(createdVenueId) && memberships.length === 0;
+
   if (loadState === "checking") {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 text-center sm:px-6">
@@ -109,6 +162,31 @@ function PainelEmpresaContent() {
           aria-hidden="true"
           className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-border border-t-accent"
         />
+      </div>
+    );
+  }
+
+  // Estado distinto de "sem estabelecimento" — a consulta falhou de verdade
+  // (ver console para o erro real vindo do Supabase). Nunca reaproveita a
+  // mensagem "você ainda não tem um estabelecimento cadastrado" aqui: seria
+  // falsa e reabriria o mesmo loop de cadastro duplicado.
+  if (loadState === "error") {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-16 text-center sm:px-6">
+        <h1 className="text-xl font-bold tracking-tight text-foreground">
+          Não foi possível carregar seu painel
+        </h1>
+        <p className="mt-3 text-sm text-muted">
+          Houve uma falha ao buscar seus estabelecimentos agora. Isso não significa que você não
+          tem nenhum cadastrado — tente novamente em instantes.
+        </p>
+        <button
+          type="button"
+          onClick={handleRetry}
+          className={`mt-6 inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] ${focusRing}`}
+        >
+          Tentar novamente
+        </button>
       </div>
     );
   }
@@ -145,7 +223,24 @@ function PainelEmpresaContent() {
         </div>
       )}
 
-      {memberships.length === 0 ? (
+      {justCreatedButNotVisibleYet ? (
+        <div className="mt-8 rounded-2xl border border-accent/40 bg-accent/5 p-6">
+          <p className="text-base font-medium text-foreground">
+            Seu estabelecimento foi cadastrado.
+          </p>
+          <p className="mt-2 text-sm text-muted">
+            Ainda estamos sincronizando os dados — isso pode levar alguns instantes. Atualize para
+            continuar.
+          </p>
+          <button
+            type="button"
+            onClick={handleRetry}
+            className={`mt-5 inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] ${focusRing}`}
+          >
+            Atualizar
+          </button>
+        </div>
+      ) : memberships.length === 0 ? (
         <div className="mt-8 rounded-2xl border border-border bg-background-elevated p-6">
           <p className="text-base font-medium text-foreground">
             Você ainda não tem um estabelecimento cadastrado.

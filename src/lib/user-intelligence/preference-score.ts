@@ -1,5 +1,5 @@
 import type { Venue } from "@/data/venues";
-import { ATMOSPHERE_TAG_LABELS } from "@/lib/venues/venue-tags";
+import { getAtmosphereDisplayLabel } from "@/lib/venues/venue-tags";
 
 /** Mesmo formato bruto da linha de `public.user_preferences`. */
 export interface UserPreferencesRow {
@@ -81,9 +81,14 @@ export function preferenceScore({
     favoriteAtmospheres.includes(atmosphere),
   );
   if (matchedAtmosphere) {
-    score += MAX_BONUS.atmosphere * confidence;
-    const label = ATMOSPHERE_TAG_LABELS[matchedAtmosphere] ?? matchedAtmosphere;
-    reasons.push(`Você costuma escolher ambientes ${label}.`);
+    const label = getAtmosphereDisplayLabel(matchedAtmosphere);
+    // Sem rótulo exibível (nem opção fixa, nem personalizada com descrição
+    // real) não gera motivo — nunca vaza um valor bruto/prefixo interno
+    // pro texto que a pessoa lê.
+    if (label) {
+      score += MAX_BONUS.atmosphere * confidence;
+      reasons.push(`Você costuma escolher ambientes ${label}.`);
+    }
   }
 
   if (hasIntersection(venue.companions, preferredCompanions)) {

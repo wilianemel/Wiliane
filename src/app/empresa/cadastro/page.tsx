@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import { PasswordInput } from "@/components/shared/password-input";
 import { NovoEstabelecimentoForm } from "./novo-estabelecimento-form";
 
 const focusRing =
@@ -17,7 +18,7 @@ const inputClasses = `w-full rounded-xl border border-border bg-background px-4 
 const TERMS_VERSION = "v1";
 const PRIVACY_VERSION = "v1";
 
-type Status = "idle" | "loading" | "success" | "error";
+type Status = "idle" | "loading" | "error";
 type SessionState = "checking" | "unauthenticated" | "authenticated";
 
 export default function CadastroEmpresaPage() {
@@ -108,6 +109,7 @@ export default function CadastroEmpresaPage() {
 }
 
 function CriarContaForm() {
+  const router = useRouter();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -132,7 +134,7 @@ function CriarContaForm() {
     setErrorMessage(null);
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
       options: {
@@ -160,27 +162,18 @@ function CriarContaForm() {
       return;
     }
 
-    setStatus("success");
-  }
-
-  if (status === "success") {
-    return (
-      <div className="mx-auto max-w-md px-4 py-16 text-center sm:px-6">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          Confirme seu e-mail
-        </h1>
-        <p className="mt-4 text-sm leading-relaxed text-muted">
-          Enviamos um link de confirmação para <strong className="text-foreground">{email}</strong>.
-          Abra o e-mail e confirme sua conta para poder entrar.
-        </p>
-        <Link
-          href="/empresa/entrar"
-          className={`mt-8 inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] ${focusRing}`}
-        >
-          Ir para o login
-        </Link>
-      </div>
-    );
+    // Confirmação de e-mail está desligada no projeto (mesmo comportamento
+    // já tratado em /cadastro/page.tsx) — signUp() já retorna uma sessão
+    // válida, que o SDK persiste sozinho. Nunca mostramos uma tela de
+    // "confirme seu e-mail" que não corresponde à configuração real: com
+    // sessão, segue direto para o painel da empresa; sem sessão (caso
+    // raro/defensivo), cai no login da empresa.
+    if (data.session) {
+      router.push("/empresa/painel");
+      router.refresh();
+    } else {
+      router.push("/empresa/entrar");
+    }
   }
 
   return (
@@ -229,15 +222,14 @@ function CriarContaForm() {
           <label htmlFor="password" className="text-sm font-medium text-foreground">
             Senha
           </label>
-          <input
+          <PasswordInput
             id="password"
-            type="password"
             autoComplete="new-password"
             value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            onChange={setPassword}
             placeholder="Mínimo de 6 caracteres"
             minLength={6}
-            className={`mt-2 ${inputClasses}`}
+            wrapperClassName="mt-2"
             required
           />
         </div>

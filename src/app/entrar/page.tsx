@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { PasswordInput } from "@/components/shared/password-input";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -73,14 +74,13 @@ export default function EntrarPage() {
           <label htmlFor="password" className="text-sm font-medium text-foreground">
             Senha
           </label>
-          <input
+          <PasswordInput
             id="password"
-            type="password"
             autoComplete="current-password"
             value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            onChange={setPassword}
             placeholder="Sua senha"
-            className={`mt-2 ${inputClasses}`}
+            wrapperClassName="mt-2"
             required
           />
         </div>

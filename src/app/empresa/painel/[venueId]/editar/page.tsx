@@ -13,15 +13,20 @@ import {
   combineCategoryValue,
 } from "@/lib/venues/venue-categories";
 import {
-  ATMOSPHERE_TAG_GROUPS,
   COMPANION_TAG_OPTIONS,
   MOMENT_TAG_GROUPS,
   MOMENT_TAG_IDS,
+  buildAtmospheresToSave,
+  extractCustomAtmosphereDescriptions,
+  hasEmptyCustomAtmosphereDescription,
+  isCustomAtmosphereValue,
+  type CustomAtmosphereDescriptions,
   type VenueAtmosphereTag,
   type VenueCompanionTag,
   type VenueMomentTag,
 } from "@/lib/venues/venue-tags";
 import { TagToggleButton, toggleValue } from "@/components/empresa/tag-toggle-button";
+import { AtmosphereGroupFields } from "@/components/empresa/atmosphere-group-fields";
 import { VenueHoursEditor } from "@/components/empresa/venue-hours-editor";
 
 const focusRing =
@@ -119,7 +124,15 @@ function EditForm({ venue }: { venue: VenueOwnerRow; role: string }) {
   const [customCategory, setCustomCategory] = useState(
     () => splitCategoryValue(venue.category).custom,
   );
-  const [atmospheres, setAtmospheres] = useState<VenueAtmosphereTag[]>(venue.atmospheres ?? []);
+  // Só os valores fixos ficam aqui — os personalizados ("Outro" por grupo)
+  // vivem em `customAtmosphereDescriptions`, nunca duplicados nos dois estados.
+  const [atmospheres, setAtmospheres] = useState<VenueAtmosphereTag[]>(
+    (venue.atmospheres ?? []).filter((value) => !isCustomAtmosphereValue(value)),
+  );
+  const [customAtmosphereDescriptions, setCustomAtmosphereDescriptions] =
+    useState<CustomAtmosphereDescriptions>(() =>
+      extractCustomAtmosphereDescriptions(venue.atmospheres ?? []),
+    );
   const [companions, setCompanions] = useState<VenueCompanionTag[]>(venue.companions ?? []);
   const [moments, setMoments] = useState<VenueMomentTag[]>(
     (venue.tags ?? []).filter((tag): tag is VenueMomentTag =>
@@ -134,8 +147,13 @@ function EditForm({ venue }: { venue: VenueOwnerRow; role: string }) {
     setStatus("idle");
   }
 
+  const canSaveAtmospheres = !hasEmptyCustomAtmosphereDescription(customAtmosphereDescriptions);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // Guarda explícita além do botão desabilitado — Enter num campo de texto
+    // dispara o submit do form mesmo com o botão desabilitado.
+    if (!canSaveAtmospheres) return;
     setStatus("saving");
     setErrorMessage(null);
 
@@ -155,7 +173,7 @@ function EditForm({ venue }: { venue: VenueOwnerRow; role: string }) {
         cuisine_types: fromListText(form.cuisine_types),
         tags: [...fromListText(form.tags), ...moments],
         music_styles: fromListText(form.music_styles),
-        atmospheres,
+        atmospheres: buildAtmospheresToSave(atmospheres, customAtmosphereDescriptions),
         intentions: fromListText(form.intentions),
         companions,
         menu_highlights: fromListText(form.menu_highlights),
@@ -320,27 +338,13 @@ function EditForm({ venue }: { venue: VenueOwnerRow; role: string }) {
           </div>
           <fieldset>
             <legend className={labelClasses}>Ambiente</legend>
-            <div className="mt-3 flex flex-col gap-5">
-              {ATMOSPHERE_TAG_GROUPS.map((group) => (
-                <div key={group.title}>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-                    {group.title}
-                  </p>
-                  <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {group.options.map((option) => {
-                      const value = option.id as VenueAtmosphereTag;
-                      return (
-                        <TagToggleButton
-                          key={option.id}
-                          label={option.label}
-                          isActive={atmospheres.includes(value)}
-                          onClick={() => setAtmospheres((current) => toggleValue(current, value))}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+            <div className="mt-3">
+              <AtmosphereGroupFields
+                atmospheres={atmospheres}
+                onAtmospheresChange={setAtmospheres}
+                customDescriptions={customAtmosphereDescriptions}
+                onCustomDescriptionsChange={setCustomAtmosphereDescriptions}
+              />
             </div>
           </fieldset>
           <div>
@@ -544,7 +548,7 @@ function EditForm({ venue }: { venue: VenueOwnerRow; role: string }) {
 
         <button
           type="submit"
-          disabled={status === "saving"}
+          disabled={status === "saving" || !canSaveAtmospheres}
           className={`inline-flex items-center justify-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 ${focusRing}`}
         >
           {status === "saving" ? "Salvando..." : "Salvar alterações"}

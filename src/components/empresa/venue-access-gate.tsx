@@ -31,6 +31,27 @@ export function VenueAccessGate({ venueId, children }: VenueAccessGateProps) {
     );
   }
 
+  // Distinto de "unauthorized": aqui a consulta falhou de verdade (ver
+  // console para o erro real vindo do Supabase) — nunca reaproveita a
+  // mensagem "acesso não autorizado", que seria falsa nesse caso.
+  if (state === "error") {
+    return (
+      <div className="mx-auto max-w-md px-4 py-16 text-center sm:px-6">
+        <h1 className="text-xl font-bold tracking-tight text-foreground">Não foi possível carregar</h1>
+        <p className="mt-3 text-sm text-muted">
+          Não conseguimos confirmar seu acesso a este estabelecimento agora. Tente novamente.
+        </p>
+        <button
+          type="button"
+          onClick={reload}
+          className={`mt-6 inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] ${focusRing}`}
+        >
+          Tentar novamente
+        </button>
+      </div>
+    );
+  }
+
   if (state === "unauthorized" || !venue || !role) {
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center sm:px-6">

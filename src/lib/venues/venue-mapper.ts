@@ -3,6 +3,7 @@ import type { IntentionId, MusicPreferenceId } from "@/types/discovery";
 import {
   ATMOSPHERE_TAG_IDS,
   COMPANION_TAG_IDS,
+  isCustomAtmosphereValue,
   type VenueAtmosphereTag,
   type VenueCompanionTag,
 } from "./venue-tags";
@@ -27,6 +28,20 @@ const GRADIENTS = [
 
 function typedValues<T extends string>(values: string[] | null, allowed: Set<T>): T[] {
   return (values ?? []).filter((value): value is T => allowed.has(value as T));
+}
+
+/**
+ * Igual a typedValues, mas para `atmospheres` especificamente: além das
+ * opções fixas, preserva valores personalizados válidos ("Outro" + descrição
+ * por grupo — ver isCustomAtmosphereValue em venue-tags.ts). Sem isso, todo
+ * "Outro" salvo pelo dono seria descartado silenciosamente ao carregar o
+ * venue de volta.
+ */
+function mapAtmospheres(values: string[] | null): VenueAtmosphereTag[] {
+  return (values ?? []).filter(
+    (value): value is VenueAtmosphereTag =>
+      ATMOSPHERES.has(value as VenueAtmosphereTag) || isCustomAtmosphereValue(value),
+  );
 }
 
 function stableGradient(slug: string): string {
@@ -61,7 +76,7 @@ export function mapVenueRow(row: VenueRow): Venue {
     distanceKm: row.distance_km,
     intentions: typedValues(row.intentions, INTENTIONS),
     companions: typedValues(row.companions, COMPANIONS),
-    atmospheres: typedValues(row.atmospheres, ATMOSPHERES),
+    atmospheres: mapAtmospheres(row.atmospheres),
     musicStyles: typedValues(row.music_styles, MUSIC),
     openNow: row.open_now,
     dataConfidence: row.data_confidence,

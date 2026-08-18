@@ -79,7 +79,14 @@ export const EDITABLE_VENUE_FIELDS = [
 
 export type EditableVenueField = (typeof EDITABLE_VENUE_FIELDS)[number];
 
-type AccessState = "checking" | "unauthorized" | "ready";
+/**
+ * "error" é distinto de "unauthorized" — "unauthorized" significa que a
+ * consulta funcionou e confirmou que não há vínculo; "error" significa que a
+ * consulta falhou (RLS, embed do PostgREST, sessão, etc.) e não dá pra
+ * confirmar nada. Antes, qualquer falha de consulta virava "unauthorized"
+ * silenciosamente — indistinguível de um usuário sem acesso de verdade.
+ */
+type AccessState = "checking" | "unauthorized" | "error" | "ready";
 
 interface VenueAccessRow {
   member_role: string;
@@ -115,14 +122,22 @@ export function useVenueAccess(venueId: string): VenueAccess {
     async function load() {
       setState("checking");
       const supabase = createClient();
-      const { data: userData } = await supabase.auth.getUser();
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+
+      if (userError) {
+        // LOG TEMPORÁRIO — remover assim que a causa raiz real for
+        // confirmada e corrigida.
+        console.error("VENUE ACCESS — falha ao buscar sessão:", {
+          message: userError.message,
+        });
+      }
 
       if (!userData.user) {
         router.replace("/empresa/entrar");
         return;
       }
 
-      const { data: membership } = await supabase
+      const { data: membership, error } = await supabase
         .from("venue_members")
         .select(`member_role, venues (${OWNER_VENUE_COLUMNS})`)
         .eq("venue_id", venueId)
@@ -131,6 +146,20 @@ export function useVenueAccess(venueId: string): VenueAccess {
         .maybeSingle();
 
       if (cancelled) return;
+
+      if (error) {
+        // LOG TEMPORÁRIO — objetivo: capturar código/mensagem/detalhes
+        // exatos do PostgREST em vez de continuar adivinhando por que a
+        // tela não reconhece um vínculo que existe no banco.
+        console.error("VENUE ACCESS — falha ao buscar vínculo do venue:", {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+        });
+        setState("error");
+        return;
+      }
 
       const row = membership as unknown as VenueAccessRow | null;
       if (!row || !row.venues) {

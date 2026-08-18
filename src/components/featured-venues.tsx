@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Venue } from "@/data/venues";
 import { VenueCoverImage } from "@/components/shared/venue-cover-image";
 import { VenueOpenStatusBadge } from "@/components/shared/venue-open-status-badge";
-import { ATMOSPHERE_TAG_LABELS } from "@/lib/venues/venue-tags";
+import { getAtmosphereDisplayLabel } from "@/lib/venues/venue-tags";
 import type { VenueHoursStatus } from "@/lib/venues/venue-hours";
 
 /** A Home mostra só uma vitrine, não o catálogo inteiro — o restante fica em /buscar. */
@@ -26,7 +26,7 @@ function VenueCard({
   hoursStatus?: VenueHoursStatus | null;
 }) {
   const atmosphereLabel = venue.atmospheres
-    .map((id) => ATMOSPHERE_TAG_LABELS[id])
+    .map((id) => getAtmosphereDisplayLabel(id))
     .find((label): label is string => Boolean(label));
 
   return (
