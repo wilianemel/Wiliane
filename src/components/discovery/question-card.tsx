@@ -28,6 +28,9 @@ interface QuestionCardProps {
   optional?: boolean;
 }
 
+/** Acima disso, duas colunas no celular ficam apertadas demais para o texto — cai para uma coluna só (o desktop continua com espaço de sobra em qualquer caso). */
+const LONG_LABEL_THRESHOLD = 16;
+
 /**
  * Opções como cartões grandes tocáveis, não campos de formulário — a pessoa
  * está dizendo "essa é a vibe que eu quero", não preenchendo um select. Sem
@@ -45,6 +48,11 @@ export function QuestionCard({
   onChange,
   optional = false,
 }: QuestionCardProps) {
+  // Duas colunas quando o texto cabe confortavelmente; uma coluna no
+  // celular quando qualquer opção é longa (ex.: faixas de preço) — nunca
+  // baseado em qual pergunta é, só no texto real das opções.
+  const hasLongLabel = options.some((option) => option.label.length > LONG_LABEL_THRESHOLD);
+
   return (
     <fieldset>
       <legend className="text-lg font-semibold text-foreground sm:text-xl">
@@ -55,7 +63,11 @@ export function QuestionCard({
       </legend>
       {helperText && <p className="mt-1 text-sm text-muted">{helperText}</p>}
 
-      <div className="mt-4 grid grid-cols-2 gap-2.5 sm:mt-5 sm:gap-3">
+      <div
+        className={`mt-4 grid gap-2.5 sm:mt-5 sm:gap-3 ${
+          hasLongLabel ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-2"
+        }`}
+      >
         {options.map((option) => {
           const inputId = `${name}-${option.id}`;
           const isChecked = value === option.id;

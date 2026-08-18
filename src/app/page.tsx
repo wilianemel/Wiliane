@@ -1,6 +1,5 @@
 import { Header } from "@/components/header";
 import { HomeAmbientBackground } from "@/components/home/home-ambient-background";
-import { HomeSearchShortcut } from "@/components/home/home-search-shortcut";
 import { HomeHero } from "@/components/home/home-hero";
 import { HomeExperiences } from "@/components/home/home-experiences";
 import { HomeVenueRow } from "@/components/home/home-venue-row";
@@ -64,7 +63,6 @@ export default async function Home() {
         <HomeAmbientBackground />
         <Header />
         <main className="relative flex-1">
-          <HomeSearchShortcut />
           <HomeHero />
           <div id="match-flow" className="scroll-mt-20">
             <HomeMatchFlow venues={venues} hoursStatusByVenueId={hoursStatusByVenueId} />
@@ -75,6 +73,7 @@ export default async function Home() {
             subtitle="Combinando com o que você costuma escolher."
             venues={forYouVenues}
             hoursStatusByVenueId={hoursStatusByVenueId}
+            variant="feed"
           />
           <HomeRadar venues={todayVenues} hoursStatusByVenueId={hoursStatusByVenueId} />
           <HomeVenueRow
@@ -82,6 +81,7 @@ export default async function Home() {
             subtitle="Pela distância cadastrada de cada estabelecimento."
             venues={nearbyVenues}
             hoursStatusByVenueId={hoursStatusByVenueId}
+            variant="feed"
           />
 
           <HomeCategoryShortcuts />

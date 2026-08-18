@@ -10,8 +10,8 @@ export function ProgressBar({ currentStep, totalSteps, stepLabel }: ProgressBarP
   return (
     <div>
       <div className="flex items-center justify-between text-xs text-muted sm:text-sm">
-        <span>
-          Etapa {currentStep} de {totalSteps}
+        <span className="font-semibold text-accent">
+          {currentStep} de {totalSteps}
         </span>
         <span className="font-medium text-foreground">{stepLabel}</span>
       </div>

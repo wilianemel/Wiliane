@@ -80,10 +80,10 @@ function LoadingState() {
         className="h-10 w-10 animate-spin rounded-full border-2 border-border border-t-accent"
       />
       <p className="text-base font-medium text-foreground sm:text-lg">
-        Calculando a compatibilidade com base nas suas respostas...
+        Encontrando lugares que combinam com você...
       </p>
       <p className="text-sm text-muted">
-        Cálculo local e determinístico, sem inteligência artificial real.
+        Estamos cruzando suas escolhas com as melhores experiências disponíveis.
       </p>
     </div>
   );
@@ -280,123 +280,142 @@ export function HomeMatchFlow({
         className="pointer-events-none absolute -top-32 left-1/2 h-96 w-[36rem] -translate-x-1/2 rounded-full bg-accent/20 blur-[120px]"
       />
 
-      <div className="relative mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-24">
+      <div className="relative mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-16">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent sm:text-sm">
           Menos tempo procurando. Mais tempo vivendo.
         </p>
-        <h1 className="mt-3 text-2xl font-bold tracking-tight text-foreground sm:mt-4 sm:text-3xl">
-          Agora me conta uma coisa...
-        </h1>
+        <h2 className="mt-3 text-2xl font-bold tracking-tight text-foreground sm:mt-4 sm:text-3xl">
+          Encontre sua boa em poucos passos
+        </h2>
         <p className="mt-2 text-sm text-muted sm:text-base">
-          Algumas respostas e encontramos lugares que combinam com você.
+          Escolha o que combina com seu momento. A gente cuida do resto.
         </p>
 
-        <div className="mt-6 sm:mt-8">
-          <ProgressBar
-            currentStep={stepIndex + 1}
-            totalSteps={TOTAL_STEPS}
-            stepLabel={STEP_LABELS[stepIndex]}
+        {/* Cartão visual do questionário — fundo elevado, borda suave,
+            cantos grandes e um brilho dourado discreto próprio (separado do
+            glow maior da seção acima), sem virar uma caixa pesada: borda e
+            fundo semi-transparentes, sombra leve. */}
+        <div className="relative mt-6 overflow-hidden rounded-[28px] border border-border/60 bg-background-elevated/70 p-5 shadow-lg shadow-black/20 sm:mt-8 sm:p-8">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -top-16 left-1/2 h-40 w-64 -translate-x-1/2 rounded-full bg-accent/10 blur-[80px]"
           />
-        </div>
 
-        <div className="mt-6 sm:mt-8">
-          {stepIndex === 0 && (
-            <QuestionCard
-              name="intention"
-              question="O que seu momento está pedindo?"
-              options={INTENTION_OPTIONS}
-              value={answers.intention}
-              onChange={(id) =>
-                setAnswers((current) => ({
-                  ...current,
-                  intention: id as DiscoveryAnswers["intention"],
-                }))
-              }
+          <div className="relative">
+            <ProgressBar
+              currentStep={stepIndex + 1}
+              totalSteps={TOTAL_STEPS}
+              stepLabel={STEP_LABELS[stepIndex]}
             />
-          )}
 
-          {stepIndex === 1 && (
-            <QuestionCard
-              name="companion"
-              question="Com quem você vai?"
-              options={COMPANION_OPTIONS}
-              value={answers.companion}
-              onChange={(id) =>
-                setAnswers((current) => ({
-                  ...current,
-                  companion: id as DiscoveryAnswers["companion"],
-                }))
-              }
-            />
-          )}
+            {/* `key={stepIndex}` força o React a remontar este bloco a cada
+                troca de etapa, o que reinicia a animação CSS abaixo
+                (fade + pequeno deslocamento) — sem biblioteca de animação,
+                sem alterar a lógica de navegação. */}
+            <div key={stepIndex} className="animate-step-fade mt-6 sm:mt-8">
+              {stepIndex === 0 && (
+                <QuestionCard
+                  name="intention"
+                  question="O que seu momento está pedindo?"
+                  options={INTENTION_OPTIONS}
+                  value={answers.intention}
+                  onChange={(id) =>
+                    setAnswers((current) => ({
+                      ...current,
+                      intention: id as DiscoveryAnswers["intention"],
+                    }))
+                  }
+                />
+              )}
 
-          {stepIndex === 2 && (
-            <QuestionCard
-              name="atmosphere"
-              question="Que tipo de ambiente combina com você agora?"
-              options={ATMOSPHERE_OPTIONS}
-              value={answers.atmosphere}
-              onChange={(id) =>
-                setAnswers((current) => ({
-                  ...current,
-                  atmosphere: id as DiscoveryAnswers["atmosphere"],
-                }))
-              }
-            />
-          )}
+              {stepIndex === 1 && (
+                <QuestionCard
+                  name="companion"
+                  question="Com quem você vai?"
+                  options={COMPANION_OPTIONS}
+                  value={answers.companion}
+                  onChange={(id) =>
+                    setAnswers((current) => ({
+                      ...current,
+                      companion: id as DiscoveryAnswers["companion"],
+                    }))
+                  }
+                />
+              )}
 
-          {stepIndex === 3 && (
-            <QuestionCard
-              name="budget"
-              question="Quanto pretende gastar por pessoa?"
-              options={BUDGET_OPTIONS}
-              value={selectedBudgetId}
-              onChange={(id) => {
-                const option = BUDGET_OPTIONS.find((item) => item.id === id);
-                if (!option) return;
-                setAnswers((current) => ({ ...current, budgetMax: option.maxPerPerson }));
-              }}
-            />
-          )}
+              {stepIndex === 2 && (
+                <QuestionCard
+                  name="atmosphere"
+                  question="Que tipo de ambiente combina com você agora?"
+                  options={ATMOSPHERE_OPTIONS}
+                  value={answers.atmosphere}
+                  onChange={(id) =>
+                    setAnswers((current) => ({
+                      ...current,
+                      atmosphere: id as DiscoveryAnswers["atmosphere"],
+                    }))
+                  }
+                />
+              )}
 
-          {stepIndex === 4 && (
-            <QuestionCard
-              name="distance"
-              question="Até que distância você toparia ir?"
-              options={DISTANCE_OPTIONS}
-              value={selectedDistanceId}
-              onChange={(id) => {
-                const option = DISTANCE_OPTIONS.find((item) => item.id === id);
-                if (!option) return;
-                setAnswers((current) => ({ ...current, distanceMax: option.maxKm }));
-              }}
-            />
-          )}
-        </div>
+              {stepIndex === 3 && (
+                <QuestionCard
+                  name="budget"
+                  question="Quanto pretende gastar por pessoa?"
+                  options={BUDGET_OPTIONS}
+                  value={selectedBudgetId}
+                  onChange={(id) => {
+                    const option = BUDGET_OPTIONS.find((item) => item.id === id);
+                    if (!option) return;
+                    setAnswers((current) => ({ ...current, budgetMax: option.maxPerPerson }));
+                  }}
+                />
+              )}
 
-        <div className="mt-6 flex items-center justify-between gap-4 sm:mt-10">
-          {stepIndex > 0 ? (
-            <button
-              type="button"
-              onClick={goBack}
-              className={`inline-flex items-center gap-2 rounded-full border border-border px-5 py-3 text-sm font-medium text-muted transition-colors hover:border-accent/60 hover:text-accent ${focusRing}`}
-            >
-              <ArrowIcon direction="left" />
-              Voltar
-            </button>
-          ) : (
-            <span />
-          )}
+              {stepIndex === 4 && (
+                <QuestionCard
+                  name="distance"
+                  question="Até que distância você toparia ir?"
+                  options={DISTANCE_OPTIONS}
+                  value={selectedDistanceId}
+                  onChange={(id) => {
+                    const option = DISTANCE_OPTIONS.find((item) => item.id === id);
+                    if (!option) return;
+                    setAnswers((current) => ({ ...current, distanceMax: option.maxKm }));
+                  }}
+                />
+              )}
+            </div>
 
-          <button
-            type="button"
-            onClick={goNext}
-            disabled={!isStepValid}
-            className={`inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition-all hover:scale-[1.02] hover:shadow-[0_0_28px_-8px_rgba(255,194,30,0.55)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-none ${focusRing}`}
-          >
-            {stepIndex === TOTAL_STEPS - 1 ? "Ver recomendações" : "Continuar"}
-            <ArrowIcon direction="right" />
-          </button>
+            {/* Sem espaçador invisível na 1ª etapa: sem Voltar, o botão
+                principal ocupa a linha inteira (flex-1); com Voltar
+                presente, ele preenche o restante do espaço no celular e
+                volta a ficar alinhado à direita, do tamanho do texto, no
+                desktop (sm:ml-auto sm:flex-none) — igual ao comportamento
+                de sempre lá. */}
+            <div className="mt-6 flex items-center gap-3 sm:mt-10">
+              {stepIndex > 0 && (
+                <button
+                  type="button"
+                  onClick={goBack}
+                  className={`inline-flex shrink-0 items-center gap-2 rounded-full border border-border px-5 py-3 text-sm font-medium text-muted transition-colors hover:border-accent/60 hover:text-accent ${focusRing}`}
+                >
+                  <ArrowIcon direction="left" />
+                  Voltar
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={goNext}
+                disabled={!isStepValid}
+                className={`inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-accent px-6 py-3.5 text-sm font-semibold text-accent-foreground transition-all hover:scale-[1.02] hover:shadow-[0_0_28px_-8px_rgba(255,194,30,0.55)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-none sm:ml-auto sm:flex-none ${focusRing}`}
+              >
+                {stepIndex === TOTAL_STEPS - 1 ? "Ver minhas recomendações" : "Continuar"}
+                <ArrowIcon direction="right" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </section>

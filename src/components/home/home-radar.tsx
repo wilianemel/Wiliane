@@ -23,6 +23,7 @@ export function HomeRadar({
       subtitle="Estabelecimentos abertos agora, perto do seu momento."
       venues={venues}
       hoursStatusByVenueId={hoursStatusByVenueId}
+      variant="feed"
     />
   );
 }
