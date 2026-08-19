@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { BrandLogo } from "@/components/shared/brand-logo";
 
@@ -72,17 +73,32 @@ export default function ParaEmpresasPage() {
             aria-hidden="true"
             className="pointer-events-none absolute -top-32 left-1/2 h-96 w-[36rem] -translate-x-1/2 rounded-full bg-accent/20 blur-[120px]"
           />
-          <div className="relative mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-24">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent sm:text-sm">
-              Para estabelecimentos
-            </p>
-            <h1 className="mt-4 text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl">
-              Coloque seu estabelecimento no Qual é a Boa
-            </h1>
-            <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
-              Cadastre sua empresa, apresente suas experiências e seja encontrado por
-              pessoas que estão procurando exatamente o que você oferece.
-            </p>
+          <div className="relative mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-24">
+            <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-2 lg:gap-12">
+              <div className="relative aspect-[3/2] w-full overflow-hidden rounded-3xl">
+                <Image
+                  src="/images/business/business-onboarding-vintage.png"
+                  alt="Ilustração vintage de um estabelecimento sendo apresentado no Qual é a Boa"
+                  fill
+                  sizes="(min-width: 1024px) 50vw, 100vw"
+                  className="object-cover"
+                  priority
+                />
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent sm:text-sm">
+                  Para estabelecimentos
+                </p>
+                <h1 className="mt-4 text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl">
+                  Coloque seu estabelecimento no Qual é a Boa!
+                </h1>
+                <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
+                  Cadastre sua empresa, apresente suas experiências e seja encontrado por
+                  pessoas que estão procurando exatamente o que você oferece.
+                </p>
+              </div>
+            </div>
 
             <ul className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-2">
               {BENEFITS.map((benefit) => (
