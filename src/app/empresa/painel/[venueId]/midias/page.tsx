@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { VenueAccessGate } from "@/components/empresa/venue-access-gate";
 import type { VenueOwnerRow } from "@/lib/venues/venue-owner";
-import { MAX_GALLERY_IMAGES } from "@/lib/venues/venue-media";
 import { SingleMediaSlot, GallerySlot } from "@/components/empresa/venue-media-slots";
+import { VenueVideoLibrary } from "@/components/empresa/venue-video-library";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -46,7 +46,8 @@ function MidiasContent({
         <p className="text-sm font-semibold text-foreground">Mostre sua experiência</p>
         <p className="mt-1 text-sm text-muted">
           Fotos e vídeos ajudam as pessoas a escolherem seu estabelecimento. Capa, logo e vídeo
-          têm um espaço fixo cada; a galeria aceita até {MAX_GALLERY_IMAGES} imagens.
+          têm um espaço fixo cada; a quantidade de fotos na galeria e de vídeos depende do seu
+          plano atual.
         </p>
       </div>
 
@@ -73,16 +74,7 @@ function MidiasContent({
           onVenueUpdated={onVenueUpdated}
         />
 
-        <SingleMediaSlot
-          venueId={venue.id}
-          folder="video"
-          kind="video"
-          title="Vídeo"
-          description="MP4 ou WebM. Nunca inicia automaticamente com som na página pública."
-          currentUrl={venue.video_url}
-          urlColumn="video_url"
-          onVenueUpdated={onVenueUpdated}
-        />
+        <VenueVideoLibrary venueId={venue.id} />
 
         <GallerySlot venueId={venue.id} />
       </div>

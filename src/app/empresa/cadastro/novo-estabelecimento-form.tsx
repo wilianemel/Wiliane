@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { VENUE_CATEGORIES, OTHER_CATEGORY, combineCategoryValue } from "@/lib/venues/venue-categories";
 import { CityAutocomplete } from "@/components/shared/city-autocomplete";
+import { UpgradeToBasicoNotice } from "@/components/empresa/upgrade-to-basico-cta";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -11,14 +13,21 @@ const focusRing =
 const inputClasses = `w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted focus:outline-none ${focusRing}`;
 
 type Status = "idle" | "loading" | "error";
+type PlanChoice = "free" | "basico";
 
 interface CreateOwnedVenueResult {
-  venue_id: string;
-  slug: string;
+  venue_id: string | null;
+  slug: string | null;
+  possible_duplicate_id: string | null;
+  possible_duplicate_name: string | null;
+  possible_duplicate_slug: string | null;
+  is_exact_duplicate: boolean;
 }
 
 interface NovoEstabelecimentoFormProps {
   userEmail: string;
+  /** Telefone/WhatsApp já coletado no cadastro da conta (user_metadata.phone) — nunca pedido de novo aqui. */
+  userPhone: string | null;
   onCreated: (venueId: string) => void;
 }
 
@@ -39,7 +48,8 @@ function friendlyRpcError(message: string): string {
   return "Não foi possível cadastrar o estabelecimento agora. Tente novamente em instantes.";
 }
 
-export function NovoEstabelecimentoForm({ userEmail, onCreated }: NovoEstabelecimentoFormProps) {
+export function NovoEstabelecimentoForm({ userEmail, userPhone, onCreated }: NovoEstabelecimentoFormProps) {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
   const [customCategory, setCustomCategory] = useState("");
@@ -49,6 +59,13 @@ export function NovoEstabelecimentoForm({ userEmail, onCreated }: NovoEstabeleci
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [duplicate, setDuplicate] = useState<{ id: string; name: string; isExact: boolean } | null>(null);
+  const [continuingClaim, setContinuingClaim] = useState(false);
+  // Free por padrão — o usuário pode trocar para Básico antes de finalizar.
+  // A escolha só é gravada (request_venue_plan) depois que o estabelecimento
+  // é criado com sucesso; nunca ativa o Básico sozinha (sem gateway de
+  // pagamento configurado ainda) — só registra "aguardando ativação".
+  const [selectedPlan, setSelectedPlan] = useState<PlanChoice>("free");
 
   const canSubmit =
     name.trim().length > 0 &&
@@ -60,15 +77,16 @@ export function NovoEstabelecimentoForm({ userEmail, onCreated }: NovoEstabeleci
     description.trim().length > 0 &&
     status !== "loading";
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!canSubmit) return;
-
+  async function createVenue(confirmDespiteDuplicate: boolean) {
     setStatus("loading");
     setErrorMessage(null);
+    setDuplicate(null);
 
     const supabase = createClient();
     // Nunca envia user_id — a função usa auth.uid() internamente.
+    // p_whatsapp reaproveita o telefone já coletado no cadastro da conta —
+    // grava em whatsapp_number e também serve de evidência forte de
+    // duplicata exata (nome+cidade+endereço, OU telefone+cidade).
     const { data, error } = await supabase.rpc("create_owned_venue", {
       p_name: name.trim(),
       p_category: combineCategoryValue(category, customCategory).trim(),
@@ -76,6 +94,8 @@ export function NovoEstabelecimentoForm({ userEmail, onCreated }: NovoEstabeleci
       p_neighborhood: neighborhood.trim(),
       p_address: address.trim(),
       p_description: description.trim(),
+      p_confirm_despite_duplicate: confirmDespiteDuplicate,
+      p_whatsapp: userPhone,
     });
 
     if (error) {
@@ -85,13 +105,79 @@ export function NovoEstabelecimentoForm({ userEmail, onCreated }: NovoEstabeleci
     }
 
     const result = (Array.isArray(data) ? data[0] : data) as CreateOwnedVenueResult | undefined;
+
+    if (result?.possible_duplicate_id) {
+      setDuplicate({
+        id: result.possible_duplicate_id,
+        name: result.possible_duplicate_name ?? "",
+        isExact: Boolean(result.is_exact_duplicate),
+      });
+      setStatus("idle");
+      return;
+    }
+
     if (!result?.venue_id) {
       setErrorMessage("Não foi possível cadastrar o estabelecimento agora. Tente novamente em instantes.");
       setStatus("error");
       return;
     }
 
+    // Grava a escolha do plano SÓ depois do estabelecimento criado com
+    // sucesso — nunca antes. Para "free" não há nada a fazer aqui: o plano
+    // ativo free já é garantido por _ensure_venue_plan dentro de
+    // create_owned_venue. Para "básico", só registra a intenção
+    // (pending_payment, idempotente); nunca ativa o limite sozinha. Falha
+    // aqui não deve travar o resto do cadastro, já concluído com sucesso.
+    if (selectedPlan === "basico") {
+      const { error: planError } = await supabase.rpc("request_venue_plan", {
+        p_venue_id: result.venue_id,
+        p_plan_type: "basico",
+      });
+      if (planError) {
+        console.error("REQUEST VENUE PLAN ERROR:", planError);
+      }
+    }
+
     onCreated(result.venue_id);
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!canSubmit) return;
+    await createVenue(false);
+  }
+
+  /**
+   * "Este é meu estabelecimento": já autenticado (este formulário só
+   * aparece depois do login/cadastro), então segue direto para o fluxo de
+   * estabelecimento existente — mesma chamada de start_or_resume_venue_claim
+   * usada em /empresa/reivindicar, sem passar pela busca de novo.
+   */
+  async function handleThisIsMine() {
+    if (!duplicate || continuingClaim) return;
+    setContinuingClaim(true);
+    setErrorMessage(null);
+
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc("start_or_resume_venue_claim", {
+      p_venue_id: duplicate.id,
+    });
+
+    if (error) {
+      console.error("START OR RESUME VENUE CLAIM ERROR:", error);
+      setErrorMessage("Não foi possível continuar agora. Tente novamente em instantes.");
+      setContinuingClaim(false);
+      return;
+    }
+
+    const row = (Array.isArray(data) ? data[0] : data) as { claim_request_id: string } | undefined;
+    if (!row?.claim_request_id) {
+      setErrorMessage("Não foi possível continuar agora. Tente novamente em instantes.");
+      setContinuingClaim(false);
+      return;
+    }
+
+    router.push(`/empresa/reivindicar/preencher?solicitacao=${row.claim_request_id}`);
   }
 
   return (
@@ -102,6 +188,13 @@ export function NovoEstabelecimentoForm({ userEmail, onCreated }: NovoEstabeleci
       <p className="mt-2 text-sm text-muted">
         Conectado como <strong className="text-foreground">{userEmail}</strong>. Preencha os dados
         básicos do seu estabelecimento — ele nasce como rascunho, não publicado.
+        {userPhone && (
+          <>
+            {" "}
+            O telefone <strong className="text-foreground">{userPhone}</strong> já cadastrado na
+            sua conta será usado como contato — você pode alterá-lo depois no painel.
+          </>
+        )}
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
@@ -223,14 +316,135 @@ export function NovoEstabelecimentoForm({ userEmail, onCreated }: NovoEstabeleci
           </p>
         )}
 
-        <button
-          type="submit"
-          disabled={!canSubmit}
-          className={`mt-4 inline-flex items-center justify-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 ${focusRing}`}
-        >
-          {status === "loading" ? "Cadastrando..." : "Cadastrar estabelecimento"}
-        </button>
+        {duplicate && (
+          <div className="rounded-xl border border-accent/40 bg-accent/5 p-4">
+            <p className="text-sm text-foreground">
+              {duplicate.isExact
+                ? `Já existe um estabelecimento com esses mesmos dados${duplicate.name ? ` (${duplicate.name})` : ""}. Localize e assuma o cadastro existente — não é possível criar outro igual.`
+                : `Encontramos um estabelecimento parecido já cadastrado${duplicate.name ? ` (${duplicate.name})` : ""}. Confira se ele é o seu antes de criar um novo.`}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={handleThisIsMine}
+                disabled={continuingClaim}
+                className={`inline-flex items-center justify-center gap-2 rounded-full bg-accent px-4 py-2 text-xs font-semibold text-accent-foreground transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 ${focusRing}`}
+              >
+                {continuingClaim ? "Continuando..." : "Este é meu estabelecimento"}
+              </button>
+              {/* CORREÇÃO (auditoria final): duplicata exata nunca pode ser confirmada manualmente — sem este botão, a única saída é assumir o existente. */}
+              {!duplicate.isExact && (
+                <button
+                  type="button"
+                  onClick={() => createVenue(true)}
+                  disabled={status === "loading" || continuingClaim}
+                  className={`inline-flex items-center justify-center gap-2 rounded-full border border-border px-4 py-2 text-xs font-medium text-muted transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40 ${focusRing}`}
+                >
+                  Cadastrar outro estabelecimento
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {!duplicate && (
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">
+              Escolha como seu estabelecimento aparecerá
+            </h2>
+            <p className="mt-1 text-xs text-muted">
+              Dá para trocar depois — o cadastro sempre começa no plano Free enquanto o
+              pagamento do Básico não é confirmado.
+            </p>
+
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <PlanCard
+                title="Free"
+                price="Grátis"
+                selected={selectedPlan === "free"}
+                onSelect={() => setSelectedPlan("free")}
+                features={[
+                  "1 vídeo",
+                  "1 foto",
+                  "Perfil gratuito",
+                  "Até 300 visualizações nas recomendações",
+                  "Depois de 300 visualizações, continua aparecendo na Busca e no Explorar, mas deixa de ser recomendado até contratar o Básico",
+                ]}
+              />
+              <PlanCard
+                title="Básico"
+                price="R$ 97,00/mês"
+                selected={selectedPlan === "basico"}
+                onSelect={() => setSelectedPlan("basico")}
+                features={["3 vídeos", "3 fotos", "Continua aparecendo nas recomendações"]}
+              />
+            </div>
+
+            {selectedPlan === "basico" && (
+              <UpgradeToBasicoNotice
+                className="mt-3"
+                label="Contratar o plano Básico por R$ 97/mês"
+                supportText="Fale com o Qual é a Boa pelo WhatsApp para concluir o pagamento e ativar seu plano."
+              />
+            )}
+          </div>
+        )}
+
+        {!duplicate && (
+          <button
+            type="submit"
+            disabled={!canSubmit}
+            className={`mt-4 inline-flex items-center justify-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 ${focusRing}`}
+          >
+            {status === "loading" ? "Cadastrando..." : "Cadastrar estabelecimento"}
+          </button>
+        )}
       </form>
     </div>
+  );
+}
+
+interface PlanCardProps {
+  title: string;
+  price: string;
+  selected: boolean;
+  onSelect: () => void;
+  features: string[];
+}
+
+function PlanCard({ title, price, selected, onSelect, features }: PlanCardProps) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      className={`flex flex-col items-start rounded-2xl border p-4 text-left transition-colors ${focusRing} ${
+        selected ? "border-accent bg-accent/5" : "border-border hover:border-accent/60"
+      }`}
+    >
+      <div className="flex w-full items-center justify-between gap-2">
+        <p className="text-sm font-semibold text-foreground">{title}</p>
+        <span
+          aria-hidden="true"
+          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+            selected ? "border-accent bg-accent" : "border-border"
+          }`}
+        >
+          {selected && (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} className="h-3 w-3 text-accent-foreground">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m5 12 4.5 4.5L19 7" />
+            </svg>
+          )}
+        </span>
+      </div>
+      <p className="mt-0.5 text-xs font-semibold text-accent">{price}</p>
+      <ul className="mt-3 flex flex-col gap-1.5">
+        {features.map((feature) => (
+          <li key={feature} className="text-xs text-muted">
+            {feature}
+          </li>
+        ))}
+      </ul>
+    </button>
   );
 }

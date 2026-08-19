@@ -6,13 +6,15 @@ import { createClient } from "@/lib/supabase/client";
 import {
   validateMediaFile,
   replaceSingleMedia,
-  removeSingleMedia,
   listGalleryItems,
   uploadGalleryImage,
   removeGalleryImage,
-  MAX_GALLERY_IMAGES,
+  upsertFeaturedVenueMedia,
+  retireFeaturedVenueMedia,
+  getVenueImageLimit,
   type GalleryItem,
 } from "@/lib/venues/venue-media";
+import { UpgradeToBasicoNotice } from "@/components/empresa/upgrade-to-basico-cta";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -65,6 +67,10 @@ export function SingleMediaSlot({
     setStatus("uploading");
     setErrorMessage(null);
 
+    // Envia o arquivo NOVO com nome único — nunca no lugar do antigo.
+    // CORREÇÃO (auditoria 3ª rodada): o arquivo anterior nunca é apagado
+    // do Storage neste fluxo, nem antes nem depois da confirmação no
+    // banco — fica só sem nenhuma linha ativa apontando pra ele.
     const result = await replaceSingleMedia(venueId, folder, file);
     if ("error" in result) {
       setErrorMessage(result.error);
@@ -72,16 +78,30 @@ export function SingleMediaSlot({
       return;
     }
 
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("venues")
-      .update({ [urlColumn]: result.url })
-      .eq("id", venueId);
+    if (folder === "cover" || folder === "video") {
+      // Capa/vídeo: uma única RPC transacional cuida de tudo — registra em
+      // venue_media (canônica) E sincroniza venues.cover_image_url/
+      // video_url na mesma transação. Nunca duas gravações separadas do
+      // cliente (se a RPC falhar, nenhuma referência muda).
+      const mediaError = await upsertFeaturedVenueMedia(venueId, kind, result.url);
+      if (mediaError) {
+        setErrorMessage(mediaError.error);
+        setStatus("error");
+        return;
+      }
+    } else {
+      // Logo não faz parte de venue_media — continua só na coluna antiga.
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("venues")
+        .update({ [urlColumn]: result.url })
+        .eq("id", venueId);
 
-    if (error) {
-      setErrorMessage("Arquivo enviado, mas não foi possível vincular ao estabelecimento agora.");
-      setStatus("error");
-      return;
+      if (error) {
+        setErrorMessage("Arquivo enviado, mas não foi possível vincular ao estabelecimento agora.");
+        setStatus("error");
+        return;
+      }
     }
 
     setStatus("idle");
@@ -92,23 +112,30 @@ export function SingleMediaSlot({
     setStatus("uploading");
     setErrorMessage(null);
 
-    const removeResult = await removeSingleMedia(venueId, folder);
-    if (removeResult) {
-      setErrorMessage(removeResult.error);
-      setStatus("error");
-      return;
-    }
+    if (folder === "cover" || folder === "video") {
+      // Mesma RPC cuida de retirar (soft delete) a mídia canônica E limpar
+      // cover_image_url/video_url na mesma transação. Nunca apaga o
+      // arquivo do Storage.
+      const mediaError = await retireFeaturedVenueMedia(venueId, kind);
+      if (mediaError) {
+        setErrorMessage(mediaError.error);
+        setStatus("error");
+        return;
+      }
+    } else {
+      // Logo: só limpa a coluna antiga — o arquivo nunca é apagado do
+      // Storage (CORREÇÃO — auditoria 3ª rodada).
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("venues")
+        .update({ [urlColumn]: null })
+        .eq("id", venueId);
 
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("venues")
-      .update({ [urlColumn]: null })
-      .eq("id", venueId);
-
-    if (error) {
-      setErrorMessage("Não foi possível atualizar o estabelecimento agora.");
-      setStatus("error");
-      return;
+      if (error) {
+        setErrorMessage("Não foi possível atualizar o estabelecimento agora.");
+        setStatus("error");
+        return;
+      }
     }
 
     setStatus("idle");
@@ -180,15 +207,17 @@ export function SingleMediaSlot({
 export function GallerySlot({ venueId }: { venueId: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<GalleryItem[]>([]);
+  const [imageLimit, setImageLimit] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<UploadStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    listGalleryItems(venueId).then((loaded) => {
+    Promise.all([listGalleryItems(venueId), getVenueImageLimit(venueId)]).then(([loaded, limit]) => {
       if (!cancelled) {
         setItems(loaded);
+        setImageLimit(limit);
         setLoading(false);
       }
     });
@@ -200,7 +229,7 @@ export function GallerySlot({ venueId }: { venueId: string }) {
   async function handleFileSelected(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
-    if (!file) return;
+    if (!file || imageLimit === null) return;
 
     const validationError = validateMediaFile(file, "image");
     if (validationError) {
@@ -212,7 +241,7 @@ export function GallerySlot({ venueId }: { venueId: string }) {
     setStatus("uploading");
     setErrorMessage(null);
 
-    const result = await uploadGalleryImage(venueId, file);
+    const result = await uploadGalleryImage(venueId, file, imageLimit);
     if ("error" in result) {
       setErrorMessage(result.error);
       setStatus("error");
@@ -223,20 +252,24 @@ export function GallerySlot({ venueId }: { venueId: string }) {
     setStatus("idle");
   }
 
-  async function handleRemove(name: string) {
+  async function handleRemove(item: GalleryItem) {
     setStatus("uploading");
     setErrorMessage(null);
 
-    const result = await removeGalleryImage(venueId, name);
+    // Soft delete em venue_media (adota a imagem primeiro se ela ainda só
+    // existir no path antigo do Storage) — nunca apaga o arquivo.
+    const result = await removeGalleryImage(venueId, item);
     if (result) {
       setErrorMessage(result.error);
       setStatus("error");
       return;
     }
 
-    setItems((current) => current.filter((item) => item.name !== name));
+    setItems((current) => current.filter((existing) => existing.name !== item.name));
     setStatus("idle");
   }
+
+  const atLimit = imageLimit !== null && items.length >= imageLimit;
 
   return (
     <section className="rounded-2xl border border-border bg-background-elevated p-5">
@@ -244,13 +277,15 @@ export function GallerySlot({ venueId }: { venueId: string }) {
         <div>
           <h2 className="text-sm font-semibold text-foreground">Galeria</h2>
           <p className="mt-1 text-xs text-muted">
-            JPG, PNG ou WebP. Até {MAX_GALLERY_IMAGES} imagens. {items.length}/{MAX_GALLERY_IMAGES} enviadas.
+            JPG, PNG ou WebP. {imageLimit === null
+              ? "Carregando limite do plano..."
+              : `Até ${imageLimit} imagem${imageLimit === 1 ? "" : "s"}. ${items.length}/${imageLimit} enviadas.`}
           </p>
         </div>
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          disabled={status === "uploading" || items.length >= MAX_GALLERY_IMAGES}
+          disabled={status === "uploading" || imageLimit === null || atLimit}
           className={buttonBase}
         >
           {status === "uploading" ? "Enviando..." : "Adicionar imagem"}
@@ -263,6 +298,10 @@ export function GallerySlot({ venueId }: { venueId: string }) {
           className="hidden"
         />
       </div>
+
+      {atLimit && (
+        <UpgradeToBasicoNotice className="mt-4" />
+      )}
 
       {errorMessage && (
         <p className="mt-3 rounded-xl border border-red-400/40 bg-red-400/5 px-4 py-2 text-xs text-red-300">
@@ -281,7 +320,7 @@ export function GallerySlot({ venueId }: { venueId: string }) {
               <Image src={item.url} alt="Foto da galeria" fill sizes="200px" className="object-cover" />
               <button
                 type="button"
-                onClick={() => handleRemove(item.name)}
+                onClick={() => handleRemove(item)}
                 disabled={status === "uploading"}
                 className="absolute right-2 top-2 inline-flex min-h-11 items-center justify-center rounded-full bg-black/80 px-3 text-xs font-medium text-white disabled:cursor-not-allowed"
               >

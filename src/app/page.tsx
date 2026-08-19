@@ -53,7 +53,22 @@ export default async function Home() {
     userPreferences = data;
   }
 
-  const forYouVenues = getForYouVenues(venues, userPreferences);
+  // Corte de recomendação por plano (banco impõe, via view_limit de
+  // venue_plan_definitions contra visualizações reais em user_interactions
+  // — nunca click_limit): só afeta os dois caminhos de recomendação
+  // (questionário/HomeMatchFlow e "Perfeito para você"/getForYouVenues).
+  // Busca, Descobrir, "Perto de você", "Hoje" e Destaques continuam usando
+  // `venues` sem filtro — o estabelecimento nunca some de lá.
+  const { data: ineligibleRows } = await supabase.rpc("list_recommendation_ineligible_venue_ids");
+  const ineligibleVenueIds = new Set(
+    ((ineligibleRows ?? []) as { venue_id: string }[]).map((row) => row.venue_id),
+  );
+  const recommendableVenues =
+    ineligibleVenueIds.size === 0
+      ? venues
+      : venues.filter((venue) => !ineligibleVenueIds.has(venue.venueId));
+
+  const forYouVenues = getForYouVenues(recommendableVenues, userPreferences);
   const todayVenues = getTodayVenues(venues, hoursStatusByVenueId, now);
   const nearbyVenues = getNearbyVenues(venues);
 
@@ -65,7 +80,7 @@ export default async function Home() {
         <main className="relative flex-1">
           <HomeHero />
           <div id="match-flow" className="scroll-mt-20">
-            <HomeMatchFlow venues={venues} hoursStatusByVenueId={hoursStatusByVenueId} />
+            <HomeMatchFlow venues={recommendableVenues} hoursStatusByVenueId={hoursStatusByVenueId} />
           </div>
 
           <HomeVenueRow

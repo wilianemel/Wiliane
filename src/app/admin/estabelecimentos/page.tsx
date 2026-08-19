@@ -21,6 +21,13 @@ interface SearchableVenue {
   isVerified: boolean;
 }
 
+interface ReclaimBlock {
+  blockedUserId: string;
+  blockedUserEmailSnapshot: string | null;
+  reason: string | null;
+  createdAt: string;
+}
+
 export default function AdminEstabelecimentosPage() {
   return (
     <AdminGate>
@@ -36,12 +43,18 @@ function AdminEstabelecimentosContent() {
   const [venueResults, setVenueResults] = useState<SearchableVenue[]>([]);
   const [selectedVenue, setSelectedVenue] = useState<SearchableVenue | null>(null);
 
-  const [ownerCode, setOwnerCode] = useState("");
-  const [linkStatus, setLinkStatus] = useState<"idle" | "loading" | "success">("idle");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
   const [verifyStatus, setVerifyStatus] = useState<"idle" | "loading">("idle");
   const [verifyError, setVerifyError] = useState<string | null>(null);
+
+  const [ownerInfo, setOwnerInfo] = useState<{ hasActiveOwner: boolean } | null>(null);
+  const [removeStep, setRemoveStep] = useState<"idle" | "confirming" | "confirming2" | "loading">("idle");
+  const [removeReason, setRemoveReason] = useState("");
+  const [removeError, setRemoveError] = useState<string | null>(null);
+  const [removeSuccess, setRemoveSuccess] = useState<string | null>(null);
+
+  const [blocks, setBlocks] = useState<ReclaimBlock[]>([]);
+  const [releasingUserId, setReleasingUserId] = useState<string | null>(null);
+  const [releaseError, setReleaseError] = useState<string | null>(null);
 
   // Sem filtro de is_published/is_active de propósito: quem chega aqui já
   // passou pela checagem de admin, e RLS de venues já libera todo o
@@ -83,12 +96,111 @@ function AdminEstabelecimentosContent() {
     setVenueSearchStatus("idle");
   }
 
-  function selectVenue(venue: SearchableVenue) {
+  async function loadOwnerAndBlocks(venueId: string) {
+    const supabase = createClient();
+    const [{ data: ownerRows }, { data: blockRows }] = await Promise.all([
+      supabase
+        .from("venue_members")
+        .select("id")
+        .eq("venue_id", venueId)
+        .eq("member_role", "owner")
+        .eq("is_active", true)
+        .limit(1),
+      supabase
+        .from("venue_owner_reclaim_blocks")
+        // CORREÇÃO (auditoria final 2): filtra/lê pelos snapshots
+        // (identidade permanente, not null) — venue_id/blocked_user_id
+        // podem virar null via ON DELETE SET NULL.
+        .select("blocked_user_id_snapshot, blocked_user_email_snapshot, reason, created_at")
+        .eq("venue_id_snapshot", venueId)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false }),
+    ]);
+
+    setOwnerInfo({ hasActiveOwner: (ownerRows?.length ?? 0) > 0 });
+    setBlocks(
+      (blockRows ?? []).map((row) => ({
+        blockedUserId: row.blocked_user_id_snapshot as string,
+        blockedUserEmailSnapshot: row.blocked_user_email_snapshot as string | null,
+        reason: row.reason as string | null,
+        createdAt: row.created_at as string,
+      })),
+    );
+  }
+
+  async function selectVenue(venue: SearchableVenue) {
     setSelectedVenue(venue);
-    setLinkStatus("idle");
-    setErrorMessage(null);
     setVerifyStatus("idle");
     setVerifyError(null);
+    setRemoveStep("idle");
+    setRemoveReason("");
+    setRemoveError(null);
+    setRemoveSuccess(null);
+    setOwnerInfo(null);
+    setBlocks([]);
+    setReleaseError(null);
+
+    await loadOwnerAndBlocks(venue.id);
+  }
+
+  /**
+   * "Liberar nova tentativa" — corrige uma remoção feita por engano.
+   * admin_release_venue_owner_block() só desativa o bloqueio; nunca apaga
+   * a linha nem a auditoria original da remoção (venue_owner_removal_audit
+   * continua intacta).
+   */
+  async function handleReleaseBlock(blockedUserId: string) {
+    if (!selectedVenue || releasingUserId) return;
+    setReleasingUserId(blockedUserId);
+    setReleaseError(null);
+
+    const supabase = createClient();
+    const { error } = await supabase.rpc("admin_release_venue_owner_block", {
+      p_venue_id: selectedVenue.id,
+      p_user_id: blockedUserId,
+    });
+
+    if (error) {
+      console.error("ADMIN RELEASE VENUE OWNER BLOCK ERROR:", error);
+      setReleaseError("Não foi possível liberar agora. Tente novamente.");
+      setReleasingUserId(null);
+      return;
+    }
+
+    setBlocks((current) => current.filter((block) => block.blockedUserId !== blockedUserId));
+    setReleasingUserId(null);
+  }
+
+  /**
+   * Remoção administrativa de proprietário — soft delete via
+   * admin_remove_venue_owner() (SEÇÃO 5 da migration): nunca apaga
+   * usuário/venue/mídia/plano, só desativa o vínculo e despublica.
+   * Registrada em venue_owner_removal_audit (RLS: só admin lê).
+   */
+  async function handleRemoveOwner() {
+    if (!selectedVenue || !removeReason.trim() || removeStep === "loading") return;
+    setRemoveStep("loading");
+    setRemoveError(null);
+
+    const supabase = createClient();
+    const { error } = await supabase.rpc("admin_remove_venue_owner", {
+      p_venue_id: selectedVenue.id,
+      p_reason: removeReason.trim(),
+    });
+
+    if (error) {
+      console.error("ADMIN REMOVE VENUE OWNER ERROR:", error);
+      setRemoveError("Não foi possível remover o proprietário agora. Tente novamente.");
+      setRemoveStep("confirming2");
+      return;
+    }
+
+    await loadOwnerAndBlocks(selectedVenue.id);
+    setRemoveSuccess(
+      `Proprietário removido e bloqueado de reivindicar ${selectedVenue.name} de novo. O estabelecimento foi despublicado e voltou a aparecer na busca para outro proprietário. Use "Liberar nova tentativa" abaixo se a remoção foi um engano.`,
+    );
+    setRemoveReason("");
+    setRemoveStep("idle");
   }
 
   async function handleToggleVerified() {
@@ -120,30 +232,6 @@ function AdminEstabelecimentosContent() {
     setVerifyStatus("idle");
   }
 
-  async function handleLink() {
-    if (!selectedVenue || !ownerCode.trim() || linkStatus === "loading") return;
-
-    setLinkStatus("loading");
-    setErrorMessage(null);
-
-    const supabase = createClient();
-    const { error } = await supabase.rpc("admin_link_venue_owner", {
-      p_venue_id: selectedVenue.id,
-      p_user_id: ownerCode.trim(),
-    });
-
-    if (error) {
-      console.error("ADMIN LINK VENUE OWNER ERROR:", error);
-      setErrorMessage(
-        "Não foi possível vincular agora. Confira o estabelecimento selecionado e o código do usuário.",
-      );
-      setLinkStatus("idle");
-      return;
-    }
-
-    setLinkStatus("success");
-  }
-
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 sm:py-14">
       <Link
@@ -157,7 +245,9 @@ function AdminEstabelecimentosContent() {
         Gerenciar estabelecimentos
       </h1>
       <p className="mt-2 text-sm text-muted">
-        Encontre um estabelecimento para gerenciar sua verificação ou vincular um proprietário.
+        Encontre um estabelecimento para gerenciar sua verificação ou remover o proprietário
+        ativo. Vínculo de proprietário acontece automaticamente quando o próprio empresário
+        conclui o cadastro pelo painel — não há mais aprovação manual.
       </p>
 
       <section className="mt-8">
@@ -272,46 +362,144 @@ function AdminEstabelecimentosContent() {
             )}
           </section>
 
-          <section className="mt-8 rounded-2xl border border-border bg-background-elevated p-4">
+          <section className="mt-8">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
               Proprietário
             </h2>
-            <label htmlFor="owner-code" className="mt-3 block text-sm font-medium text-foreground">
-              Código do usuário
-            </label>
-            <p className="mt-1 text-xs text-muted">
-              Encontre esse código no painel do Supabase, em Authentication → Users, na conta da
-              pessoa que deve virar proprietária.
-            </p>
-            <input
-              id="owner-code"
-              type="text"
-              value={ownerCode}
-              onChange={(event) => setOwnerCode(event.target.value)}
-              placeholder="Código do usuário"
-              className={`mt-2 ${inputClasses}`}
-            />
-
-            {errorMessage && (
-              <p className="mt-3 rounded-xl border border-red-400/40 bg-red-400/5 px-4 py-3 text-sm text-red-300">
-                {errorMessage}
+            <div className="mt-2 rounded-2xl border border-border bg-background-elevated p-4">
+              <p className="text-xs text-muted">
+                {ownerInfo === null
+                  ? "Carregando..."
+                  : ownerInfo.hasActiveOwner
+                    ? "Este estabelecimento tem um proprietário ativo."
+                    : "Sem proprietário ativo no momento — já aparece na busca para um novo cadastro."}
               </p>
-            )}
-            {linkStatus === "success" && (
-              <p className="mt-3 rounded-xl border border-emerald-400/40 bg-emerald-400/5 px-4 py-3 text-sm text-emerald-300">
-                Proprietário vinculado com sucesso.
-              </p>
-            )}
 
-            <button
-              type="button"
-              onClick={handleLink}
-              disabled={!ownerCode.trim() || linkStatus === "loading"}
-              className={`mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 ${focusRing}`}
-            >
-              {linkStatus === "loading" ? "Vinculando..." : "Vincular proprietário"}
-            </button>
+              {removeSuccess && (
+                <p className="mt-3 rounded-xl border border-emerald-400/40 bg-emerald-400/5 px-4 py-3 text-sm text-emerald-300">
+                  {removeSuccess}
+                </p>
+              )}
+              {removeError && (
+                <p className="mt-3 rounded-xl border border-red-400/40 bg-red-400/5 px-4 py-3 text-sm text-red-300">
+                  {removeError}
+                </p>
+              )}
+
+              {ownerInfo?.hasActiveOwner && removeStep === "idle" && (
+                <button
+                  type="button"
+                  onClick={() => setRemoveStep("confirming")}
+                  className={`mt-3 rounded-full border border-red-400/60 px-4 py-2 text-xs font-semibold text-red-300 transition-colors hover:bg-red-400/10 ${focusRing}`}
+                >
+                  Remover proprietário
+                </button>
+              )}
+
+              {removeStep === "confirming" && (
+                <div className="mt-3 flex flex-col gap-2">
+                  <p className="text-xs text-foreground">
+                    O estabelecimento ficará indisponível (despublicado) até outro proprietário
+                    completar o cadastro. Explique o motivo da remoção:
+                  </p>
+                  <textarea
+                    value={removeReason}
+                    onChange={(event) => setRemoveReason(event.target.value)}
+                    rows={2}
+                    placeholder="Ex.: Proprietário solicitou remoção por e-mail."
+                    className={inputClasses}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => removeReason.trim() && setRemoveStep("confirming2")}
+                      disabled={!removeReason.trim()}
+                      className={`rounded-full border border-red-400/60 px-4 py-2 text-xs font-semibold text-red-300 transition-colors hover:bg-red-400/10 disabled:cursor-not-allowed disabled:opacity-40 ${focusRing}`}
+                    >
+                      Continuar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRemoveStep("idle")}
+                      className={`rounded-full border border-border px-4 py-2 text-xs font-medium text-muted transition-colors hover:border-accent hover:text-accent ${focusRing}`}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {removeStep === "confirming2" && (
+                <div className="mt-3 flex flex-col gap-2">
+                  <p className="text-xs font-semibold text-red-300">
+                    Confirma remover o proprietário de {selectedVenue.name}? O estabelecimento é
+                    despublicado imediatamente. Motivo: &quot;{removeReason.trim()}&quot;
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleRemoveOwner}
+                      className={`rounded-full bg-red-500 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-red-600 ${focusRing}`}
+                    >
+                      Confirmar remoção
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRemoveStep("idle")}
+                      className={`rounded-full border border-border px-4 py-2 text-xs font-medium text-muted transition-colors hover:border-accent hover:text-accent ${focusRing}`}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {removeStep === "loading" && <p className="mt-3 text-xs text-muted">Removendo...</p>}
+            </div>
           </section>
+
+          {blocks.length > 0 && (
+            <section className="mt-8">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+                Bloqueios ativos
+              </h2>
+              <p className="mt-2 text-xs text-muted">
+                Estas contas foram removidas como proprietárias deste estabelecimento e não
+                conseguem reivindicá-lo de novo até você liberar.
+              </p>
+              {releaseError && (
+                <p className="mt-3 rounded-xl border border-red-400/40 bg-red-400/5 px-4 py-3 text-sm text-red-300">
+                  {releaseError}
+                </p>
+              )}
+              <ul className="mt-3 flex flex-col gap-2">
+                {blocks.map((block) => (
+                  <li
+                    key={block.blockedUserId}
+                    className="flex flex-col gap-2 rounded-2xl border border-border bg-background-elevated p-4 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-xs text-foreground">
+                        {block.blockedUserEmailSnapshot ?? `Conta ${block.blockedUserId.slice(0, 8)}…`}
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted">
+                        {block.reason ? `Motivo: ${block.reason}` : "Sem motivo registrado"} ·{" "}
+                        {new Date(block.createdAt).toLocaleDateString("pt-BR")}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleReleaseBlock(block.blockedUserId)}
+                      disabled={releasingUserId === block.blockedUserId}
+                      className={`shrink-0 rounded-full border border-border px-4 py-2 text-xs font-medium text-muted transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40 ${focusRing}`}
+                    >
+                      {releasingUserId === block.blockedUserId ? "Liberando..." : "Liberar nova tentativa"}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </>
       )}
     </div>

@@ -124,15 +124,30 @@ body {
   }
 }
 
-/** Transição curta ao trocar de etapa no questionário da Home (HomeMatchFlow) — fade + pequeno deslocamento, nunca um slide chamativo. */
-@keyframes home-step-fade {
+/**
+ * Transição curta ao trocar de etapa no questionário da Home (HomeMatchFlow)
+ * — fade + pequeno deslocamento lateral (direção de acordo com Continuar ou
+ * Voltar) e vertical, nunca um slide chamativo.
+ */
+@keyframes home-step-fade-forward {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translate3d(16px, 6px, 0);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes home-step-fade-backward {
+  from {
+    opacity: 0;
+    transform: translate3d(-16px, 6px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
   }
 }
 
@@ -164,8 +179,12 @@ body {
   animation: home-bounce-soft 2s ease-in-out infinite;
 }
 
-.animate-step-fade {
-  animation: home-step-fade 0.35s ease-out both;
+.animate-step-fade-forward {
+  animation: home-step-fade-forward 0.35s ease-out both;
+}
+
+.animate-step-fade-backward {
+  animation: home-step-fade-backward 0.35s ease-out both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -176,7 +195,8 @@ body {
   .animate-glow-pulse,
   .animate-ping-slow,
   .animate-bounce-soft,
-  .animate-step-fade {
+  .animate-step-fade-forward,
+  .animate-step-fade-backward {
     animation: none;
   }
 }

@@ -31,6 +31,35 @@ interface Membership {
   venues: VenueOwnerRow;
 }
 
+/** Estado amigável de uma solicitação de "empresa já cadastrada" ainda sem vínculo em venue_members — nenhum código de usuário ou UUID aparece aqui. */
+interface ClaimStatus {
+  claimRequestId: string;
+  status: "draft" | "submitted" | "rejected";
+  rejectReason: string | null;
+  venueName: string;
+  venueCategory: string;
+  venueCity: string;
+  venueNeighborhood: string;
+  coverImageUrl: string | null;
+}
+
+interface ClaimRequestRow {
+  id: string;
+  status: string;
+  reject_reason: string | null;
+  venues: { name: string; category: string; city: string; neighborhood: string; cover_image_url: string | null } | null;
+}
+
+// CORREÇÃO (decisão final do fluxo empresarial): sem aprovação manual —
+// "submitted"/"rejected" são só estados legados que continuam editáveis
+// como um draft (ver complete_existing_venue_onboarding, que aceita os
+// dois). O rótulo nunca mais sugere que alguém está revisando o cadastro.
+const CLAIM_STATUS_LABEL: Record<ClaimStatus["status"], string> = {
+  draft: "Complete seu cadastro",
+  submitted: "Complete seu cadastro",
+  rejected: "Complete seu cadastro",
+};
+
 export default function PainelEmpresaPage() {
   return (
     <Suspense
@@ -56,6 +85,44 @@ function PainelEmpresaContent() {
   const [loadState, setLoadState] = useState<LoadState>("checking");
   const [user, setUser] = useState<User | null>(null);
   const [memberships, setMemberships] = useState<Membership[]>([]);
+  const [claimStatuses, setClaimStatuses] = useState<ClaimStatus[]>([]);
+
+  // Solicitações de "empresa já cadastrada" ainda sem vínculo em
+  // venue_members (draft/submitted/rejected) — sem isso, quem está no meio
+  // desse fluxo veria "você ainda não tem estabelecimento", que seria falso.
+  // Uma vez concluída (complete_existing_venue_onboarding), a solicitação
+  // vira uma membership normal (lista abaixo) e some daqui sozinha (o
+  // filtro de status já exclui "completed"/"approved"/"superseded").
+  async function refreshClaimStatuses(userId: string): Promise<void> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("venue_claim_requests")
+      .select("id, status, reject_reason, venues (name, category, city, neighborhood, cover_image_url)")
+      .eq("user_id", userId)
+      .in("status", ["draft", "submitted", "rejected"])
+      .order("updated_at", { ascending: false });
+
+    if (error) {
+      console.error("PAINEL EMPRESA — falha ao buscar solicitações:", error);
+      return;
+    }
+
+    const rows = (data ?? []) as unknown as ClaimRequestRow[];
+    setClaimStatuses(
+      rows
+        .filter((row) => row.venues != null)
+        .map((row) => ({
+          claimRequestId: row.id,
+          status: row.status as ClaimStatus["status"],
+          rejectReason: row.reject_reason,
+          venueName: row.venues!.name,
+          venueCategory: row.venues!.category,
+          venueCity: row.venues!.city,
+          venueNeighborhood: row.venues!.neighborhood,
+          coverImageUrl: row.venues!.cover_image_url,
+        })),
+    );
+  }
 
   // RLS de venue_members já restringe a linhas com user_id = auth.uid(); o
   // embed de venues só traz o que o vínculo ativo permite enxergar.
@@ -97,6 +164,7 @@ function PainelEmpresaContent() {
     if (!user) return;
     setLoadState("checking");
     const ok = await refreshMemberships(user.id);
+    await refreshClaimStatuses(user.id);
     setLoadState(ok ? "ready" : "error");
   }
 
@@ -123,6 +191,7 @@ function PainelEmpresaContent() {
       if (cancelled) return;
       setUser(data.user);
       const ok = await refreshMemberships(data.user.id);
+      await refreshClaimStatuses(data.user.id);
       if (cancelled) return;
       setLoadState(ok ? "ready" : "error");
     }
@@ -223,6 +292,53 @@ function PainelEmpresaContent() {
         </div>
       )}
 
+      {claimStatuses.length > 0 && (
+        <ul className="mt-8 flex flex-col gap-4">
+          {claimStatuses.map((claim) => (
+            <li
+              key={claim.claimRequestId}
+              className="overflow-hidden rounded-2xl border border-accent/40 bg-background-elevated"
+            >
+              <div className="flex flex-col sm:flex-row">
+                <VenueCoverImage
+                  venue={{
+                    coverImageUrl: claim.coverImageUrl ?? undefined,
+                    gradient: OWNER_CARD_GRADIENT,
+                    name: claim.venueName,
+                  }}
+                  className="h-32 w-full sm:h-auto sm:w-40 sm:shrink-0"
+                  sizes="(min-width: 640px) 160px, 100vw"
+                />
+                <div className="flex flex-1 flex-col gap-3 p-5">
+                  <div>
+                    <span className="rounded-full bg-accent/10 px-3 py-1 text-[11px] font-medium text-accent">
+                      {CLAIM_STATUS_LABEL[claim.status]}
+                    </span>
+                    <p className="mt-2 text-base font-semibold text-foreground">{claim.venueName}</p>
+                    <p className="text-xs text-muted">
+                      {claim.venueCategory} · {claim.venueNeighborhood}, {claim.venueCity}
+                    </p>
+                  </div>
+
+                  {claim.status === "rejected" && claim.rejectReason && (
+                    <p className="rounded-xl border border-red-400/40 bg-red-400/5 px-3 py-2 text-xs text-red-300">
+                      {claim.rejectReason}
+                    </p>
+                  )}
+
+                  <Link
+                    href={`/empresa/reivindicar/preencher?solicitacao=${claim.claimRequestId}`}
+                    className={`inline-flex w-fit items-center gap-2 rounded-full bg-accent px-5 py-2 text-xs font-semibold text-accent-foreground transition-transform hover:scale-[1.02] ${focusRing}`}
+                  >
+                    Continuar cadastro
+                  </Link>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
       {justCreatedButNotVisibleYet ? (
         <div className="mt-8 rounded-2xl border border-accent/40 bg-accent/5 p-6">
           <p className="text-base font-medium text-foreground">
@@ -240,7 +356,7 @@ function PainelEmpresaContent() {
             Atualizar
           </button>
         </div>
-      ) : memberships.length === 0 ? (
+      ) : memberships.length === 0 && claimStatuses.length === 0 ? (
         <div className="mt-8 rounded-2xl border border-border bg-background-elevated p-6">
           <p className="text-base font-medium text-foreground">
             Você ainda não tem um estabelecimento cadastrado.

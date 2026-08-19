@@ -7,6 +7,8 @@ import { VenueAccessGate } from "@/components/empresa/venue-access-gate";
 import { MostardaCard } from "@/components/empresa/mostarda-card";
 import type { VenueOwnerRow } from "@/lib/venues/venue-owner";
 import { getVenueDashboardStats, type VenueDashboardStats } from "@/lib/venues/venue-dashboard";
+import { getVenueEffectiveLimits, type VenueEffectiveLimits } from "@/lib/venues/venue-media";
+import { UpgradeToBasicoNotice } from "@/components/empresa/upgrade-to-basico-cta";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -184,6 +186,8 @@ function SparkleIcon() {
   );
 }
 
+const PLAN_LABELS: Record<string, string> = { free: "Free", partner: "Partner", basico: "Básico" };
+
 function formatLastUpdated(date: Date): string {
   const formattedDate = date.toLocaleDateString("pt-BR");
   const formattedTime = date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -221,6 +225,17 @@ function DashboardContent({ venue }: { venue: VenueOwnerRow }) {
   const [statsState, setStatsState] = useState<StatsState>("loading");
   const [stats, setStats] = useState<VenueDashboardStats | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [planLimits, setPlanLimits] = useState<VenueEffectiveLimits | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    getVenueEffectiveLimits(venue.id).then((limits) => {
+      if (active) setPlanLimits(limits);
+    });
+    return () => {
+      active = false;
+    };
+  }, [venue.id]);
 
   const selectedPeriod =
     PERIOD_OPTIONS.find((option) => option.days === periodDays) ?? PERIOD_OPTIONS[1];
@@ -270,6 +285,29 @@ function DashboardContent({ venue }: { venue: VenueOwnerRow }) {
           Voltar ao painel
         </Link>
       </div>
+
+      {planLimits && (
+        <section className="mt-6 rounded-2xl border border-border bg-background-elevated p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">Seu plano</p>
+              <p className="mt-1 text-sm text-foreground">
+                {PLAN_LABELS[planLimits.planType] ?? planLimits.planType} — até{" "}
+                {planLimits.videoLimit} vídeo{planLimits.videoLimit === 1 ? "" : "s"} e{" "}
+                {planLimits.imageLimit} foto{planLimits.imageLimit === 1 ? "" : "s"} na galeria.
+              </p>
+              {planLimits.viewLimit !== null && (
+                <p className="mt-1 text-xs text-muted">
+                  {planLimits.viewCount}/{planLimits.viewLimit} visualizações — depois disso o
+                  estabelecimento continua publicado e pesquisável, mas para de aparecer nas
+                  recomendações.
+                </p>
+              )}
+            </div>
+            {planLimits.planType === "free" && <UpgradeToBasicoNotice />}
+          </div>
+        </section>
+      )}
 
       <div className="mt-8 flex flex-wrap gap-2">
         {PERIOD_OPTIONS.map((option) => (

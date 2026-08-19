@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { PasswordInput } from "@/components/shared/password-input";
+import { isValidUuid } from "@/lib/venues/claim-flow";
 import { NovoEstabelecimentoForm } from "./novo-estabelecimento-form";
 
 const focusRing =
@@ -46,6 +47,11 @@ function CadastroEmpresaContent() {
   // criado a página do estabelecimento (ver /para-empresas) — só muda para
   // onde o cadastro de conta redireciona depois de criado.
   const fluxo = searchParams.get("fluxo") === "existente" ? "existente" : "novo";
+  // Sobrevive ao cadastro para retomar o estabelecimento escolhido em
+  // /empresa/reivindicar — só um UUID sintaticamente válido é aceito,
+  // qualquer outra coisa na URL é tratada como ausente.
+  const venueParam = searchParams.get("venue");
+  const venueId = isValidUuid(venueParam) ? venueParam : null;
   const [sessionState, setSessionState] = useState<SessionState>("checking");
   const [user, setUser] = useState<User | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -77,7 +83,17 @@ function CadastroEmpresaContent() {
     };
   }, []);
 
-  if (sessionState === "checking") {
+  // Já autenticado e chegou aqui com um estabelecimento pré-selecionado
+  // (ex.: reabriu o link de /empresa/reivindicar) — a própria tela de
+  // reivindicar já sabe retomar o processo automaticamente para quem já
+  // tem sessão, sem duplicar essa lógica aqui.
+  useEffect(() => {
+    if (sessionState === "authenticated" && venueId) {
+      router.replace(`/empresa/reivindicar?venue=${venueId}`);
+    }
+  }, [sessionState, venueId, router]);
+
+  if (sessionState === "checking" || (sessionState === "authenticated" && venueId)) {
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center sm:px-6">
         <div
@@ -93,8 +109,12 @@ function CadastroEmpresaContent() {
       return (
         <NovoEstabelecimentoForm
           userEmail={user.email ?? ""}
-          onCreated={(venueId) => {
-            router.push(`/empresa/painel?criado=${venueId}`);
+          // O cadastro da conta já coletou "Telefone ou WhatsApp"
+          // (user_metadata.phone) — reaproveitado aqui pra nunca pedir o
+          // mesmo telefone duas vezes.
+          userPhone={typeof user.user_metadata?.phone === "string" ? user.user_metadata.phone : null}
+          onCreated={(newVenueId) => {
+            router.push(`/empresa/painel?criado=${newVenueId}`);
           }}
         />
       );
@@ -128,10 +148,16 @@ function CadastroEmpresaContent() {
     );
   }
 
-  return <CriarContaForm fluxo={fluxo} />;
+  return <CriarContaForm fluxo={fluxo} venueId={venueId} />;
 }
 
-function CriarContaForm({ fluxo }: { fluxo: "novo" | "existente" }) {
+function CriarContaForm({
+  fluxo,
+  venueId,
+}: {
+  fluxo: "novo" | "existente";
+  venueId: string | null;
+}) {
   const router = useRouter();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -185,18 +211,25 @@ function CriarContaForm({ fluxo }: { fluxo: "novo" | "existente" }) {
       return;
     }
 
-    // Confirmação de e-mail está desligada no projeto (mesmo comportamento
-    // já tratado em /cadastro/page.tsx) — signUp() já retorna uma sessão
-    // válida, que o SDK persiste sozinho. Nunca mostramos uma tela de
-    // "confirme seu e-mail" que não corresponde à configuração real: com
-    // sessão, segue direto para o painel da empresa; sem sessão (caso
-    // raro/defensivo), cai no login da empresa.
+    // O fluxo empresarial nunca mostra tela de "confirme seu e-mail" —
+    // nem inventamos confirmação por código/link/e-mail no frontend. Com
+    // "Confirm email" desligado no painel do Supabase (configuração
+    // manual, fora do código — ver relatório), signUp() já retorna uma
+    // sessão válida, que o SDK persiste sozinho, e seguimos direto pro
+    // painel/reivindicar. Enquanto essa opção não for desligada lá,
+    // data.session pode vir vazio (Supabase exige confirmação antes de
+    // liberar sessão) — nesse caso caímos no login normal, sem nenhuma
+    // tela nem texto especial de confirmação.
+    const reivindicarPath = venueId ? `/empresa/reivindicar?venue=${venueId}` : "/empresa/reivindicar";
+
     if (data.session) {
-      router.push(fluxo === "existente" ? "/empresa/reivindicar" : "/empresa/painel");
+      router.push(fluxo === "existente" ? reivindicarPath : "/empresa/painel");
       router.refresh();
     } else {
       router.push(
-        fluxo === "existente" ? "/empresa/entrar?next=/empresa/reivindicar" : "/empresa/entrar",
+        fluxo === "existente"
+          ? `/empresa/entrar?next=/empresa/reivindicar${venueId ? `&venue=${venueId}` : ""}`
+          : "/empresa/entrar",
       );
     }
   }
@@ -208,7 +241,7 @@ function CriarContaForm({ fluxo }: { fluxo: "novo" | "existente" }) {
       </h1>
       <p className="mt-2 text-sm text-muted">
         {fluxo === "existente"
-          ? "Depois de criar sua conta, você procura seu estabelecimento e solicita o gerenciamento."
+          ? "Depois de criar sua conta, você encontra seu estabelecimento, confirma os dados e já começa a completar o cadastro."
           : "Depois de criar sua conta, você cadastra os dados do seu estabelecimento."}
       </p>
 
@@ -311,7 +344,14 @@ function CriarContaForm({ fluxo }: { fluxo: "novo" | "existente" }) {
 
         <p className="text-center text-sm text-muted">
           Já tem uma conta?{" "}
-          <Link href="/empresa/entrar" className="text-accent hover:underline">
+          <Link
+            href={
+              fluxo === "existente"
+                ? `/empresa/entrar?next=/empresa/reivindicar${venueId ? `&venue=${venueId}` : ""}`
+                : "/empresa/entrar"
+            }
+            className="text-accent hover:underline"
+          >
             Entrar
           </Link>
         </p>

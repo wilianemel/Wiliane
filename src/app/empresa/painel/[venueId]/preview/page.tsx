@@ -1,12 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { VenueAccessGate } from "@/components/empresa/venue-access-gate";
 import type { VenueOwnerRow } from "@/lib/venues/venue-owner";
+import { listVenueMedia } from "@/lib/venues/venue-media";
+import { getVenueBusinessHours } from "@/lib/venues/venue-hours";
+import {
+  computePublishChecklist,
+  isHoursComplete,
+  missingChecklistLabels,
+} from "@/lib/venues/venue-publish-checklist";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -43,18 +50,86 @@ function PreviewContent({ venue }: { venue: VenueOwnerRow }) {
   const [publishing, setPublishing] = useState(false);
   const [published, setPublished] = useState(venue.is_published);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [checklistLoading, setChecklistLoading] = useState(true);
+  const [hasCoverPhoto, setHasCoverPhoto] = useState(false);
+  const [hasActiveVideo, setHasActiveVideo] = useState(false);
+  const [hoursOk, setHoursOk] = useState(false);
+
+  // Mesma checklist completa usada em complete_new_venue_onboarding() —
+  // CORREÇÃO: esta tela chamava publish_owned_venue direto, cuja validação
+  // antiga era mais fraca que a nova (permitia publicar sem horário/vídeo/
+  // WhatsApp). Agora mostra o que falta e só habilita o botão quando tudo
+  // estiver completo, além da RPC revalidar tudo de novo no banco.
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      const [images, videos, hours] = await Promise.all([
+        listVenueMedia(venue.id, "image"),
+        listVenueMedia(venue.id, "video"),
+        getVenueBusinessHours(venue.id),
+      ]);
+      if (!active) return;
+
+      setHasCoverPhoto(images.some((item) => item.isFeatured));
+      setHasActiveVideo(videos.length > 0);
+      setHoursOk(
+        isHoursComplete(
+          (hours ?? []).map((hour) => ({
+            isClosed: hour.is_closed,
+            opensAt: hour.opens_at,
+            closesAt: hour.closes_at,
+          })),
+        ),
+      );
+      setChecklistLoading(false);
+    }
+
+    load();
+    return () => {
+      active = false;
+    };
+  }, [venue.id]);
+
+  const checklist = computePublishChecklist({
+    name: venue.name,
+    category: venue.category,
+    description: venue.description,
+    city: venue.city,
+    neighborhood: venue.neighborhood,
+    address: venue.address,
+    priceRange: venue.price_range,
+    averagePricePerPerson: venue.average_price_per_person,
+    whatsappNumber: venue.whatsapp_number,
+    whatsapp: venue.whatsapp,
+    whatsappUrl: venue.whatsapp_url,
+    atmospheres: venue.atmospheres,
+    intentions: venue.intentions,
+    companions: venue.companions,
+    hoursOk,
+    hasCoverPhoto,
+    hasActiveVideo,
+  });
+  const missingLabels = missingChecklistLabels(checklist);
+  const canPublish = checklist.complete && !checklistLoading;
 
   async function handlePublish() {
+    if (!canPublish || publishing) return;
     setPublishing(true);
     setErrorMessage(null);
 
     const supabase = createClient();
-    const { error } = await supabase.rpc("publish_owned_venue", {
-      target_venue_id: venue.id,
+    const { error } = await supabase.rpc("complete_new_venue_onboarding", {
+      p_venue_id: venue.id,
     });
 
     if (error) {
-      setErrorMessage(error.message);
+      console.error("COMPLETE NEW VENUE ONBOARDING ERROR:", error);
+      setErrorMessage(
+        error.message.includes("incompleto") || error.message.includes("obrigat")
+          ? error.message
+          : "Não foi possível publicar agora. Tente novamente.",
+      );
       setPublishing(false);
       return;
     }
@@ -154,6 +229,9 @@ function PreviewContent({ venue }: { venue: VenueOwnerRow }) {
               Quando terminar de preencher os dados e as mídias, publique seu estabelecimento no
               Qual é a Boa.
             </p>
+            {!checklistLoading && !checklist.complete && (
+              <p className="mt-3 text-xs text-muted">Falta: {missingLabels.join(", ")}.</p>
+            )}
             {errorMessage && (
               <p className="mt-3 rounded-xl border border-red-400/40 bg-red-400/5 px-4 py-2 text-sm text-red-300">
                 {errorMessage}
@@ -162,10 +240,10 @@ function PreviewContent({ venue }: { venue: VenueOwnerRow }) {
             <button
               type="button"
               onClick={handlePublish}
-              disabled={publishing}
+              disabled={publishing || !canPublish}
               className={`mt-4 inline-flex items-center justify-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 ${focusRing}`}
             >
-              {publishing ? "Publicando estabelecimento..." : "Publicar estabelecimento"}
+              {publishing ? "Publicando estabelecimento..." : "Concluir cadastro e publicar"}
             </button>
           </>
         )}

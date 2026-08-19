@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { getRecommendations } from "@/lib/match-engine";
-import type { DiscoveryAnswers, MatchResult } from "@/types/discovery";
-import { ProgressBar } from "@/components/discovery/progress-bar";
-import { QuestionCard } from "@/components/discovery/question-card";
+import type { DiscoveryAnswers, MatchResult, StepOption } from "@/types/discovery";
 import { Results } from "@/components/discovery/results";
 import { VenueProfile } from "@/components/venues/venue-profile";
 import {
@@ -22,17 +20,66 @@ import type { UserPreferencesRow } from "@/lib/user-intelligence/preference-scor
 import { saveRecommendationHistory } from "@/lib/recommendations/save-recommendation-history";
 import { VenueViewTracker } from "@/components/analytics/venue-view-tracker";
 import type { VenueHoursStatus } from "@/lib/venues/venue-hours";
+import { HomeQuestionCard } from "@/components/home-discovery/home-question-card";
+import { HomeProgressSteps } from "@/components/home-discovery/home-progress-steps";
+import {
+  HOME_STEP_THEMES,
+  INTENTION_ICONS,
+  COMPANION_ICONS,
+  ATMOSPHERE_ICONS,
+} from "@/components/home-discovery/home-step-theme";
 
 /**
  * Fluxo de decisão principal da Home — reaproveita as mesmas peças do
- * DiscoveryFlow (QuestionCard, ProgressBar, Results, VenueProfile,
- * match-engine.ts), só que com 5 etapas em vez de 5+música+momento+cidade.
- * `discovery-flow.tsx` não é alterado nem usado aqui.
+ * DiscoveryFlow (Results, VenueProfile, match-engine.ts), só que com 5
+ * etapas em vez de 5+música+momento+cidade. `discovery-flow.tsx` não é
+ * alterado nem usado aqui.
+ *
+ * A parte visual das perguntas (cabeçalho temático, cartões de opção,
+ * progresso) usa HomeQuestionCard/HomeProgressSteps — variantes só desta
+ * tela, para não mudar QuestionCard/ProgressBar usados por
+ * DiscoveryFlow/HomeDiscoveryFlow (hoje sem nenhuma rota renderizando
+ * nenhum dos dois, mas continuam existindo).
  */
 
 const TOTAL_STEPS = 5;
-const STEP_LABELS = ["Momento", "Companhia", "Ambiente", "Orçamento", "Distância"];
 const LOADING_DURATION_MS = 700;
+
+/** Barras crescentes — mesma ideia de "$/$$/$$$" já usada no filtro de Buscar, só que com 4 níveis e sem repetir o glifo "R$" quatro vezes. */
+function BudgetBadge({ tier, color }: { tier: number; color: string }) {
+  return (
+    <span aria-hidden="true" className="flex items-end gap-0.5">
+      {[1, 2, 3, 4].map((bar) => (
+        <span
+          key={bar}
+          className="w-1.5 rounded-sm transition-colors duration-200"
+          style={{
+            height: `${6 + bar * 3}px`,
+            backgroundColor: bar <= tier ? color : "var(--border)",
+          }}
+        />
+      ))}
+    </span>
+  );
+}
+
+/** Marcador de localização + trilha de pontos crescente — "quanto mais longe, mais pontos no trajeto". */
+function DistanceBadge({ tier, color }: { tier: number; color: string }) {
+  return (
+    <span aria-hidden="true" className="flex items-center gap-1">
+      <span className="text-xl leading-none">📍</span>
+      <span className="flex items-center gap-0.5">
+        {[1, 2, 3, 4].map((dot) => (
+          <span
+            key={dot}
+            className="h-1.5 w-1.5 rounded-full transition-colors duration-200"
+            style={{ backgroundColor: dot <= tier ? color : "var(--border)" }}
+          />
+        ))}
+      </span>
+    </span>
+  );
+}
 
 // music/moment ficam nos valores neutros (sem-preferencia / null) e nunca
 // são alterados neste fluxo — buildReasons() já não gera motivo pra eles
@@ -98,6 +145,10 @@ export function HomeMatchFlow({
   hoursStatusByVenueId?: Record<string, VenueHoursStatus>;
 }) {
   const [stepIndex, setStepIndex] = useState(0);
+  // Só decide se a animação de transição da próxima etapa entra pela
+  // direita (Continuar) ou pela esquerda (Voltar) — puramente visual, não
+  // participa de isStepValid, goBack, goNext nem de nenhuma regra deles.
+  const [direction, setDirection] = useState<1 | -1>(1);
   const [answers, setAnswers] = useState<DiscoveryAnswers>(INITIAL_ANSWERS);
   const [phase, setPhase] = useState<Phase>("questions");
   const [results, setResults] = useState<MatchResult[]>([]);
@@ -207,6 +258,7 @@ export function HomeMatchFlow({
   }, [stepIndex, answers]);
 
   function goBack() {
+    setDirection(-1);
     setStepIndex((current) => Math.max(0, current - 1));
   }
 
@@ -216,12 +268,14 @@ export function HomeMatchFlow({
       setPhase("loading");
       return;
     }
+    setDirection(1);
     setStepIndex((current) => Math.min(TOTAL_STEPS - 1, current + 1));
   }
 
   function restart() {
     setAnswers(INITIAL_ANSWERS);
     setStepIndex(0);
+    setDirection(1);
     setResults([]);
     setSelectedResult(null);
     setPhase("questions");
@@ -273,6 +327,100 @@ export function HomeMatchFlow({
   const selectedDistanceId =
     DISTANCE_OPTIONS.find((option) => option.maxKm === answers.distanceMax)?.id ?? null;
 
+  const theme = HOME_STEP_THEMES[stepIndex];
+  const fadeDirectionClass =
+    direction === 1 ? "animate-step-fade-forward" : "animate-step-fade-backward";
+
+  let stepContent: ReactNode = null;
+  if (stepIndex === 0) {
+    stepContent = (
+      <HomeQuestionCard
+        name="intention"
+        theme={theme}
+        question="O que seu momento está pedindo?"
+        options={INTENTION_OPTIONS}
+        icons={INTENTION_ICONS}
+        value={answers.intention}
+        onChange={(id) =>
+          setAnswers((current) => ({
+            ...current,
+            intention: id as DiscoveryAnswers["intention"],
+          }))
+        }
+      />
+    );
+  } else if (stepIndex === 1) {
+    stepContent = (
+      <HomeQuestionCard
+        name="companion"
+        theme={theme}
+        question="Com quem você vai?"
+        options={COMPANION_OPTIONS}
+        icons={COMPANION_ICONS}
+        value={answers.companion}
+        onChange={(id) =>
+          setAnswers((current) => ({
+            ...current,
+            companion: id as DiscoveryAnswers["companion"],
+          }))
+        }
+      />
+    );
+  } else if (stepIndex === 2) {
+    stepContent = (
+      <HomeQuestionCard
+        name="atmosphere"
+        theme={theme}
+        question="Que tipo de ambiente combina com você agora?"
+        options={ATMOSPHERE_OPTIONS}
+        icons={ATMOSPHERE_ICONS}
+        value={answers.atmosphere}
+        onChange={(id) =>
+          setAnswers((current) => ({
+            ...current,
+            atmosphere: id as DiscoveryAnswers["atmosphere"],
+          }))
+        }
+      />
+    );
+  } else if (stepIndex === 3) {
+    stepContent = (
+      <HomeQuestionCard
+        name="budget"
+        theme={theme}
+        question="Quanto pretende gastar por pessoa?"
+        options={BUDGET_OPTIONS}
+        value={selectedBudgetId}
+        renderBadge={(option: StepOption, index: number) => (
+          <BudgetBadge tier={index + 1} color={theme.glow} />
+        )}
+        onChange={(id) => {
+          const option = BUDGET_OPTIONS.find((item) => item.id === id);
+          if (!option) return;
+          setAnswers((current) => ({ ...current, budgetMax: option.maxPerPerson }));
+        }}
+      />
+    );
+  } else if (stepIndex === 4) {
+    stepContent = (
+      <HomeQuestionCard
+        name="distance"
+        theme={theme}
+        question="Até que distância você toparia ir?"
+        options={DISTANCE_OPTIONS}
+        value={selectedDistanceId}
+        renderBadge={(option: StepOption, index: number) => (
+          <DistanceBadge tier={index + 1} color={theme.glow} />
+        )}
+        onChange={(id) => {
+          const option = DISTANCE_OPTIONS.find((item) => item.id === id);
+          if (!option) return;
+          setAnswers((current) => ({ ...current, distanceMax: option.maxKm }));
+        }}
+      />
+    );
+  }
+
   return (
     <section className="relative overflow-hidden border-b border-border/60">
       <div
@@ -291,100 +439,34 @@ export function HomeMatchFlow({
           Escolha o que combina com seu momento. A gente cuida do resto.
         </p>
 
-        {/* Cartão visual do questionário — fundo elevado, borda suave,
-            cantos grandes e um brilho dourado discreto próprio (separado do
-            glow maior da seção acima), sem virar uma caixa pesada: borda e
-            fundo semi-transparentes, sombra leve. */}
-        <div className="relative mt-6 overflow-hidden rounded-[28px] border border-border/60 bg-background-elevated/70 p-5 shadow-lg shadow-black/20 sm:mt-8 sm:p-8">
+        {/* Cartão visual do questionário — largura própria (mais estreita
+            que o texto de abertura acima) para não ficar esticado demais no
+            desktop. Fundo escuro com dois brilhos desfocados que trocam de
+            cor conforme a etapa (background-color e box-shadow são
+            propriedades nativamente animáveis por CSS — a transição
+            acontece sozinha, sem depender de nenhuma lib). */}
+        <div className="relative mx-auto mt-6 max-w-2xl overflow-hidden rounded-[28px] border border-border/60 bg-background-elevated/80 p-5 shadow-xl shadow-black/30 transition-shadow duration-500 sm:mt-8 sm:p-8">
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -top-16 left-1/2 h-40 w-64 -translate-x-1/2 rounded-full bg-accent/10 blur-[80px]"
+            className="pointer-events-none absolute -top-24 -left-10 h-56 w-56 rounded-full blur-[90px] transition-colors duration-500"
+            style={{ backgroundColor: theme.glowSoft }}
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -bottom-24 -right-10 h-56 w-56 rounded-full blur-[90px] transition-colors duration-500"
+            style={{ backgroundColor: theme.glowSoft }}
           />
 
           <div className="relative">
-            <ProgressBar
-              currentStep={stepIndex + 1}
-              totalSteps={TOTAL_STEPS}
-              stepLabel={STEP_LABELS[stepIndex]}
-            />
+            <HomeProgressSteps currentStep={stepIndex + 1} themes={HOME_STEP_THEMES} />
 
             {/* `key={stepIndex}` força o React a remontar este bloco a cada
-                troca de etapa, o que reinicia a animação CSS abaixo
-                (fade + pequeno deslocamento) — sem biblioteca de animação,
-                sem alterar a lógica de navegação. */}
-            <div key={stepIndex} className="animate-step-fade mt-6 sm:mt-8">
-              {stepIndex === 0 && (
-                <QuestionCard
-                  name="intention"
-                  question="O que seu momento está pedindo?"
-                  options={INTENTION_OPTIONS}
-                  value={answers.intention}
-                  onChange={(id) =>
-                    setAnswers((current) => ({
-                      ...current,
-                      intention: id as DiscoveryAnswers["intention"],
-                    }))
-                  }
-                />
-              )}
-
-              {stepIndex === 1 && (
-                <QuestionCard
-                  name="companion"
-                  question="Com quem você vai?"
-                  options={COMPANION_OPTIONS}
-                  value={answers.companion}
-                  onChange={(id) =>
-                    setAnswers((current) => ({
-                      ...current,
-                      companion: id as DiscoveryAnswers["companion"],
-                    }))
-                  }
-                />
-              )}
-
-              {stepIndex === 2 && (
-                <QuestionCard
-                  name="atmosphere"
-                  question="Que tipo de ambiente combina com você agora?"
-                  options={ATMOSPHERE_OPTIONS}
-                  value={answers.atmosphere}
-                  onChange={(id) =>
-                    setAnswers((current) => ({
-                      ...current,
-                      atmosphere: id as DiscoveryAnswers["atmosphere"],
-                    }))
-                  }
-                />
-              )}
-
-              {stepIndex === 3 && (
-                <QuestionCard
-                  name="budget"
-                  question="Quanto pretende gastar por pessoa?"
-                  options={BUDGET_OPTIONS}
-                  value={selectedBudgetId}
-                  onChange={(id) => {
-                    const option = BUDGET_OPTIONS.find((item) => item.id === id);
-                    if (!option) return;
-                    setAnswers((current) => ({ ...current, budgetMax: option.maxPerPerson }));
-                  }}
-                />
-              )}
-
-              {stepIndex === 4 && (
-                <QuestionCard
-                  name="distance"
-                  question="Até que distância você toparia ir?"
-                  options={DISTANCE_OPTIONS}
-                  value={selectedDistanceId}
-                  onChange={(id) => {
-                    const option = DISTANCE_OPTIONS.find((item) => item.id === id);
-                    if (!option) return;
-                    setAnswers((current) => ({ ...current, distanceMax: option.maxKm }));
-                  }}
-                />
-              )}
+                troca de etapa, o que reinicia a animação CSS abaixo (fade +
+                deslocamento lateral/vertical, direção conforme Continuar ou
+                Voltar) — sem biblioteca de animação, sem alterar a lógica
+                de navegação. Respeita prefers-reduced-motion (globals.css). */}
+            <div key={stepIndex} className={`${fadeDirectionClass} mt-6 sm:mt-8`}>
+              {stepContent}
             </div>
 
             {/* Sem espaçador invisível na 1ª etapa: sem Voltar, o botão
@@ -398,7 +480,7 @@ export function HomeMatchFlow({
                 <button
                   type="button"
                   onClick={goBack}
-                  className={`inline-flex shrink-0 items-center gap-2 rounded-full border border-border px-5 py-3 text-sm font-medium text-muted transition-colors hover:border-accent/60 hover:text-accent ${focusRing}`}
+                  className={`inline-flex shrink-0 items-center gap-2 rounded-full border border-border px-5 py-3 text-sm font-medium text-muted transition-colors hover:border-accent/60 hover:text-accent active:scale-[0.97] ${focusRing}`}
                 >
                   <ArrowIcon direction="left" />
                   Voltar
@@ -409,10 +491,12 @@ export function HomeMatchFlow({
                 type="button"
                 onClick={goNext}
                 disabled={!isStepValid}
-                className={`inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-accent px-6 py-3.5 text-sm font-semibold text-accent-foreground transition-all hover:scale-[1.02] hover:shadow-[0_0_28px_-8px_rgba(255,194,30,0.55)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-none sm:ml-auto sm:flex-none ${focusRing}`}
+                className={`group inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-accent to-[#ffb020] px-6 py-4 text-sm font-bold text-accent-foreground transition-all hover:scale-[1.02] hover:shadow-[0_0_32px_-6px_rgba(255,194,30,0.65)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-none active:scale-[0.98] sm:ml-auto sm:flex-none ${focusRing}`}
               >
                 {stepIndex === TOTAL_STEPS - 1 ? "Ver minhas recomendações" : "Continuar"}
-                <ArrowIcon direction="right" />
+                <span className="transition-transform duration-200 group-hover:translate-x-1">
+                  <ArrowIcon direction="right" />
+                </span>
               </button>
             </div>
           </div>

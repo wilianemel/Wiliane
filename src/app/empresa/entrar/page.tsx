@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { PasswordInput } from "@/components/shared/password-input";
+import { isValidUuid } from "@/lib/venues/claim-flow";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -43,6 +44,12 @@ function EntrarEmpresaContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = resolveNextPath(searchParams.get("next"));
+  // Sobrevive ao login para retomar o estabelecimento escolhido em
+  // /empresa/reivindicar — só um UUID sintaticamente válido é aceito.
+  const venueParam = searchParams.get("venue");
+  const venueId = isValidUuid(venueParam) ? venueParam : null;
+  const finalNextPath =
+    nextPath === "/empresa/reivindicar" && venueId ? `${nextPath}?venue=${venueId}` : nextPath;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -62,18 +69,19 @@ function EntrarEmpresaContent() {
     });
 
     if (error) {
+      // CORREÇÃO: o fluxo empresarial não tem confirmação de e-mail —
+      // nunca mostra uma mensagem sugerindo isso. Qualquer erro que não
+      // seja credencial inválida cai na mensagem genérica.
       setErrorMessage(
         error.message.toLowerCase().includes("invalid")
           ? "E-mail ou senha incorretos."
-          : error.message.toLowerCase().includes("confirm")
-            ? "Confirme seu e-mail antes de entrar — verifique sua caixa de entrada."
-            : "Não foi possível entrar agora. Tente novamente em instantes.",
+          : "Não foi possível entrar agora. Tente novamente em instantes.",
       );
       setLoading(false);
       return;
     }
 
-    router.push(nextPath);
+    router.push(finalNextPath);
     router.refresh();
   }
 
@@ -145,7 +153,7 @@ function EntrarEmpresaContent() {
           <Link
             href={
               nextPath === "/empresa/reivindicar"
-                ? "/empresa/cadastro?fluxo=existente"
+                ? `/empresa/cadastro?fluxo=existente${venueId ? `&venue=${venueId}` : ""}`
                 : "/empresa/cadastro?fluxo=novo"
             }
             className="text-accent hover:underline"

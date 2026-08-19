@@ -10,17 +10,20 @@ interface AdminSection {
   href: string;
 }
 
+// CORREÇÃO (decisão final do fluxo empresarial): sem aprovação manual —
+// "Solicitações" foi removida daqui. Estabelecimento existente e novo
+// publicam automaticamente pelo próprio painel do empresário (ver
+// complete_existing_venue_onboarding()/complete_new_venue_onboarding()).
 const ADMIN_SECTIONS: AdminSection[] = [
   {
     title: "Estabelecimentos",
-    description:
-      "Gerenciar estabelecimentos, vincular proprietários e controlar selo de verificação.",
+    description: "Gerenciar estabelecimentos, remover proprietário e controlar selo de verificação.",
     href: "/admin/estabelecimentos",
   },
   {
-    title: "Solicitações",
-    description: "Analisar solicitações de gerenciamento de estabelecimentos.",
-    href: "/admin/solicitacoes",
+    title: "Planos comerciais",
+    description: "Ver planos cadastrados (limites, preço) e o plano atual de cada estabelecimento.",
+    href: "/admin/planos",
   },
 ];
 
