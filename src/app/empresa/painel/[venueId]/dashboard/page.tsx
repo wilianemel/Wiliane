@@ -8,7 +8,8 @@ import { MostardaCard } from "@/components/empresa/mostarda-card";
 import type { VenueOwnerRow } from "@/lib/venues/venue-owner";
 import { getVenueDashboardStats, type VenueDashboardStats } from "@/lib/venues/venue-dashboard";
 import { getVenueEffectiveLimits, type VenueEffectiveLimits } from "@/lib/venues/venue-media";
-import { UpgradeToBasicoNotice } from "@/components/empresa/upgrade-to-basico-cta";
+import { UpgradeToBasicoCta } from "@/components/empresa/upgrade-to-basico-cta";
+import { VenueDiagnostic } from "@/components/empresa/venue-diagnostic";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -186,12 +187,94 @@ function SparkleIcon() {
   );
 }
 
-const PLAN_LABELS: Record<string, string> = { free: "Free", partner: "Partner", basico: "Básico" };
+const PLAN_LABELS: Record<string, string> = {
+  free: "Free",
+  partner: "Partner",
+  basico: "Plano Essencial",
+  master: "Plano Master",
+};
 
 function formatLastUpdated(date: Date): string {
   const formattedDate = date.toLocaleDateString("pt-BR");
   const formattedTime = date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   return `Dados atualizados em ${formattedDate} às ${formattedTime}`;
+}
+
+const WHATSAPP_URL = "https://wa.me/5512981865109";
+
+interface UpsellPlan {
+  title: string;
+  price: string;
+  features: string[];
+  ctaLabel: string;
+}
+
+const UPSELL_PLANS: UpsellPlan[] = [
+  {
+    title: "Plano Essencial",
+    price: "R$ 97,00/mês",
+    features: ["3 vídeos", "3 fotos", "Recomendações sem limite de visualizações"],
+    ctaLabel: "Contratar o plano Essencial por R$ 97/mês",
+  },
+  {
+    title: "Plano Master",
+    price: "R$ 187,00/mês",
+    features: [
+      "5 vídeos",
+      "5 fotos",
+      "Dashboard completo",
+      "Diagnóstico do estabelecimento",
+      "Relatórios a cada 30 dias",
+    ],
+    ctaLabel: "Contratar o plano Master por R$ 187/mês",
+  },
+];
+
+/**
+ * Upsell mostrado só para quem está no Free — contratação continua sendo
+ * sempre humana (WhatsApp), nunca automática: nenhum botão aqui chama RPC
+ * nenhuma, só abre o link. Copy fixa (sem IA), pedida explicitamente.
+ */
+function PlanUpsellSection() {
+  return (
+    <section className="mt-8 rounded-2xl border border-accent/30 bg-accent/5 p-6">
+      <p className="text-sm text-foreground">
+        Seu estabelecimento já está sendo encontrado. Agora escolha como quer crescer: apareça
+        mais, entenda seu público e transforme visitas em novos clientes.
+      </p>
+
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {UPSELL_PLANS.map((plan) => (
+          <div key={plan.title} className="rounded-2xl border border-border bg-background-elevated p-4">
+            <p className="text-sm font-semibold text-foreground">{plan.title}</p>
+            <p className="mt-0.5 text-xs font-semibold text-accent">{plan.price}</p>
+            <ul className="mt-3 flex flex-col gap-1.5">
+              {plan.features.map((feature) => (
+                <li key={feature} className="text-xs text-muted">
+                  {feature}
+                </li>
+              ))}
+            </ul>
+            <UpgradeToBasicoCta className="mt-3" label={plan.ctaLabel} />
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-4 text-xs text-muted">
+        Planos pagos ajudam seu negócio a ganhar mais visibilidade, apresentar melhor sua
+        experiência e acompanhar o que realmente funciona.
+      </p>
+
+      <a
+        href={WHATSAPP_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`mt-4 inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] ${focusRing}`}
+      >
+        Quero melhorar os resultados do meu estabelecimento
+      </a>
+    </section>
+  );
 }
 
 function ArrowDownIcon() {
@@ -288,26 +371,26 @@ function DashboardContent({ venue }: { venue: VenueOwnerRow }) {
 
       {planLimits && (
         <section className="mt-6 rounded-2xl border border-border bg-background-elevated p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted">Seu plano</p>
-              <p className="mt-1 text-sm text-foreground">
-                {PLAN_LABELS[planLimits.planType] ?? planLimits.planType} — até{" "}
-                {planLimits.videoLimit} vídeo{planLimits.videoLimit === 1 ? "" : "s"} e{" "}
-                {planLimits.imageLimit} foto{planLimits.imageLimit === 1 ? "" : "s"} na galeria.
-              </p>
-              {planLimits.viewLimit !== null && (
-                <p className="mt-1 text-xs text-muted">
-                  {planLimits.viewCount}/{planLimits.viewLimit} visualizações — depois disso o
-                  estabelecimento continua publicado e pesquisável, mas para de aparecer nas
-                  recomendações.
-                </p>
-              )}
-            </div>
-            {planLimits.planType === "free" && <UpgradeToBasicoNotice />}
-          </div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Seu plano</p>
+          <p className="mt-1 text-sm text-foreground">
+            {PLAN_LABELS[planLimits.planType] ?? planLimits.planType} — até{" "}
+            {planLimits.videoLimit} vídeo{planLimits.videoLimit === 1 ? "" : "s"} e{" "}
+            {planLimits.imageLimit} foto{planLimits.imageLimit === 1 ? "" : "s"} na galeria.
+          </p>
+          {planLimits.viewLimit !== null ? (
+            <p className="mt-1 text-xs text-muted">
+              {planLimits.viewCount}/{planLimits.viewLimit} visualizações — depois disso o
+              estabelecimento continua publicado e pesquisável, mas para de aparecer nas
+              recomendações.
+            </p>
+          ) : (
+            <p className="mt-1 text-xs text-muted">Recomendações sem limite de visualizações.</p>
+          )}
         </section>
       )}
+
+      {planLimits?.planType === "free" && <PlanUpsellSection />}
+      {planLimits?.planType === "master" && <VenueDiagnostic venueId={venue.id} />}
 
       <div className="mt-8 flex flex-wrap gap-2">
         {PERIOD_OPTIONS.map((option) => (

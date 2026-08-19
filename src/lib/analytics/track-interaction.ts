@@ -17,7 +17,8 @@ export type TrackedInteractionType =
   | "search"
   | "whatsapp_click"
   | "route_click"
-  | "reservation_click";
+  | "reservation_click"
+  | "website_click";
 
 export interface TrackInteractionParams {
   /** Ausente/`undefined` para visitante anônimo — a função usa anonymous_id nesse caso. */

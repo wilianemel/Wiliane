@@ -59,3 +59,71 @@ export async function getVenueDashboardStats(
     return null;
   }
 }
+
+export interface VenueDiagnosticStats {
+  views: number;
+  uniqueVisitors: number;
+  favorites: number;
+  whatsappClicks: number;
+  websiteClicks: number;
+  reservationClicks: number;
+  routeClicks: number;
+  recommendationCount: number;
+  likes: number;
+  dislikes: number;
+}
+
+interface VenueDiagnosticStatsRow {
+  views: number | null;
+  unique_visitors: number | null;
+  favorites: number | null;
+  whatsapp_clicks: number | null;
+  website_clicks: number | null;
+  reservation_clicks: number | null;
+  route_clicks: number | null;
+  recommendation_count: number | null;
+  likes: number | null;
+  dislikes: number | null;
+}
+
+/**
+ * Superset de métricas para o "Diagnóstico do estabelecimento" (plano
+ * Master), via get_venue_diagnostic_stats (venue_master_plan_and_diagnostics)
+ * — função separada de get_venue_dashboard_stats, mesma autorização, mais
+ * colunas. `null` em qualquer falha, mesmo padrão de getVenueDashboardStats.
+ */
+export async function getVenueDiagnosticStats(
+  venueId: string,
+  since: Date,
+): Promise<VenueDiagnosticStats | null> {
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .rpc("get_venue_diagnostic_stats", {
+        p_venue_id: venueId,
+        p_since: since.toISOString(),
+      })
+      .single<VenueDiagnosticStatsRow>();
+
+    if (error || !data) {
+      console.error("VENUE DIAGNOSTIC STATS ERROR:", error);
+      return null;
+    }
+
+    return {
+      views: Number(data.views ?? 0),
+      uniqueVisitors: Number(data.unique_visitors ?? 0),
+      favorites: Number(data.favorites ?? 0),
+      whatsappClicks: Number(data.whatsapp_clicks ?? 0),
+      websiteClicks: Number(data.website_clicks ?? 0),
+      reservationClicks: Number(data.reservation_clicks ?? 0),
+      routeClicks: Number(data.route_clicks ?? 0),
+      recommendationCount: Number(data.recommendation_count ?? 0),
+      likes: Number(data.likes ?? 0),
+      dislikes: Number(data.dislikes ?? 0),
+    };
+  } catch (error) {
+    console.error("VENUE DIAGNOSTIC STATS ERROR:", error);
+    return null;
+  }
+}

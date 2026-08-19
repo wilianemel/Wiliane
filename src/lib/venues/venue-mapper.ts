@@ -92,5 +92,6 @@ export function mapVenueRow(row: VenueRow): Venue {
     logoUrl: row.logo_url ?? undefined,
     reservationUrl: row.reservation_url ?? undefined,
     menuUrl: row.menu_url ?? undefined,
+    websiteUrl: row.website ?? undefined,
   };
 }

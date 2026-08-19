@@ -100,6 +100,8 @@ export interface Venue {
   reservationUrl?: string;
   /** URL pública do cardápio (ex.: PDF ou cardápio digital), quando cadastrada. Já existe como coluna/campo editável no painel da empresa; só não era exibida no perfil público até agora. */
   menuUrl?: string;
+  /** Site oficial do estabelecimento, quando cadastrado. Já existe como coluna/campo editável no painel; exibido no perfil público para gerar o clique rastreado como website_click. */
+  websiteUrl?: string;
   /** URLs públicas de imagens da galeria no Supabase Storage, listadas por prefixo (sem coluna própria no banco). Ausente ou vazio quando não há nenhuma. */
   galleryUrls?: string[];
 }

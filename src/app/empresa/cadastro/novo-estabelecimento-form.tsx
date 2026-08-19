@@ -13,7 +13,18 @@ const focusRing =
 const inputClasses = `w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted focus:outline-none ${focusRing}`;
 
 type Status = "idle" | "loading" | "error";
-type PlanChoice = "free" | "basico";
+type PlanChoice = "free" | "basico" | "master";
+
+const PLAN_WHATSAPP_COPY: Record<Exclude<PlanChoice, "free">, { label: string; supportText: string }> = {
+  basico: {
+    label: "Contratar o plano Essencial por R$ 97/mês",
+    supportText: "Fale com o Qual é a Boa pelo WhatsApp para concluir o pagamento e ativar seu plano.",
+  },
+  master: {
+    label: "Contratar o plano Master por R$ 187/mês",
+    supportText: "Fale com o Qual é a Boa pelo WhatsApp para concluir o pagamento e ativar seu plano.",
+  },
+};
 
 interface CreateOwnedVenueResult {
   venue_id: string | null;
@@ -61,10 +72,11 @@ export function NovoEstabelecimentoForm({ userEmail, userPhone, onCreated }: Nov
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [duplicate, setDuplicate] = useState<{ id: string; name: string; isExact: boolean } | null>(null);
   const [continuingClaim, setContinuingClaim] = useState(false);
-  // Free por padrão — o usuário pode trocar para Básico antes de finalizar.
-  // A escolha só é gravada (request_venue_plan) depois que o estabelecimento
-  // é criado com sucesso; nunca ativa o Básico sozinha (sem gateway de
-  // pagamento configurado ainda) — só registra "aguardando ativação".
+  // Free por padrão — o usuário pode trocar para Essencial ou Master antes
+  // de finalizar. A escolha só é gravada (request_venue_plan) depois que o
+  // estabelecimento é criado com sucesso; nunca ativa o plano pago sozinha
+  // (sem gateway de pagamento configurado ainda) — só registra "aguardando
+  // ativação" (pending_payment).
   const [selectedPlan, setSelectedPlan] = useState<PlanChoice>("free");
 
   const canSubmit =
@@ -125,13 +137,13 @@ export function NovoEstabelecimentoForm({ userEmail, userPhone, onCreated }: Nov
     // Grava a escolha do plano SÓ depois do estabelecimento criado com
     // sucesso — nunca antes. Para "free" não há nada a fazer aqui: o plano
     // ativo free já é garantido por _ensure_venue_plan dentro de
-    // create_owned_venue. Para "básico", só registra a intenção
+    // create_owned_venue. Para um plano pago, só registra a intenção
     // (pending_payment, idempotente); nunca ativa o limite sozinha. Falha
     // aqui não deve travar o resto do cadastro, já concluído com sucesso.
-    if (selectedPlan === "basico") {
+    if (selectedPlan !== "free") {
       const { error: planError } = await supabase.rpc("request_venue_plan", {
         p_venue_id: result.venue_id,
-        p_plan_type: "basico",
+        p_plan_type: selectedPlan,
       });
       if (planError) {
         console.error("REQUEST VENUE PLAN ERROR:", planError);
@@ -354,10 +366,10 @@ export function NovoEstabelecimentoForm({ userEmail, userPhone, onCreated }: Nov
             </h2>
             <p className="mt-1 text-xs text-muted">
               Dá para trocar depois — o cadastro sempre começa no plano Free enquanto o
-              pagamento do Básico não é confirmado.
+              pagamento de um plano pago não é confirmado.
             </p>
 
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
               <PlanCard
                 title="Free"
                 price="Grátis"
@@ -366,25 +378,37 @@ export function NovoEstabelecimentoForm({ userEmail, userPhone, onCreated }: Nov
                 features={[
                   "1 vídeo",
                   "1 foto",
-                  "Perfil gratuito",
-                  "Até 300 visualizações nas recomendações",
-                  "Depois de 300 visualizações, continua aparecendo na Busca e no Explorar, mas deixa de ser recomendado até contratar o Básico",
+                  "300 visualizações nas recomendações",
+                  "Depois disso, continua na Busca e no Explorar, mas não aparece mais nas recomendações",
                 ]}
               />
               <PlanCard
-                title="Básico"
+                title="Plano Essencial"
                 price="R$ 97,00/mês"
                 selected={selectedPlan === "basico"}
                 onSelect={() => setSelectedPlan("basico")}
-                features={["3 vídeos", "3 fotos", "Continua aparecendo nas recomendações"]}
+                features={["3 vídeos", "3 fotos", "Recomendações sem limite de visualizações"]}
+              />
+              <PlanCard
+                title="Plano Master"
+                price="R$ 187,00/mês"
+                selected={selectedPlan === "master"}
+                onSelect={() => setSelectedPlan("master")}
+                features={[
+                  "5 vídeos",
+                  "5 fotos",
+                  "Dashboard completo",
+                  "Diagnóstico do estabelecimento",
+                  "Relatórios a cada 30 dias",
+                ]}
               />
             </div>
 
-            {selectedPlan === "basico" && (
+            {selectedPlan !== "free" && (
               <UpgradeToBasicoNotice
                 className="mt-3"
-                label="Contratar o plano Básico por R$ 97/mês"
-                supportText="Fale com o Qual é a Boa pelo WhatsApp para concluir o pagamento e ativar seu plano."
+                label={PLAN_WHATSAPP_COPY[selectedPlan].label}
+                supportText={PLAN_WHATSAPP_COPY[selectedPlan].supportText}
               />
             )}
           </div>

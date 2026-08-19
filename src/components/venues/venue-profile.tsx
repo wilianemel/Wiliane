@@ -172,6 +172,22 @@ function MenuIcon() {
   );
 }
 
+function GlobeIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      className="h-4 w-4"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path strokeLinecap="round" d="M3 12h18M12 3c2.5 2.5 3.75 5.5 3.75 9S14.5 18.5 12 21c-2.5-2.5-3.75-5.5-3.75-9S9.5 5.5 12 3Z" />
+    </svg>
+  );
+}
+
 function SparkleIcon() {
   return (
     <svg
@@ -281,7 +297,7 @@ export function VenueProfile({
   // se isso falhar ou demorar) e nunca lança. Conta tanto usuário logado
   // quanto visitante anônimo — trackInteraction decide sozinho qual
   // identificador usar a partir de userId estar presente ou não.
-  function trackBusinessClick(type: "whatsapp_click" | "route_click" | "reservation_click") {
+  function trackBusinessClick(type: "whatsapp_click" | "route_click" | "reservation_click" | "website_click") {
     if (!venue.venueId) return;
     void trackInteraction({ userId: user?.id, venueId: venue.venueId, type });
   }
@@ -570,6 +586,18 @@ export function VenueProfile({
           >
             <MenuIcon />
             Ver cardápio
+          </a>
+        )}
+        {venue.websiteUrl && (
+          <a
+            href={venue.websiteUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => trackBusinessClick("website_click")}
+            className={`inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-accent bg-accent/10 px-5 py-3.5 text-sm font-semibold text-accent transition-all hover:bg-accent hover:text-accent-foreground hover:shadow-[0_0_28px_-8px_rgba(255,194,30,0.55)] sm:min-w-[45%] ${focusRing}`}
+          >
+            <GlobeIcon />
+            Visitar site
           </a>
         )}
         <a

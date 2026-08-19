@@ -23,6 +23,7 @@ export interface VenueRow {
   whatsapp_number: string | null;
   instagram_url: string | null;
   menu_url: string | null;
+  website: string | null;
   cover_image_url: string | null;
   logo_url: string | null;
   video_url: string | null;

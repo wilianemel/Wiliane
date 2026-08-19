@@ -4,16 +4,18 @@ const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 /**
- * Contratação do plano Básico é sempre humana (conversa por WhatsApp, nunca
+ * Contratação de qualquer plano pago (Essencial, plan_type='basico'
+ * internamente, ou Master) é sempre humana (conversa por WhatsApp, nunca
  * checkout automático no app — não existe gateway de pagamento configurado)
  * — este CTA é o único caminho de upgrade em toda a plataforma, reutilizado
  * onde o dono esbarra num limite do plano free (galeria, vídeo,
- * visualizações) ou escolhe o Básico no cadastro. Clicar aqui NUNCA ativa
- * o plano sozinho — é só um link `<a>` para o WhatsApp, sem RPC nenhuma.
+ * visualizações) ou escolhe um plano pago no cadastro/painel. Clicar aqui
+ * NUNCA ativa o plano sozinho — é só um link `<a>` para o WhatsApp, sem RPC
+ * nenhuma.
  */
 export function UpgradeToBasicoCta({
   className = "",
-  label = "Quero o plano Básico",
+  label = "Quero o plano Essencial",
 }: {
   className?: string;
   label?: string;
@@ -33,7 +35,7 @@ export function UpgradeToBasicoCta({
 export function UpgradeToBasicoNotice({
   className = "",
   label,
-  supportText = "Fale com o Qual é a Boa pelo WhatsApp para contratar o plano Básico por R$ 97/mês.",
+  supportText = "Fale com o Qual é a Boa pelo WhatsApp para contratar o plano Essencial por R$ 97/mês.",
 }: {
   className?: string;
   label?: string;

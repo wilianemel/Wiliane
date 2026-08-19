@@ -8,8 +8,18 @@ import { AdminGate } from "@/components/admin/admin-gate";
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
-const PLAN_LABELS: Record<string, string> = { free: "Free", partner: "Partner", basico: "Básico" };
-const STATUS_LABELS: Record<string, string> = { active: "Ativo", expired: "Expirado", canceled: "Cancelado" };
+const PLAN_LABELS: Record<string, string> = {
+  free: "Free",
+  partner: "Partner",
+  basico: "Plano Essencial",
+  master: "Plano Master",
+};
+const STATUS_LABELS: Record<string, string> = {
+  active: "Ativo",
+  expired: "Expirado",
+  canceled: "Cancelado",
+  pending_payment: "Aguardando pagamento",
+};
 
 interface PlanDefinition {
   planType: string;
@@ -168,9 +178,10 @@ function AdminPlanosContent() {
         Planos comerciais
       </h1>
       <p className="mt-2 text-sm text-muted">
-        Limites e preço de cada plano, e o plano atual de cada estabelecimento. Contratação do
-        plano Básico e concessão do Partner continuam sendo combinadas diretamente com o
-        estabelecimento (WhatsApp) — esta tela é só de acompanhamento, sem aprovação manual.
+        Limites e preço de cada plano, e o plano atual de cada estabelecimento. Contratação dos
+        planos Essencial e Master, e concessão do Partner, continuam sendo combinadas diretamente
+        com o estabelecimento (WhatsApp) — esta tela é só de acompanhamento e confirmação manual
+        de pagamento, sem aprovação editorial do estabelecimento.
       </p>
 
       {state === "loading" && (
