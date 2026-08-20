@@ -4,11 +4,49 @@ import { createClient } from "@/lib/supabase/client";
 
 export const MEDIA_BUCKET = "venue-media";
 
-export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
-export const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm"] as const;
+/** HEIC/HEIF só entra quando o navegador consegue identificar o MIME type corretamente — sem fallback por extensão para imagem (diferente de vídeo, ver ALLOWED_VIDEO_EXTENSIONS). */
+export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"] as const;
 
-/** Mesmo teto configurado no bucket venue-media (50 MB) — validado aqui só para feedback rápido; a aplicação real do limite é no servidor. */
-export const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
+/**
+ * video/quicktime cobre .mov (inclusive quando o conteúdo interno está
+ * codificado em HEVC/H.265 — o navegador só expõe o container .mov, não o
+ * codec). video/hevc, video/h265 e video/x-h265 são os MIME types que
+ * alguns navegadores/SOs relatam para HEVC "puro" (.hevc/.h265).
+ *
+ * HEVC/H.265 é aceito para UPLOAD, mas nem todo navegador consegue
+ * REPRODUZIR HEVC sem conversão (ex.: Chrome no Linux, várias versões do
+ * Firefox) — isso é uma limitação de player de quem VÊ a página pública
+ * depois, não deste upload. O mesmo aviso está na migration do bucket
+ * (venue_media_bucket_hevc_and_larger_videos.sql).
+ */
+export const ALLOWED_VIDEO_TYPES = [
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+  "video/hevc",
+  "video/h265",
+  "video/x-h265",
+] as const;
+
+/**
+ * Fallback por extensão pra vídeo — muitos navegadores não relatam
+ * `file.type` corretamente pra HEVC/H.265/.mov (vem vazio ou genérico tipo
+ * "application/octet-stream"), então o formato só seria rejeitado por
+ * engano se dependêssemos só do MIME type. Nunca usado pra imagem.
+ */
+const ALLOWED_VIDEO_EXTENSIONS = [".mp4", ".webm", ".mov", ".hevc", ".h265"];
+
+function hasAllowedVideoExtension(fileName: string): boolean {
+  const lower = fileName.toLowerCase();
+  return ALLOWED_VIDEO_EXTENSIONS.some((extension) => lower.endsWith(extension));
+}
+
+/** Mesmo teto configurado no bucket venue-media para imagem — validado aqui só para feedback rápido; a aplicação real do limite é no servidor. */
+export const MAX_IMAGE_FILE_SIZE_BYTES = 50 * 1024 * 1024;
+/** 100 MB — HEVC/H.265 e vídeos mais longos pedem mais espaço que imagem. Mesmo teto do bucket (venue_media_bucket_hevc_and_larger_videos.sql). */
+export const MAX_VIDEO_FILE_SIZE_BYTES = 100 * 1024 * 1024;
+/** Limite de duração de vídeo, verificado no navegador antes do envio (ver validateVideoDuration) — nunca imposto pelo banco (nenhuma forma segura de validar duração real no servidor sem decodificar o arquivo). */
+export const MAX_VIDEO_DURATION_SECONDS = 60;
 
 export type MediaKind = "image" | "video";
 
@@ -70,17 +108,147 @@ export async function getVenueImageLimit(venueId: string): Promise<number> {
   return (await getVenueEffectiveLimits(venueId)).imageLimit;
 }
 
-export function validateMediaFile(file: File, kind: MediaKind): string | null {
-  const allowed = kind === "image" ? ALLOWED_IMAGE_TYPES : ALLOWED_VIDEO_TYPES;
-  if (!(allowed as readonly string[]).includes(file.type)) {
-    return kind === "image"
-      ? "Formato inválido. Envie um arquivo JPG, PNG ou WebP."
-      : "Formato inválido. Envie um arquivo MP4 ou WebM.";
+interface VenueMediaUploadAccessRow {
+  is_authenticated: boolean;
+  venue_exists: boolean;
+  has_active_owner: boolean;
+  current_user_can_manage: boolean;
+}
+
+/**
+ * Confere, imediatamente antes de qualquer upload de capa/vídeo: (1) existe
+ * sessão autenticada, (2) o venueId corresponde a um estabelecimento real,
+ * (3) o usuário atual tem vínculo ativo (owner/manager) ou é admin. Via RPC
+ * (check_venue_media_upload_access) porque a RLS de venue_members só deixa
+ * cada usuário ler a própria membership — não dá pra saber, direto do
+ * cliente, se ALGUÉM (outra pessoa) é o dono ativo, distinção necessária
+ * pra escolher a mensagem certa. VenueAccessGate já faz uma checagem
+ * parecida ao carregar a página, mas só uma vez — isto reconfirma na hora
+ * exata do envio, cobrindo o caso do vínculo ter sido removido (ex.: admin
+ * removeu o proprietário) enquanto o painel já estava aberto numa aba.
+ */
+export async function verifyVenueUploadAccess(
+  venueId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .rpc("check_venue_media_upload_access", { p_venue_id: venueId })
+    .single<VenueMediaUploadAccessRow>();
+
+  if (error || !data) {
+    return { ok: false, error: "Não foi possível confirmar sua permissão agora. Tente novamente." };
   }
-  if (file.size > MAX_FILE_SIZE_BYTES) {
-    return "Arquivo muito grande. O limite é 50 MB.";
+  if (!data.is_authenticated) {
+    return {
+      ok: false,
+      error: "Você precisa estar autenticado para enviar mídia. Entre novamente e tente de novo.",
+    };
+  }
+  if (!data.venue_exists) {
+    return {
+      ok: false,
+      error: "Não foi possível confirmar este estabelecimento agora. Atualize a página e tente novamente.",
+    };
+  }
+  if (!data.has_active_owner) {
+    return {
+      ok: false,
+      error:
+        'Este estabelecimento ainda não está vinculado à sua conta. Volte ao fluxo "Meu estabelecimento já está cadastrado" para assumir o controle antes de enviar mídias.',
+    };
+  }
+  if (!data.current_user_can_manage) {
+    return { ok: false, error: "Você não tem permissão para editar este estabelecimento." };
+  }
+
+  return { ok: true };
+}
+
+export function validateMediaFile(file: File, kind: MediaKind): string | null {
+  if (kind === "image") {
+    if (!(ALLOWED_IMAGE_TYPES as readonly string[]).includes(file.type)) {
+      return "Formato inválido. Envie um arquivo JPG, PNG, WebP ou HEIC/HEIF.";
+    }
+    if (file.size > MAX_IMAGE_FILE_SIZE_BYTES) {
+      return "Arquivo muito grande. O limite é 50 MB.";
+    }
+    return null;
+  }
+
+  // Vídeo: MIME type reconhecido OU extensão reconhecida — ver
+  // ALLOWED_VIDEO_EXTENSIONS (necessário pra HEVC/H.265/.mov, onde o
+  // navegador frequentemente não relata um file.type utilizável).
+  const hasKnownMimeType = (ALLOWED_VIDEO_TYPES as readonly string[]).includes(file.type);
+  if (!hasKnownMimeType && !hasAllowedVideoExtension(file.name)) {
+    return "Formato de vídeo não suportado.";
+  }
+  if (file.size > MAX_VIDEO_FILE_SIZE_BYTES) {
+    return "O vídeo deve ter no máximo 100 MB.";
   }
   return null;
+}
+
+/**
+ * Lê a duração real do vídeo no navegador (elemento <video> fora do DOM,
+ * só metadata — nunca envia nada, nunca toca o Storage/banco) e devolve a
+ * mensagem de erro se passar de MAX_VIDEO_DURATION_SECONDS.
+ *
+ * HEVC/H.265: alguns navegadores não conseguem DECODIFICAR esse codec
+ * (ex.: Chrome no Linux, várias versões do Firefox) — nesse caso o evento
+ * de metadata nunca dispara. Um timeout evita travar o formulário pra
+ * sempre; quando a duração não pôde ser confirmada (timeout ou erro de
+ * decodificação), a checagem é PULADA em vez de bloquear um vídeo válido
+ * só porque este navegador específico não sabe ler esse arquivo — o
+ * limite de 60s continua sendo a regra, só não foi possível confirmá-la
+ * aqui. Nunca inventa um limite de duração no banco: esta validação é
+ * inteiramente client-side, best-effort.
+ */
+export async function validateVideoDuration(file: File): Promise<string | null> {
+  try {
+    const duration = await readVideoDurationSeconds(file);
+    if (Number.isFinite(duration) && duration > MAX_VIDEO_DURATION_SECONDS) {
+      return "O vídeo deve ter no máximo 60 segundos.";
+    }
+    return null;
+  } catch (error) {
+    console.warn(
+      "VALIDATE VIDEO DURATION: não foi possível ler a duração deste vídeo neste navegador (comum com HEVC/H.265 sem suporte de decodificação) — envio segue sem essa checagem.",
+      error,
+    );
+    return null;
+  }
+}
+
+function readVideoDurationSeconds(file: File, timeoutMs = 8000): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    const objectUrl = URL.createObjectURL(file);
+
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error("Tempo esgotado ao ler metadados do vídeo."));
+    }, timeoutMs);
+
+    function cleanup() {
+      clearTimeout(timer);
+      URL.revokeObjectURL(objectUrl);
+      video.removeAttribute("src");
+      video.load();
+    }
+
+    video.onloadedmetadata = () => {
+      const duration = video.duration;
+      cleanup();
+      resolve(duration);
+    };
+    video.onerror = () => {
+      cleanup();
+      reject(new Error("O navegador não conseguiu ler os metadados deste vídeo."));
+    };
+
+    video.src = objectUrl;
+  });
 }
 
 function sanitizeFileName(name: string): string {
@@ -97,6 +265,31 @@ export function getMediaPublicUrl(path: string): string {
   const supabase = createClient();
   const { data } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(path);
   return data.publicUrl;
+}
+
+/**
+ * Traduz o erro do Storage do Supabase numa mensagem específica quando dá
+ * pra reconhecer a causa (tamanho ou formato recusado pelo bucket) — nunca
+ * some com a causa real numa mensagem genérica sem tentar identificar o
+ * motivo primeiro. `validateMediaFile` já bloqueia esses dois casos antes
+ * de chegar aqui na maioria das vezes; isto é a segunda linha de defesa
+ * caso o Storage recuse por um motivo que o cliente não pegou.
+ */
+function describeStorageError(error: { message?: string; statusCode?: string }): string {
+  const message = (error.message ?? "").toLowerCase();
+  if (
+    error.statusCode === "413" ||
+    message.includes("exceeded the maximum allowed size") ||
+    message.includes("too large") ||
+    message.includes("payload too large")
+  ) {
+    return "Arquivo muito grande para o Storage. O limite é 100 MB para vídeo e 50 MB para imagem.";
+  }
+  if (message.includes("mime type") || message.includes("not allowed") || message.includes("not supported")) {
+    return "Formato de arquivo não aceito pelo Storage.";
+  }
+  console.error("STORAGE UPLOAD ERROR (motivo não reconhecido — investigar):", error);
+  return "Erro ao enviar o arquivo para o Storage. Tente novamente.";
 }
 
 /**
@@ -122,7 +315,7 @@ export async function replaceSingleMedia(
   });
 
   if (error) {
-    return { error: "Não foi possível enviar o arquivo agora. Tente novamente." };
+    return { error: describeStorageError(error) };
   }
 
   return { url: getMediaPublicUrl(path), path };
@@ -198,7 +391,10 @@ async function addVenueGalleryMedia(venueId: string, url: string): Promise<{ id:
     p_url: url,
   });
 
-  if (error || !data || data.length === 0) {
+  if (error) {
+    return { error: describeFeaturedMediaRpcError(error) };
+  }
+  if (!data || data.length === 0) {
     return { error: "Não foi possível registrar a imagem da galeria agora. Tente novamente." };
   }
 
@@ -303,6 +499,43 @@ export async function listVenueMedia(venueId: string, mediaType?: MediaKind): Pr
 }
 
 /**
+ * Traduz o erro da RPC de escrita de mídia (replace_featured_venue_media,
+ * add_venue_gallery_media) numa mensagem segura pra mostrar direto ao
+ * usuário — sem esconder a causa real, mas também sem vazar erro técnico
+ * bruto do Postgres.
+ *
+ * CORREÇÃO (causa real do upload de capa/vídeo sempre mostrando "Não foi
+ * possível registrar..."): a versão anterior desta função só reconhecia uma
+ * lista fixa de mensagens (whitelist por substring) — quando o banco
+ * lançava QUALQUER outra coisa (inclusive um erro real e informativo, como
+ * "column reference is ambiguous" causado por um bug de qualificação de
+ * coluna em replace_featured_venue_media, corrigido na migration
+ * fix_ambiguous_columns_media_write_rpcs, ou a mensagem de limite de FOTO —
+ * "...foto ativa (limite do plano)...", que nunca batia com o texto de
+ * VÍDEO que a whitelist checava) ela caía sempre na mesma mensagem genérica,
+ * escondendo o motivo real. A troca: `RAISE EXCEPTION 'texto'` sem SQLSTATE
+ * explícito (o padrão usado em toda RPC deste projeto) sempre chega aqui
+ * com code 'P0001' — esse texto já é escrito à mão em português, pensado
+ * pra leitura direta do usuário, então é sempre seguro mostrar como está,
+ * sem whitelist nenhuma. Qualquer OUTRO code é um erro interno do Postgres
+ * (coluna ambígua, violação de constraint, permissão no nível do banco
+ * etc.) que nunca foi escrito pra leitura de usuário — nesse caso o texto
+ * bruto nunca aparece na tela, mas também nunca é silenciado: vai pro
+ * console (developer) e a tela mostra o código do erro, no mesmo formato
+ * sugerido pelo produto ("O banco recusou este envio: [mensagem segura]").
+ */
+function describeFeaturedMediaRpcError(error: { message?: string; code?: string }): string {
+  if (error.code === "P0001" && error.message) {
+    return error.message;
+  }
+
+  console.error("MEDIA WRITE RPC ERROR (não é uma exceção de aplicação — investigar):", error);
+  return error.code
+    ? `O banco recusou este envio: erro ${error.code}. Tente novamente ou avise o suporte se persistir.`
+    : "O banco recusou este envio. Tente novamente ou avise o suporte se persistir.";
+}
+
+/**
  * Registra/substitui a mídia canônica destacada (capa de imagem, ou um
  * vídeo) via RPC transacional (replace_featured_venue_media) — nunca
  * manipula venue_media direto do cliente. A RPC insere/reativa a mídia
@@ -325,7 +558,7 @@ export async function upsertFeaturedVenueMedia(
   });
 
   if (error) {
-    return { error: error.message.includes("vídeo") ? error.message : "Não foi possível registrar a mídia do estabelecimento agora." };
+    return { error: describeFeaturedMediaRpcError(error) };
   }
 
   return null;

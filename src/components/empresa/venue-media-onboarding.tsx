@@ -32,7 +32,7 @@ export function VenueMediaOnboarding({ venue, onVenueUpdated }: VenueMediaOnboar
           folder="cover"
           kind="image"
           title="Capa"
-          description="JPG, PNG ou WebP. Aparece nos cards e no topo da página do estabelecimento."
+          description="JPG, PNG, WebP ou HEIC/HEIF. Aparece nos cards e no topo da página do estabelecimento."
           currentUrl={venue.cover_image_url}
           urlColumn="cover_image_url"
           onVenueUpdated={onVenueUpdated}
@@ -43,7 +43,7 @@ export function VenueMediaOnboarding({ venue, onVenueUpdated }: VenueMediaOnboar
           folder="video"
           kind="video"
           title="Vídeo"
-          description="MP4 ou WebM. Nunca inicia automaticamente com som na página pública."
+          description="MP4, WebM ou HEVC/H.265, até 100 MB e 60 segundos. HEVC pode não reproduzir em todos os navegadores sem conversão. Nunca inicia automaticamente com som na página pública."
           currentUrl={venue.video_url}
           urlColumn="video_url"
           onVenueUpdated={onVenueUpdated}

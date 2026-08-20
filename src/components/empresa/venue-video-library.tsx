@@ -3,12 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import {
   validateMediaFile,
+  validateVideoDuration,
   replaceSingleMedia,
   listVenueMedia,
   upsertFeaturedVenueMedia,
   setVenueMediaFeatured,
   retireVenueMediaItem,
   getVenueVideoLimit,
+  verifyVenueUploadAccess,
   type VenueMediaListItem,
 } from "@/lib/venues/venue-media";
 
@@ -74,6 +76,29 @@ export function VenueVideoLibrary({ venueId }: { venueId: string }) {
 
     setStatus("busy");
     setErrorMessage(null);
+
+    // Duração real (limite de 60s) — checada no navegador antes de
+    // qualquer envio; nunca imposta pelo banco. Pulada (sem bloquear) se o
+    // navegador não conseguir ler os metadados (comum com HEVC/H.265 sem
+    // suporte de decodificação nesta plataforma) — ver validateVideoDuration.
+    const durationError = await validateVideoDuration(file);
+    if (durationError) {
+      setErrorMessage(durationError);
+      setStatus("error");
+      return;
+    }
+
+    // Reconfirma sessão + vínculo ativo bem antes de tocar no Storage —
+    // nunca deixa a RPC de escrita ser a primeira a avisar (e nunca com um
+    // erro genérico). Cobre o caso do vínculo ter sido removido enquanto
+    // o painel já estava aberto (VenueAccessGate só checa uma vez, ao
+    // carregar a página).
+    const access = await verifyVenueUploadAccess(venueId);
+    if (!access.ok) {
+      setErrorMessage(access.error);
+      setStatus("error");
+      return;
+    }
 
     const uploadResult = await replaceSingleMedia(venueId, "video", file);
     if ("error" in uploadResult) {
@@ -146,7 +171,9 @@ export function VenueVideoLibrary({ venueId }: { venueId: string }) {
         <div>
           <h2 className="text-sm font-semibold text-foreground">Vídeos</h2>
           <p className="mt-1 text-xs text-muted">
-            MP4 ou WebM, até 50 MB cada. Nunca inicia automaticamente com som na página pública.
+            MP4, WebM ou HEVC/H.265, até 100 MB e 60 segundos. HEVC pode não reproduzir em
+            todos os navegadores sem conversão. Nunca inicia automaticamente com som na
+            página pública.
             {limit !== null && (
               <>
                 {" "}
@@ -167,7 +194,7 @@ export function VenueVideoLibrary({ venueId }: { venueId: string }) {
         <input
           ref={inputRef}
           type="file"
-          accept="video/mp4,video/webm"
+          accept="video/mp4,video/webm,video/quicktime,video/hevc,video/h265,video/x-h265,.hevc,.h265"
           onChange={handleFileSelected}
           className="hidden"
         />

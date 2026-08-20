@@ -11,7 +11,7 @@ import {
   type ClaimDraftMediaItem,
   type ClaimDraftMediaType,
 } from "@/lib/venues/claim-draft-media";
-import { getVenueEffectiveLimits } from "@/lib/venues/venue-media";
+import { getVenueEffectiveLimits, validateVideoDuration } from "@/lib/venues/venue-media";
 import { UpgradeToBasicoNotice } from "@/components/empresa/upgrade-to-basico-cta";
 
 const focusRing =
@@ -89,6 +89,19 @@ export function ClaimDraftMediaUploader({
       setErrorMessage(validationError);
       setStatus("error");
       return;
+    }
+
+    // Duração real (limite de 60s) — só se aplica a vídeo, checada no
+    // navegador antes de qualquer envio; nunca imposta pelo banco. Pulada
+    // (sem bloquear) se o navegador não conseguir ler os metadados (comum
+    // com HEVC/H.265 sem suporte de decodificação) — ver validateVideoDuration.
+    if (mediaType === "video") {
+      const durationError = await validateVideoDuration(file);
+      if (durationError) {
+        setErrorMessage(durationError);
+        setStatus("error");
+        return;
+      }
     }
 
     // Checagem local só para feedback rápido — a autoridade real do limite
@@ -175,7 +188,8 @@ export function ClaimDraftMediaUploader({
         <div>
           <h2 className="text-sm font-semibold text-foreground">Fotos e vídeos</h2>
           <p className="mt-1 text-xs text-muted">
-            JPG, PNG, WebP, MP4 ou WebM, até 50 MB cada.{" "}
+            JPG, PNG, WebP ou HEIC/HEIF (até 50 MB); MP4, WebM ou HEVC/H.265 (até 100 MB e 60
+            segundos).{" "}
             {imageLimit === null || videoLimit === null
               ? "Carregando limite do plano..."
               : `${imageCount}/${imageLimit} foto${imageLimit === 1 ? "" : "s"}, ${videoCount}/${videoLimit} vídeo${videoLimit === 1 ? "" : "s"}.`}
@@ -206,14 +220,14 @@ export function ClaimDraftMediaUploader({
         <input
           ref={imageInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
           onChange={(event) => handleFileSelected(event, "image")}
           className="hidden"
         />
         <input
           ref={videoInputRef}
           type="file"
-          accept="video/mp4,video/webm"
+          accept="video/mp4,video/webm,video/quicktime,video/hevc,video/h265,video/x-h265,.hevc,.h265"
           onChange={(event) => handleFileSelected(event, "video")}
           className="hidden"
         />

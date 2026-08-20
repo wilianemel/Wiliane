@@ -5,6 +5,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import {
   validateMediaFile,
+  validateVideoDuration,
   replaceSingleMedia,
   listGalleryItems,
   uploadGalleryImage,
@@ -12,6 +13,7 @@ import {
   upsertFeaturedVenueMedia,
   retireFeaturedVenueMedia,
   getVenueImageLimit,
+  verifyVenueUploadAccess,
   type GalleryItem,
 } from "@/lib/venues/venue-media";
 import { UpgradeToBasicoNotice } from "@/components/empresa/upgrade-to-basico-cta";
@@ -66,6 +68,31 @@ export function SingleMediaSlot({
 
     setStatus("uploading");
     setErrorMessage(null);
+
+    // Duração real (limite de 60s) — só se aplica a vídeo, checada no
+    // navegador antes de qualquer envio; nunca imposta pelo banco. Pulada
+    // (sem bloquear) se o navegador não conseguir ler os metadados (comum
+    // com HEVC/H.265 sem suporte de decodificação) — ver validateVideoDuration.
+    if (kind === "video") {
+      const durationError = await validateVideoDuration(file);
+      if (durationError) {
+        setErrorMessage(durationError);
+        setStatus("error");
+        return;
+      }
+    }
+
+    // Reconfirma sessão + vínculo ativo bem antes de tocar no Storage —
+    // nunca deixa a RPC de escrita ser a primeira a avisar (e nunca com um
+    // erro genérico). Cobre o caso do vínculo ter sido removido enquanto
+    // o painel já estava aberto (VenueAccessGate só checa uma vez, ao
+    // carregar a página).
+    const access = await verifyVenueUploadAccess(venueId);
+    if (!access.ok) {
+      setErrorMessage(access.error);
+      setStatus("error");
+      return;
+    }
 
     // Envia o arquivo NOVO com nome único — nunca no lugar do antigo.
     // CORREÇÃO (auditoria 3ª rodada): o arquivo anterior nunca é apagado
@@ -174,7 +201,11 @@ export function SingleMediaSlot({
         <input
           ref={inputRef}
           type="file"
-          accept={kind === "image" ? "image/jpeg,image/png,image/webp" : "video/mp4,video/webm"}
+          accept={
+            kind === "image"
+              ? "image/jpeg,image/png,image/webp,image/heic,image/heif"
+              : "video/mp4,video/webm,video/quicktime,video/hevc,video/h265,video/x-h265,.hevc,.h265"
+          }
           onChange={handleFileSelected}
           className="hidden"
         />

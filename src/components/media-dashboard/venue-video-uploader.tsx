@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from "react";
-
-const MAX_SIZE_BYTES = 50 * 1024 * 1024;
-const ACCEPTED_TYPE = "video/mp4";
+import { validateMediaFile } from "@/lib/venues/venue-media";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -44,12 +42,14 @@ export function VenueVideoUploader({ venueName }: VenueVideoUploaderProps) {
   }
 
   function handleFile(candidate: File) {
-    if (candidate.type !== ACCEPTED_TYPE) {
-      setError("Envie um arquivo no formato MP4.");
-      return;
-    }
-    if (candidate.size > MAX_SIZE_BYTES) {
-      setError(`O arquivo tem ${formatFileSize(candidate.size)}. O limite é 50 MB.`);
+    // Mesma validação de formato/tamanho do upload real (venue-media.ts) —
+    // nunca duplicada, só reaproveitada, pra nunca divergir do fluxo que de
+    // fato envia ao Storage. HEVC/H.265 é aceito aqui pra pré-visualização,
+    // mas alguns navegadores podem não conseguir reproduzi-lo sem conversão
+    // (mesma ressalva do upload real).
+    const validationError = validateMediaFile(candidate, "video");
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -77,7 +77,8 @@ export function VenueVideoUploader({ venueName }: VenueVideoUploaderProps) {
     <div className="rounded-2xl border border-border bg-background-elevated p-5">
       <h3 className="text-sm font-semibold text-foreground">Enviar vídeo</h3>
       <p className="mt-1 text-sm text-muted">
-        Envie um vídeo de {venueName} em formato MP4, com até 50 MB.
+        Envie um vídeo de {venueName} em MP4, WebM, MOV ou HEVC/H.265, com até 100 MB e 60
+        segundos.
       </p>
 
       {!file ? (
@@ -107,7 +108,7 @@ export function VenueVideoUploader({ venueName }: VenueVideoUploaderProps) {
             id="venue-video-input"
             ref={inputRef}
             type="file"
-            accept="video/mp4"
+            accept="video/mp4,video/webm,video/quicktime,video/hevc,video/h265,video/x-h265,.hevc,.h265"
             onChange={handleInputChange}
             className="sr-only"
           />

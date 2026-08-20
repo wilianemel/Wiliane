@@ -1,7 +1,7 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
-import { MEDIA_BUCKET, ALLOWED_IMAGE_TYPES, ALLOWED_VIDEO_TYPES, MAX_FILE_SIZE_BYTES } from "./venue-media";
+import { MEDIA_BUCKET, validateMediaFile } from "./venue-media";
 
 export type ClaimDraftMediaType = "image" | "video";
 
@@ -34,17 +34,9 @@ function mapRow(row: ClaimDraftMediaRow): ClaimDraftMediaItem {
   };
 }
 
+/** Mesma validação de formato/tamanho do painel principal (venue-media.ts) — nunca duplicada, só reaproveitada, pra nunca divergir entre os dois fluxos de upload. */
 export function validateClaimDraftMediaFile(file: File, kind: ClaimDraftMediaType): string | null {
-  const allowed = kind === "image" ? ALLOWED_IMAGE_TYPES : ALLOWED_VIDEO_TYPES;
-  if (!(allowed as readonly string[]).includes(file.type)) {
-    return kind === "image"
-      ? "Formato inválido. Envie um arquivo JPG, PNG ou WebP."
-      : "Formato inválido. Envie um arquivo MP4 ou WebM.";
-  }
-  if (file.size > MAX_FILE_SIZE_BYTES) {
-    return "Arquivo muito grande. O limite é 50 MB.";
-  }
-  return null;
+  return validateMediaFile(file, kind);
 }
 
 function sanitizeFileName(name: string): string {

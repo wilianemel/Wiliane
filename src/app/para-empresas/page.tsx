@@ -135,12 +135,17 @@ export default function ParaEmpresasPage() {
               encontre seu estabelecimento e conclua o cadastro — a publicação é automática, sem
               espera.
             </p>
-            <Link
-              href="/empresa/entrar"
-              className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-muted underline-offset-4 transition-colors hover:text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded"
-            >
-              Entrar no meu painel
-            </Link>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href="/empresa/entrar"
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-border px-6 py-3 text-sm font-semibold text-foreground transition-colors hover:border-accent hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:flex-none"
+              >
+                <span className="text-accent">
+                  <CheckIcon />
+                </span>
+                Entrar no meu painel
+              </Link>
+            </div>
           </div>
         </section>
       </main>
