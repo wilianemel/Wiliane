@@ -442,7 +442,7 @@ export function VenueProfile({
           </div>
         </section>
       ) : (
-        <section className="relative -mx-4 aspect-[4/5] overflow-hidden sm:mx-0 sm:aspect-[16/9] sm:rounded-3xl">
+        <section className="relative -mx-4 aspect-[9/16] overflow-hidden sm:mx-0 sm:rounded-3xl">
           {venue.coverImageUrl && !coverFailed ? (
             <Image
               src={venue.coverImageUrl}
@@ -699,7 +699,7 @@ export function VenueProfile({
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="relative aspect-square overflow-hidden rounded-xl"
+                className="relative aspect-[9/16] overflow-hidden rounded-xl"
               >
                 <Image
                   src={url}

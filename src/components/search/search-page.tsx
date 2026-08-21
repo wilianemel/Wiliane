@@ -5,7 +5,6 @@ import Link from "next/link";
 import type { Venue } from "@/data/venues";
 import { EMPTY_VENUE_FILTERS, searchVenues, type VenueFilters } from "@/lib/search-venues";
 import type { VenueHoursStatus } from "@/lib/venues/venue-hours";
-import type { VenueSearchCardMedia } from "@/lib/venues/venue-repository";
 import { SearchFilters } from "./search-filters";
 import { SearchResultCard } from "./search-result-card";
 
@@ -88,8 +87,6 @@ interface SearchPageProps {
   hoursStatusByVenueId?: Record<string, VenueHoursStatus>;
   /** Filtros pré-selecionados ao abrir a página (ex.: atalho de categoria na Home) — mescla com EMPTY_VENUE_FILTERS, mesmo mecanismo de filtro de sempre, só com estado inicial diferente. */
   initialFilters?: Partial<VenueFilters>;
-  /** venue.venueId -> vídeo/primeira foto da galeria, calculado no servidor só para estes cards (ver getVenuesSearchCardMedia). Ausente = card cai no VenueCoverImage normal. */
-  searchCardMediaByVenueId?: Record<string, VenueSearchCardMedia>;
 }
 
 export function SearchPage({
@@ -98,7 +95,6 @@ export function SearchPage({
   showHeader = true,
   hoursStatusByVenueId,
   initialFilters,
-  searchCardMediaByVenueId,
 }: SearchPageProps) {
   const [query, setQuery] = useState(initialQuery);
   const [filters, setFilters] = useState<VenueFilters>(() => ({
@@ -292,7 +288,6 @@ export function SearchPage({
               key={venue.id}
               venue={venue}
               hoursStatus={hoursStatusByVenueId?.[venue.venueId] ?? null}
-              media={searchCardMediaByVenueId?.[venue.venueId]}
             />
           ))}
         </div>

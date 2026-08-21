@@ -3,11 +3,7 @@ import Link from "next/link";
 import { SearchPage } from "@/components/search/search-page";
 import { SearchHero } from "@/components/search/search-hero";
 import { BrandLogo } from "@/components/shared/brand-logo";
-import {
-  getPublishedVenues,
-  getVenuesBusinessHours,
-  getVenuesSearchCardMedia,
-} from "@/lib/venues/venue-repository";
+import { getPublishedVenues, getVenuesBusinessHours } from "@/lib/venues/venue-repository";
 import { buildVenueHoursStatusMap } from "@/lib/venues/venue-hours";
 import type { VenueFilters } from "@/lib/search-venues";
 
@@ -47,10 +43,6 @@ export default async function BuscarPage({ searchParams }: BuscarPageProps) {
   // Uma única consulta em lote (evita N+1) — ver comentário equivalente em src/app/page.tsx.
   const hoursByVenueId = await getVenuesBusinessHours(venues.map((venue) => venue.venueId));
   const hoursStatusByVenueId = buildVenueHoursStatusMap(hoursByVenueId, new Date());
-  // Só para os cards de /buscar (vídeo + primeira foto da galeria, sem
-  // prioridade de capa) — nunca toca getPublishedVenues(), então Home e
-  // Descobrir continuam exatamente como estão.
-  const searchCardMediaByVenueId = await getVenuesSearchCardMedia(venues);
 
   const initialFilters: Partial<VenueFilters> = {
     ...(category ? { category } : {}),
@@ -81,7 +73,6 @@ export default async function BuscarPage({ searchParams }: BuscarPageProps) {
           initialQuery={q ?? ""}
           initialFilters={initialFilters}
           hoursStatusByVenueId={hoursStatusByVenueId}
-          searchCardMediaByVenueId={searchCardMediaByVenueId}
           showHeader={false}
         />
       </main>

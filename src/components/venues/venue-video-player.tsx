@@ -16,24 +16,23 @@ export function VenueVideoPlayer({ videoUrl, venueName, gradient }: VenueVideoPl
     return (
       <div
         aria-hidden="true"
-        className={`aspect-video rounded-2xl bg-gradient-to-br ${gradient}`}
+        className={`aspect-[9/16] rounded-2xl bg-gradient-to-br ${gradient}`}
       />
     );
   }
 
   return (
-    <div className="aspect-video overflow-hidden rounded-2xl border border-border bg-black">
+    <div className="aspect-[9/16] overflow-hidden rounded-2xl border border-border bg-black">
       <video
-        className="h-full w-full object-contain"
+        src={videoUrl}
+        className="h-full w-full object-cover"
         controls
         playsInline
         muted
         preload="metadata"
         aria-label={`Vídeo do estabelecimento ${venueName}`}
         onError={() => setHasError(true)}
-      >
-        <source src={videoUrl} type="video/mp4" />
-      </video>
+      />
     </div>
   );
 }

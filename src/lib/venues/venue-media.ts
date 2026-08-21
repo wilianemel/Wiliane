@@ -525,23 +525,6 @@ export function resolveFeaturedMediaUrl(
 }
 
 /**
- * Primeira mídia ATIVA de um tipo, na ordem em que veio (normalmente
- * created_at ascendente) > fallback — NUNCA prioriza destacada/capa. Regra
- * própria para os cards de /buscar: capa não deve ser prioridade ali (só na
- * página de perfil e no painel, que usam resolveFeaturedMediaUrl acima).
- */
-export function resolveFirstMediaUrl(
-  items: ResolvableMainImage[] | undefined,
-  mediaType: MediaKind,
-  fallback?: string | null,
-): string | undefined {
-  if (!items || items.length === 0) return fallback ?? undefined;
-  const onlyType = items.filter((item) => item.mediaType === mediaType);
-  if (onlyType.length === 0) return fallback ?? undefined;
-  return onlyType[0].url;
-}
-
-/**
  * Traduz o erro da RPC de escrita de mídia (replace_featured_venue_media,
  * add_venue_gallery_media) numa mensagem segura pra mostrar direto ao
  * usuário — sem esconder a causa real, mas também sem vazar erro técnico
