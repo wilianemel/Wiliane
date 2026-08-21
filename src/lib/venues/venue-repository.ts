@@ -4,6 +4,7 @@ import { venues as localVenues, type Venue } from "@/data/venues";
 import { createClient } from "@/lib/supabase/server";
 import { mapVenueRow } from "./venue-mapper";
 import type { VenueRow } from "./venue-row";
+import { resolveFeaturedMediaUrl, resolveFirstMediaUrl } from "./venue-media";
 import {
   normalizeVenueBusinessHourRows,
   type VenueBusinessHour,
@@ -162,6 +163,51 @@ export async function getPublishedVenues(): Promise<Venue[]> {
   } catch {
     warnFallback("lista");
     return demoLocalVenues();
+  }
+}
+
+export interface VenueSearchCardMedia {
+  videoUrl?: string;
+  imageUrl?: string;
+}
+
+/**
+ * Mídia dos cards de /buscar — vídeo ativo (destacado > primeiro > coluna
+ * legada) e, só quando não há vídeo, a PRIMEIRA foto ativa da galeria
+ * (nunca a destacada/capa — pedido explícito só para este card, diferente
+ * de resolveCoverImageUrl acima, usado por getPublishedVenues/perfil
+ * público). Isolada de propósito: getPublishedVenues() e o tipo Venue
+ * continuam intactos, então Home e Descobrir (que só leem coverImageUrl)
+ * nunca mudam — só quem chamar esta função (app/buscar/page.tsx) recebe
+ * este dado extra.
+ */
+export async function getVenuesSearchCardMedia(
+  venues: Pick<Venue, "venueId" | "videoUrl" | "coverImageUrl">[],
+): Promise<Record<string, VenueSearchCardMedia>> {
+  const venueIds = venues.map((venue) => venue.venueId).filter((id) => id.length > 0);
+  if (venueIds.length === 0) return {};
+
+  try {
+    const supabase = await createClient();
+    const mediaByVenueId = await getVenuesMedia(supabase, venueIds);
+
+    const result: Record<string, VenueSearchCardMedia> = {};
+    for (const venue of venues) {
+      if (!venue.venueId) continue;
+      const media = mediaByVenueId[venue.venueId]?.map((item) => ({
+        url: item.url,
+        mediaType: item.media_type,
+        isFeatured: item.is_featured,
+      }));
+      result[venue.venueId] = {
+        videoUrl: resolveFeaturedMediaUrl(media, "video", venue.videoUrl),
+        imageUrl: resolveFirstMediaUrl(media, "image", venue.coverImageUrl),
+      };
+    }
+    return result;
+  } catch {
+    console.warn("[venues] Não foi possível carregar mídia dos cards de busca; cards caem no fallback de imagem.");
+    return {};
   }
 }
 
