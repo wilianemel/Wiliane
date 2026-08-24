@@ -40,6 +40,24 @@ body {
 }
 
 /*
+ * PWA instalável (Etapa 1): quando aberto pela tela de início (iPhone/
+ * Android, display-mode "standalone"), não existe mais a barra de UI do
+ * navegador — o conteúdo pode ficar colado no notch/ilha dinâmica/barra de
+ * status do sistema. `regra` aplica só nesse modo, nunca no navegador
+ * normal (onde display-mode é "browser"), então o visual em navegador não
+ * muda em nada. Alvo é o elemento <header> em si (não um ancestral como
+ * body) de propósito: várias páginas usam header com `sticky top-0`
+ * (ver header.tsx), e padding num ancestral só empurra a posição inicial —
+ * some assim que a página rola. Padding no próprio header persiste durante
+ * o scroll, porque viaja junto com o elemento que gruda no topo.
+ */
+@media (display-mode: standalone) {
+  header {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/*
  * Microinterações da Home ("cidade viva" + entradas suaves) — só CSS,
  * nenhuma dependência nova. Ver src/components/home/home-ambient-background.tsx
  * e os componentes em src/components/home/ que usam essas classes.
