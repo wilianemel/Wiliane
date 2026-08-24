@@ -320,10 +320,10 @@ function CriarContaForm({
           />
           <span>
             Li e aceito os{" "}
-            <span className="text-foreground underline underline-offset-2">Termos de Uso</span> e a{" "}
-            <span className="text-foreground underline underline-offset-2">
+            <Link href="/termos-de-uso" className="text-accent underline underline-offset-2 hover:brightness-110">Termos de Uso</Link> e a{" "}
+            <Link href="/privacidade" className="text-accent underline underline-offset-2 hover:brightness-110">
               Política de Privacidade
-            </span>
+            </Link>
             .
           </span>
         </label>

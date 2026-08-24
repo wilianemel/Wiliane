@@ -1,6 +1,11 @@
 import { BrandLogo } from "@/components/shared/brand-logo";
 
-const institutionalLinks = ["Sobre", "Termos de uso", "Privacidade", "Ajuda"];
+const institutionalLinks = [
+  { label: "Sobre", href: "/sobre" },
+  { label: "Termos de uso", href: "/termos-de-uso" },
+  { label: "Privacidade", href: "/privacidade" },
+  { label: "Ajuda", href: "/ajuda" },
+];
 
 export function Footer() {
   return (
@@ -17,15 +22,14 @@ export function Footer() {
 
           <div className="flex flex-col gap-2 sm:items-end">
             <nav aria-label="Links institucionais" className="flex flex-wrap gap-x-4 gap-y-2 sm:justify-end">
-              {institutionalLinks.map((label) => (
-                <button
+              {institutionalLinks.map(({ label, href }) => (
+                <a
                   key={label}
-                  type="button"
-                  title="Página em construção"
+                  href={href}
                   className="text-sm text-muted underline-offset-4 transition-colors hover:text-accent hover:underline"
                 >
                   {label}
-                </button>
+                </a>
               ))}
             </nav>
             <a
