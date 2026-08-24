@@ -10,6 +10,7 @@ import { useUser } from "@/lib/auth/auth-context";
 import { trackInteraction } from "@/lib/analytics/track-interaction";
 import { FavoriteButton } from "@/components/favorite-button";
 import { BrandLogo } from "@/components/shared/brand-logo";
+import { ErrorBoundary } from "@/components/shared/error-boundary";
 import { VenueRatingSummary, useVenueRatingSummary } from "./venue-rating-summary";
 import { VenueReviewForm } from "./venue-review-form";
 import {
@@ -239,6 +240,171 @@ function InfoIcon() {
   );
 }
 
+interface VenueHeroProps {
+  venue: Venue;
+  isOpenNow: boolean;
+  heroStatusLabel: string;
+}
+
+/**
+ * Hero de vídeo — usado quando o venue tem vídeo ativo (venue_media ou
+ * venues.video_url legado). Isolado em componente próprio pra poder ser
+ * envolvido por <ErrorBoundary> em VenueProfile: se o vídeo falhar ao
+ * RENDERIZAR (não confundir com falha ao CARREGAR o arquivo, já tratada
+ * dentro de VenueVideoPlayer via onError), cai pro hero de foto — nunca
+ * derruba a página inteira.
+ */
+function VenueVideoHero({ venue, isOpenNow, heroStatusLabel }: VenueHeroProps) {
+  if (!venue.videoUrl) return null;
+  return (
+    <section className="mt-2">
+      <VenueVideoPlayer videoUrl={venue.videoUrl} venueName={venue.name} gradient={venue.gradient} />
+      <div className="mt-4">
+        {venue.isDemo && (
+          <p className="mb-2 w-fit rounded-full border border-border px-3 py-1 text-xs text-muted">
+            Dados demonstrativos
+          </p>
+        )}
+        <div className="flex items-center gap-3">
+          {venue.logoUrl && (
+            <Image
+              src={venue.logoUrl}
+              alt={`Logotipo de ${venue.name}`}
+              width={48}
+              height={48}
+              className="h-12 w-12 shrink-0 rounded-full border border-border object-cover"
+            />
+          )}
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">{venue.category}</p>
+            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                {venue.name}
+              </h1>
+              {venue.isVerified && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent">
+                  <VerifiedIcon />
+                  Verificado pelo Qual é a Boa
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+        <p className="mt-2 flex items-center gap-2 text-sm">
+          <span
+            aria-hidden="true"
+            className={`h-2 w-2 shrink-0 rounded-full ${isOpenNow ? "bg-emerald-400" : "bg-red-400"}`}
+          />
+          <span className="font-medium text-foreground">{heroStatusLabel}</span>
+        </p>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Hero de foto/gradiente — usado quando não há vídeo, e também como
+ * fallback do <ErrorBoundary> ao redor de VenueVideoHero (ver
+ * VenueProfile). Mantém seu próprio estado de erro de imagem (coverFailed)
+ * isolado, nunca dependendo de estado do componente pai.
+ */
+function VenueImageHero({ venue, isOpenNow, heroStatusLabel }: VenueHeroProps) {
+  const [coverFailed, setCoverFailed] = useState(false);
+
+  return (
+    <section className="relative -mx-4 aspect-[9/16] overflow-hidden sm:mx-0 sm:rounded-3xl">
+      {venue.coverImageUrl && !coverFailed ? (
+        <Image
+          src={venue.coverImageUrl}
+          alt={`Foto de capa de ${venue.name}`}
+          fill
+          sizes="(min-width: 768px) 768px, 100vw"
+          className="object-cover"
+          priority
+          onError={() => setCoverFailed(true)}
+        />
+      ) : (
+        <div className={`absolute inset-0 bg-gradient-to-br ${venue.gradient}`}>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -top-10 left-1/2 h-40 w-64 -translate-x-1/2 rounded-full bg-accent/25 blur-[80px]"
+          />
+          <div className="relative flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+            <BrandLogo variant="yellow" size="small" />
+            <p className="text-sm font-semibold text-foreground">
+              Este lugar está preparando sua experiência visual.
+            </p>
+            <p className="text-xs text-foreground/70">
+              Em breve, fotos e vídeos reais deste estabelecimento.
+            </p>
+          </div>
+        </div>
+      )}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-gradient-to-t from-black via-black/25 to-black/10"
+      />
+
+      {venue.isDemo && (
+        <p className="absolute left-4 top-4 w-fit rounded-full border border-white/30 bg-black/40 px-3 py-1 text-xs text-white backdrop-blur sm:left-5 sm:top-5">
+          Dados demonstrativos
+        </p>
+      )}
+
+      <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
+        <div className="flex items-center gap-3">
+          {venue.logoUrl && (
+            <Image
+              src={venue.logoUrl}
+              alt={`Logotipo de ${venue.name}`}
+              width={48}
+              height={48}
+              className="h-12 w-12 shrink-0 rounded-full border border-white/30 object-cover"
+            />
+          )}
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-wide text-accent">
+              {venue.category}
+            </p>
+            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+              <h1 className="text-2xl font-bold leading-tight text-white sm:text-3xl">
+                {venue.name}
+              </h1>
+              {venue.isVerified && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-accent/40 bg-black/40 px-2.5 py-1 text-xs font-medium text-accent backdrop-blur">
+                  <VerifiedIcon />
+                  Verificado
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+        <p className="mt-3 flex items-center gap-2 text-sm text-white/90">
+          <span
+            aria-hidden="true"
+            className={`h-2 w-2 shrink-0 rounded-full ${isOpenNow ? "bg-emerald-400" : "bg-red-400"}`}
+          />
+          <span className="font-medium">{heroStatusLabel}</span>
+        </p>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Fallback de último nível — se ATÉ o hero de foto/gradiente falhar
+ * (ver ErrorBoundary externo em VenueProfile), a página nunca fica sem
+ * nenhum título: mostra só nome/categoria, sem nenhuma mídia.
+ */
+function VenueMinimalHeaderFallback({ venue }: { venue: Venue }) {
+  return (
+    <section className="mt-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-accent">{venue.category}</p>
+      <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{venue.name}</h1>
+    </section>
+  );
+}
+
 export interface VenueMatch {
   /** Pontuação de 0 a 100, calculada pelo motor de afinidade em `/descobrir`. */
   score: number;
@@ -286,7 +452,6 @@ export function VenueProfile({
   hoursStatus = null,
 }: VenueProfileProps) {
   const user = useUser();
-  const [coverFailed, setCoverFailed] = useState(false);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [showAllVibeTags, setShowAllVibeTags] = useState(false);
   // Buscado uma única vez aqui e reutilizado no resumo compacto (topo) e na
@@ -391,134 +556,28 @@ export function VenueProfile({
       {/* Hero — imagem/vídeo protagonista. Vídeo tem controles nativos (a
           barra de controles do <video> conflita com texto sobreposto), então
           fica em bloco próprio com um cabeçalho compacto logo abaixo, em vez
-          do gradiente com texto por cima usado para foto/fallback. */}
-      {venue.videoUrl ? (
-        <section className="mt-2">
-          <VenueVideoPlayer
-            videoUrl={venue.videoUrl}
-            venueName={venue.name}
-            gradient={venue.gradient}
-          />
-          <div className="mt-4">
-            {venue.isDemo && (
-              <p className="mb-2 w-fit rounded-full border border-border px-3 py-1 text-xs text-muted">
-                Dados demonstrativos
-              </p>
-            )}
-            <div className="flex items-center gap-3">
-              {venue.logoUrl && (
-                <Image
-                  src={venue.logoUrl}
-                  alt={`Logotipo de ${venue.name}`}
-                  width={48}
-                  height={48}
-                  className="h-12 w-12 shrink-0 rounded-full border border-border object-cover"
-                />
-              )}
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-                  {venue.category}
-                </p>
-                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                    {venue.name}
-                  </h1>
-                  {venue.isVerified && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent">
-                      <VerifiedIcon />
-                      Verificado pelo Qual é a Boa
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-            <p className="mt-2 flex items-center gap-2 text-sm">
-              <span
-                aria-hidden="true"
-                className={`h-2 w-2 shrink-0 rounded-full ${isOpenNow ? "bg-emerald-400" : "bg-red-400"}`}
-              />
-              <span className="font-medium text-foreground">{heroStatusLabel}</span>
-            </p>
-          </div>
-        </section>
-      ) : (
-        <section className="relative -mx-4 aspect-[9/16] overflow-hidden sm:mx-0 sm:rounded-3xl">
-          {venue.coverImageUrl && !coverFailed ? (
-            <Image
-              src={venue.coverImageUrl}
-              alt={`Foto de capa de ${venue.name}`}
-              fill
-              sizes="(min-width: 768px) 768px, 100vw"
-              className="object-cover"
-              priority
-              onError={() => setCoverFailed(true)}
-            />
-          ) : (
-            <div className={`absolute inset-0 bg-gradient-to-br ${venue.gradient}`}>
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute -top-10 left-1/2 h-40 w-64 -translate-x-1/2 rounded-full bg-accent/25 blur-[80px]"
-              />
-              <div className="relative flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
-                <BrandLogo variant="yellow" size="small" />
-                <p className="text-sm font-semibold text-foreground">
-                  Este lugar está preparando sua experiência visual.
-                </p>
-                <p className="text-xs text-foreground/70">
-                  Em breve, fotos e vídeos reais deste estabelecimento.
-                </p>
-              </div>
-            </div>
-          )}
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 bg-gradient-to-t from-black via-black/25 to-black/10"
-          />
-
-          {venue.isDemo && (
-            <p className="absolute left-4 top-4 w-fit rounded-full border border-white/30 bg-black/40 px-3 py-1 text-xs text-white backdrop-blur sm:left-5 sm:top-5">
-              Dados demonstrativos
-            </p>
-          )}
-
-          <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
-            <div className="flex items-center gap-3">
-              {venue.logoUrl && (
-                <Image
-                  src={venue.logoUrl}
-                  alt={`Logotipo de ${venue.name}`}
-                  width={48}
-                  height={48}
-                  className="h-12 w-12 shrink-0 rounded-full border border-white/30 object-cover"
-                />
-              )}
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-wide text-accent">
-                  {venue.category}
-                </p>
-                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <h1 className="text-2xl font-bold leading-tight text-white sm:text-3xl">
-                    {venue.name}
-                  </h1>
-                  {venue.isVerified && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-accent/40 bg-black/40 px-2.5 py-1 text-xs font-medium text-accent backdrop-blur">
-                      <VerifiedIcon />
-                      Verificado
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-            <p className="mt-3 flex items-center gap-2 text-sm text-white/90">
-              <span
-                aria-hidden="true"
-                className={`h-2 w-2 shrink-0 rounded-full ${isOpenNow ? "bg-emerald-400" : "bg-red-400"}`}
-              />
-              <span className="font-medium">{heroStatusLabel}</span>
-            </p>
-          </div>
-        </section>
-      )}
+          do gradiente com texto por cima usado para foto/fallback.
+          Duas camadas de <ErrorBoundary>: se o vídeo falhar ao RENDERIZAR,
+          cai pro hero de foto; se ATÉ o hero de foto falhar, cai pro
+          cabeçalho mínimo (só nome/categoria) — a página nunca quebra
+          inteira por causa da mídia principal. */}
+      <ErrorBoundary
+        label="mídia principal do perfil"
+        fallback={<VenueMinimalHeaderFallback venue={venue} />}
+      >
+        {venue.videoUrl ? (
+          <ErrorBoundary
+            label="vídeo do perfil"
+            fallback={
+              <VenueImageHero venue={venue} isOpenNow={isOpenNow} heroStatusLabel={heroStatusLabel} />
+            }
+          >
+            <VenueVideoHero venue={venue} isOpenNow={isOpenNow} heroStatusLabel={heroStatusLabel} />
+          </ErrorBoundary>
+        ) : (
+          <VenueImageHero venue={venue} isOpenNow={isOpenNow} heroStatusLabel={heroStatusLabel} />
+        )}
+      </ErrorBoundary>
 
       {/* Resumo de decisão — só dados reais: preço médio quando existir,
           bairro, distância quando calculada, nota quando houver avaliação. */}
@@ -688,30 +747,35 @@ export function VenueProfile({
         </section>
       )}
 
-      {/* Galeria — listada diretamente do Storage; só aparece quando há arquivos reais. */}
+      {/* Galeria — listada diretamente do Storage; só aparece quando há
+          arquivos reais. Em <ErrorBoundary> própria (fallback=null): se
+          alguma foto da galeria falhar ao renderizar, a página segue sem
+          galeria em vez de quebrar inteira. */}
       {venue.galleryUrls && venue.galleryUrls.length > 0 && (
-        <section className="mt-8">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Galeria</h2>
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {venue.galleryUrls.map((url) => (
-              <a
-                key={url}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="relative aspect-[9/16] overflow-hidden rounded-xl"
-              >
-                <Image
-                  src={url}
-                  alt={`Foto da galeria de ${venue.name}`}
-                  fill
-                  sizes="(min-width: 640px) 25vw, 50vw"
-                  className="object-cover"
-                />
-              </a>
-            ))}
-          </div>
-        </section>
+        <ErrorBoundary label="galeria do perfil" fallback={null}>
+          <section className="mt-8">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Galeria</h2>
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {venue.galleryUrls.map((url) => (
+                <a
+                  key={url}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="relative aspect-[9/16] overflow-hidden rounded-xl"
+                >
+                  <Image
+                    src={url}
+                    alt={`Foto da galeria de ${venue.name}`}
+                    fill
+                    sizes="(min-width: 640px) 25vw, 50vw"
+                    className="object-cover"
+                  />
+                </a>
+              ))}
+            </div>
+          </section>
+        </ErrorBoundary>
       )}
 
       {/* Horários — status resumido já está no hero; aqui entra a semana

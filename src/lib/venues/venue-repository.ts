@@ -4,7 +4,12 @@ import { venues as localVenues, type Venue } from "@/data/venues";
 import { createClient } from "@/lib/supabase/server";
 import { mapVenueRow } from "./venue-mapper";
 import type { VenueRow } from "./venue-row";
-import { resolveFeaturedMediaUrl } from "./venue-media";
+// CORREÇÃO (causa real do erro de servidor em /lugares/[slug]): nunca
+// importar funções de venue-media.ts aqui — esse arquivo tem "use client"
+// no topo, e código server-only chamando uma função de lá derruba a página
+// em runtime ("Attempted to call ... from the server"). venue-media-resolve.ts
+// tem a mesma lógica sem essa marcação, seguro pros dois lados.
+import { resolveFeaturedMediaUrl } from "./venue-media-resolve";
 import {
   normalizeVenueBusinessHourRows,
   type VenueBusinessHour,
@@ -57,8 +62,22 @@ async function getVenuesMedia(
 
   if (error || !data) return {};
 
+  // Defensivo: uma linha com url vazia/nula (dado sujo, nunca deveria
+  // existir mas o tipo manual abaixo não valida em runtime) nunca deve
+  // virar `src` de <Image>/<video> — o Next.js Image lança exceção em
+  // render (não é só um aviso) para src inválido, o que derrubaria a
+  // página inteira. Descartada aqui, com log, antes de chegar em qualquer
+  // componente.
+  const rows = (data as VenueMediaRow[]).filter((row) => {
+    const ok = typeof row.url === "string" && row.url.trim().length > 0;
+    if (!ok) {
+      console.error(`[venues] venue_media com url inválida descartada (venue_id=${row.venue_id}, media_type=${row.media_type}).`, row);
+    }
+    return ok;
+  });
+
   const byVenueId: Record<string, VenueMediaRow[]> = {};
-  for (const row of data as VenueMediaRow[]) {
+  for (const row of rows) {
     (byVenueId[row.venue_id] ??= []).push(row);
   }
   return byVenueId;
@@ -111,8 +130,11 @@ function resolveGalleryUrls(media: VenueMediaRow[] | undefined, legacy: string[]
   const canonical = (media ?? []).filter((item) => item.media_type === "image").map((item) => item.url);
   const merged: string[] = [];
   const seen = new Set<string>();
+  // Última linha de defesa antes de virar `src` de <Image> no perfil
+  // público: mesmo que uma URL vazia/inválida escape de getVenuesMedia ou
+  // listGalleryUrls (fontes já filtradas acima), nunca entra aqui.
   for (const url of [...canonical, ...(legacy ?? [])]) {
-    if (!seen.has(url)) {
+    if (typeof url === "string" && url.trim().length > 0 && !seen.has(url)) {
       seen.add(url);
       merged.push(url);
     }
@@ -184,12 +206,19 @@ async function listGalleryUrls(
 ): Promise<string[]> {
   const { data } = await supabase.storage.from("venue-media").list(`${venueId}/gallery`);
   return (data ?? [])
-    .filter((item) => item.name && !item.name.endsWith("/"))
+    // Nunca inclui pastas nem arquivos de sistema do Storage (ex.:
+    // ".emptyFolderPlaceholder", criado automaticamente pelo Supabase pra
+    // pastas vazias) — um nome desses viraria uma URL pública "válida" mas
+    // que não é imagem nenhuma, quebrando o <Image> no perfil público.
+    .filter((item) => item.name && !item.name.endsWith("/") && !item.name.startsWith("."))
     .map(
       (item) =>
         supabase.storage.from("venue-media").getPublicUrl(`${venueId}/gallery/${item.name}`).data
           .publicUrl,
-    );
+    )
+    // Defensivo: getPublicUrl nunca deveria devolver vazio pra um path
+    // válido, mas nunca deixa um item assim virar `src` de <Image>.
+    .filter((url): url is string => typeof url === "string" && url.trim().length > 0);
 }
 
 /**

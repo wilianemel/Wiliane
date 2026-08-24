@@ -498,31 +498,18 @@ export async function listVenueMedia(venueId: string, mediaType?: MediaKind): Pr
   }));
 }
 
-export interface ResolvableMainImage {
-  url: string;
-  mediaType: MediaKind;
-  isFeatured: boolean;
-}
-
-/**
- * Mídia destacada de um tipo (image ou video) > primeira ATIVA desse tipo
- * (mais antiga primeiro, já que a lista normalmente vem ordenada por
- * created_at ascendente) > fallback (cover_image_url/video_url legados,
- * NUNCA apagados, só preteridos quando existe mídia canônica melhor). Regra
- * única reaproveitada tanto no servidor (venue-repository.ts, perfil
- * público) quanto no cliente (prévia do painel), pra nunca divergir entre o
- * que o dono vê na prévia e o que o público vê de fato.
- */
-export function resolveFeaturedMediaUrl(
-  items: ResolvableMainImage[] | undefined,
-  mediaType: MediaKind,
-  fallback?: string | null,
-): string | undefined {
-  if (!items || items.length === 0) return fallback ?? undefined;
-  const onlyType = items.filter((item) => item.mediaType === mediaType);
-  if (onlyType.length === 0) return fallback ?? undefined;
-  return (onlyType.find((item) => item.isFeatured) ?? onlyType[0]).url;
-}
+// CORREÇÃO (causa real do erro de servidor em /lugares/[slug]): estas duas
+// funções eram definidas aqui, mas este arquivo tem "use client" no topo —
+// código server-only (venue-repository.ts) que as CHAMAVA diretamente
+// derrubava a página inteira ("Attempted to call ... from the server").
+// Agora vivem em venue-media-resolve.ts (sem "use client", chamável dos
+// dois lados) e só são re-exportadas aqui, pra nenhum import existente
+// neste arquivo (ex.: a prévia do painel do dono) precisar mudar.
+export {
+  resolveFeaturedMediaUrl,
+  resolveVenueMainImageUrl,
+  type ResolvableMainImage,
+} from "./venue-media-resolve";
 
 /**
  * Traduz o erro da RPC de escrita de mídia (replace_featured_venue_media,
