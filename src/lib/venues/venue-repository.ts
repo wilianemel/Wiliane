@@ -192,44 +192,113 @@ async function listGalleryUrls(
     );
 }
 
+/**
+ * CORREÇÃO (404 indevido em /lugares/[slug]): a versão anterior envolvia a
+ * consulta do venue E as consultas de mídia (venue_media/Storage) num único
+ * try/catch — qualquer erro nas consultas de mídia (mesmo com o venue
+ * encontrado e publicado) caía no mesmo catch, que devolve o fallback local
+ * de demonstração; como um venue real não está nessa lista local, o
+ * resultado virava `null` e a página 404ava mesmo com o estabelecimento
+ * publicado e existente no banco. Agora são 3 blocos isolados:
+ *   1) consulta do venue (existe + publicado) — só ISSO decide null/404;
+ *   2) mídia (venue_media) — erro aqui nunca derruba o venue, só faz
+ *      coverImageUrl/videoUrl caírem no valor legado da própria linha;
+ *   3) galeria legada (Storage) — erro aqui nunca derruba o venue, só faz
+ *      a galeria ficar vazia.
+ * Cada bloco loga de forma diferenciada (inexistente vs. não publicado vs.
+ * erro de mídia vs. erro de Storage), nunca um "not found" genérico.
+ */
 export async function getPublishedVenueBySlug(slugOrId: string): Promise<Venue | null> {
+  const supabase = await createClient();
+  const column = isUuid(slugOrId) ? "id" : "slug";
+
+  let row: VenueRow | null;
   try {
-    const supabase = await createClient();
     const { data, error } = await supabase
       .from("venues")
       .select(VENUE_COLUMNS)
-      .eq(isUuid(slugOrId) ? "id" : "slug", slugOrId)
+      .eq(column, slugOrId)
       .eq("is_published", true)
       .maybeSingle();
 
     if (error) throw error;
-    if (!data) return null;
-
-    const row = data as unknown as VenueRow;
-    const venue = mapVenueRow(row);
-
-    // venue_media é a fonte canônica de galeria e vídeo — cai para a
-    // listagem antiga do Storage (galeria) e para venues.video_url/
-    // cover_image_url (vídeo/capa) por CAMPO, não em bloco: um venue pode
-    // ter só um vídeo consolidado ainda, por exemplo, e nesse caso a
-    // galeria de imagens continua vindo do Storage normalmente.
-    const [mediaByVenueId, legacyGalleryUrls] = await Promise.all([
-      getVenuesMedia(supabase, [row.id]),
-      listGalleryUrls(supabase, row.id),
-    ]);
-    const media = mediaByVenueId[row.id];
-
-    return {
-      ...venue,
-      coverImageUrl: resolveCoverImageUrl(media, venue.coverImageUrl),
-      videoUrl: resolveVideoUrl(media, venue.videoUrl),
-      galleryUrls: resolveGalleryUrls(media, legacyGalleryUrls),
-    };
-  } catch {
+    row = (data as unknown as VenueRow | null) ?? null;
+  } catch (error) {
+    console.error(
+      `[venues] Erro ao consultar o estabelecimento (${column}="${slugOrId}") — Supabase indisponível; usando dado local de segurança, se existir.`,
+      error,
+    );
     warnFallback("slug");
     const venue = localVenues.find((item) => item.id === slugOrId);
     return venue ? { ...venue, isDemo: true } : null;
   }
+
+  if (!row) {
+    // Diferencia "não existe" de "existe mas não está publicado" só no log
+    // — o resultado público (null -> 404) é o mesmo nos dois casos, mas o
+    // log deixa claro qual é a causa real em vez de um "not found" cego.
+    // Falha nesta checagem extra (puramente diagnóstica) nunca muda o
+    // resultado: o venue já não foi encontrado de qualquer forma.
+    try {
+      const { data: existsRow } = await supabase
+        .from("venues")
+        .select("id")
+        .eq(column, slugOrId)
+        .maybeSingle();
+
+      if (existsRow) {
+        console.warn(
+          `[venues] 404: estabelecimento existe mas não está publicado (${column}="${slugOrId}", id=${existsRow.id}).`,
+        );
+      } else {
+        console.warn(`[venues] 404: estabelecimento inexistente (${column}="${slugOrId}").`);
+      }
+    } catch (error) {
+      console.warn(
+        `[venues] 404: estabelecimento não encontrado (${column}="${slugOrId}") — não foi possível diferenciar inexistente/não publicado.`,
+        error,
+      );
+    }
+    return null;
+  }
+
+  const venue = mapVenueRow(row);
+
+  // venue_media (mídia canônica) e a listagem antiga da galeria no Storage
+  // — falha em QUALQUER uma delas nunca torna o estabelecimento "não
+  // encontrado": cada uma cai isoladamente no fallback legado da própria
+  // linha de venues (video_url/cover_image_url) ou em galeria vazia.
+  const [mediaResult, galleryResult] = await Promise.allSettled([
+    getVenuesMedia(supabase, [row.id]),
+    listGalleryUrls(supabase, row.id),
+  ]);
+
+  let media: VenueMediaRow[] | undefined;
+  if (mediaResult.status === "fulfilled") {
+    media = mediaResult.value[row.id];
+  } else {
+    console.error(
+      `[venues] Erro de mídia (venue_media) ao carregar "${row.slug}" (id=${row.id}) — usando fallback legado de vídeo/capa (venues.video_url/cover_image_url). Estabelecimento continua sendo exibido normalmente.`,
+      mediaResult.reason,
+    );
+  }
+
+  let legacyGalleryUrls: string[] = [];
+  if (galleryResult.status === "fulfilled") {
+    legacyGalleryUrls = galleryResult.value;
+  } else {
+    console.error(
+      `[venues] Erro de Storage (galeria legada) ao carregar "${row.slug}" (id=${row.id}) — galeria ficará vazia. Estabelecimento continua sendo exibido normalmente.`,
+      galleryResult.reason,
+    );
+  }
+
+  return {
+    ...venue,
+    coverImageUrl: resolveCoverImageUrl(media, venue.coverImageUrl),
+    videoUrl: resolveVideoUrl(media, venue.videoUrl),
+    galleryUrls: resolveGalleryUrls(media, legacyGalleryUrls),
+  };
 }
 
 /**
