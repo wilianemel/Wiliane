@@ -106,7 +106,7 @@ export default function EntrarPage() {
           <div aria-hidden="true" className="pointer-events-none absolute inset-0" style={HERO_GRADIENT_STYLE} />
           <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8">
             <p className="max-w-sm text-xl font-semibold text-white drop-shadow-sm sm:text-2xl">
-              Sua próxima boa começa aqui.
+              Seu próximo rolê começa aqui.
             </p>
           </div>
         </div>

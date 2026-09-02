@@ -80,9 +80,9 @@ export function HomeHero() {
       <div className="relative z-10 flex h-full flex-col">
         <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 pt-6 sm:px-6 sm:pt-10">
           <h1 className="animate-fade-up text-4xl font-extrabold leading-[0.98] tracking-tight text-white drop-shadow-sm sm:text-6xl">
-            Qual é a{" "}
+            Bora{" "}
             <span className="relative inline-block text-accent">
-              sua boa
+              pra onde
               <span
                 aria-hidden="true"
                 className="animate-glow-pulse absolute -inset-x-4 -inset-y-3 -z-10 rounded-full bg-accent/30 blur-[28px]"
@@ -115,7 +115,7 @@ export function HomeHero() {
               href="#match-flow"
               className={`inline-flex items-center justify-center gap-2 rounded-full bg-accent px-6 py-3.5 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] active:scale-[0.98] ${focusRing}`}
             >
-              Encontrar minha boa
+              Bora descobrir
             </Link>
           </div>
         </div>

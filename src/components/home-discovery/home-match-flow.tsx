@@ -433,7 +433,7 @@ export function HomeMatchFlow({
           Menos tempo procurando. Mais tempo vivendo.
         </p>
         <h2 className="mt-3 text-2xl font-bold tracking-tight text-foreground sm:mt-4 sm:text-3xl">
-          Encontre sua boa em poucos passos
+          Descubra seu próximo rolê em poucos passos
         </h2>
         <p className="mt-2 text-sm text-muted sm:text-base">
           Escolha o que combina com seu momento. A gente cuida do resto.

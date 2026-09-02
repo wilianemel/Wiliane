@@ -50,8 +50,8 @@ const INTENTION_PHRASES: Record<string, string> = {
   jantar: "um bom jantar",
   "happy-hour": "um happy hour animado",
   comemorar: "um momento de comemoração",
-  "ouvir-musica": "uma boa trilha sonora ao vivo",
-  "comer-bem": "uma boa gastronomia",
+  "ouvir-musica": "uma trilha sonora ao vivo incrível",
+  "comer-bem": "uma gastronomia especial",
   "conhecer-lugar-novo": "a chance de conhecer um lugar novo",
   relaxar: "um momento para relaxar",
   "experiencia-gastronomica": "uma experiência gastronômica completa",
@@ -82,5 +82,5 @@ export function formatRecommendationReason(rawText: string | null | undefined): 
     return humanizeSlugsInText(rawText);
   }
 
-  return `Uma boa escolha para quem procura ${atmosphere}, ${companion} e ${intention}.`;
+  return `Uma escolha que combina com quem procura ${atmosphere}, ${companion} e ${intention}.`;
 }

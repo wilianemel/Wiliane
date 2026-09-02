@@ -205,7 +205,7 @@ export function HomeDiscoveryFlow() {
               disabled={!canSubmit}
               className={`mt-10 inline-flex items-center gap-2 rounded-full bg-accent px-8 py-4 text-base font-semibold text-accent-foreground transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 ${focusRing}`}
             >
-              Encontrar minha boa
+              Bora encontrar
             </button>
           </>
         )}
