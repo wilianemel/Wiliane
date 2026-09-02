@@ -35,7 +35,7 @@ create table if not exists public.profiles (
 comment on table public.profiles is
   'Perfil de aplicação de cada usuário autenticado, com o papel (admin/owner) usado pelas policies de RLS.';
 comment on column public.profiles.role is
-  'Papel do usuário: "admin" (equipe do Qual é a Boa, acesso global) ou "owner" (padrão de todo cadastro novo). Só um admin pode alterar este campo — ver trigger guard_profiles_role_and_status.';
+  'Papel do usuário: "admin" (equipe do Bora pra onde, acesso global) ou "owner" (padrão de todo cadastro novo). Só um admin pode alterar este campo — ver trigger guard_profiles_role_and_status.';
 comment on column public.profiles.is_active is
   'Permite suspender o acesso de uma conta sem excluir o perfil nem o histórico associado a ela. Só um admin pode alterar este campo.';
 

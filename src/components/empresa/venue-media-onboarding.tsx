@@ -29,17 +29,6 @@ export function VenueMediaOnboarding({ venue, onVenueUpdated }: VenueMediaOnboar
       <div className="mt-6 flex flex-col gap-6">
         <SingleMediaSlot
           venueId={venue.id}
-          folder="cover"
-          kind="image"
-          title="Capa"
-          description="JPG, PNG, WebP ou HEIC/HEIF. Aparece nos cards e no topo da página do estabelecimento."
-          currentUrl={venue.cover_image_url}
-          urlColumn="cover_image_url"
-          onVenueUpdated={onVenueUpdated}
-        />
-
-        <SingleMediaSlot
-          venueId={venue.id}
           folder="video"
           kind="video"
           title="Vídeo"

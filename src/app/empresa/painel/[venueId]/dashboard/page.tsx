@@ -200,8 +200,6 @@ function formatLastUpdated(date: Date): string {
   return `Dados atualizados em ${formattedDate} às ${formattedTime}`;
 }
 
-const WHATSAPP_URL = "https://wa.me/5512981865109";
-
 interface UpsellPlan {
   title: string;
   price: string;
@@ -213,34 +211,31 @@ const UPSELL_PLANS: UpsellPlan[] = [
   {
     title: "Plano Essencial",
     price: "R$ 97,00/mês",
-    features: ["3 vídeos", "3 fotos", "Recomendações sem limite de visualizações"],
-    ctaLabel: "Contratar o plano Essencial por R$ 97/mês",
+    features: ["3 vídeos", "4 fotos"],
+    ctaLabel: "Quero o Plano Essencial",
   },
   {
     title: "Plano Master",
     price: "R$ 187,00/mês",
-    features: [
-      "5 vídeos",
-      "5 fotos",
-      "Dashboard completo",
-      "Diagnóstico do estabelecimento",
-      "Relatórios a cada 30 dias",
-    ],
-    ctaLabel: "Contratar o plano Master por R$ 187/mês",
+    features: ["5 vídeos", "6 fotos", "Diagnóstico mensal"],
+    ctaLabel: "Quero o Plano Master",
   },
 ];
 
 /**
- * Upsell mostrado só para quem está no Free — contratação continua sendo
+ * Upsell mostrado para quem está no Free ou no Partner (planos sem os
+ * limites de vídeo/foto do Essencial/Master) — contratação continua sendo
  * sempre humana (WhatsApp), nunca automática: nenhum botão aqui chama RPC
  * nenhuma, só abre o link. Copy fixa (sem IA), pedida explicitamente.
  */
 function PlanUpsellSection() {
   return (
     <section className="mt-8 rounded-2xl border border-accent/30 bg-accent/5 p-6">
-      <p className="text-sm text-foreground">
-        Seu estabelecimento já está sendo encontrado. Agora escolha como quer crescer: apareça
-        mais, entenda seu público e transforme visitas em novos clientes.
+      <h2 className="text-base font-semibold text-foreground">
+        Quer aparecer mais e receber mais contatos?
+      </h2>
+      <p className="mt-2 text-sm text-muted">
+        Faça upgrade e tenha mais vídeos, mais fotos e mais oportunidades de ser recomendado.
       </p>
 
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -259,20 +254,6 @@ function PlanUpsellSection() {
           </div>
         ))}
       </div>
-
-      <p className="mt-4 text-xs text-muted">
-        Planos pagos ajudam seu negócio a ganhar mais visibilidade, apresentar melhor sua
-        experiência e acompanhar o que realmente funciona.
-      </p>
-
-      <a
-        href={WHATSAPP_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={`mt-4 inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] ${focusRing}`}
-      >
-        Quero melhorar os resultados do meu estabelecimento
-      </a>
     </section>
   );
 }
@@ -389,7 +370,9 @@ function DashboardContent({ venue }: { venue: VenueOwnerRow }) {
         </section>
       )}
 
-      {planLimits?.planType === "free" && <PlanUpsellSection />}
+      {(planLimits?.planType === "free" || planLimits?.planType === "partner") && (
+        <PlanUpsellSection />
+      )}
       {planLimits?.planType === "master" && <VenueDiagnostic venueId={venue.id} />}
 
       <div className="mt-8 flex flex-wrap gap-2">

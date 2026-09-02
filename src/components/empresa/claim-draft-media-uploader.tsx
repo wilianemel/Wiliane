@@ -250,7 +250,7 @@ export function ClaimDraftMediaUploader({
           {items.map((item) => (
             <div
               key={item.id}
-              className={`relative aspect-square overflow-hidden rounded-xl border ${
+              className={`relative aspect-[9/16] overflow-hidden rounded-xl border ${
                 item.isFeatured ? "border-accent" : "border-border"
               }`}
             >

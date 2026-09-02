@@ -6,6 +6,7 @@ import { VenueAccessGate } from "@/components/empresa/venue-access-gate";
 import type { VenueOwnerRow } from "@/lib/venues/venue-owner";
 import { SingleMediaSlot, GallerySlot } from "@/components/empresa/venue-media-slots";
 import { VenueVideoLibrary } from "@/components/empresa/venue-video-library";
+import { useScrollToHash } from "@/lib/use-scroll-to-hash";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -28,6 +29,9 @@ function MidiasContent({
   venue: VenueOwnerRow;
   onVenueUpdated: () => void;
 }) {
+  // Rola até a seção do checklist que trouxe o usuário aqui (#video).
+  useScrollToHash(true);
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 sm:py-14">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -45,24 +49,12 @@ function MidiasContent({
       <div className="mt-6 rounded-2xl border border-accent/30 bg-background-elevated p-5">
         <p className="text-sm font-semibold text-foreground">Mostre sua experiência</p>
         <p className="mt-1 text-sm text-muted">
-          Fotos e vídeos ajudam as pessoas a escolherem seu estabelecimento. Capa, logo e vídeo
-          têm um espaço fixo cada; a quantidade de fotos na galeria e de vídeos depende do seu
-          plano atual.
+          Fotos e vídeos ajudam as pessoas a escolherem seu estabelecimento. Logo tem um espaço
+          fixo; a quantidade de fotos na galeria e de vídeos depende do seu plano atual.
         </p>
       </div>
 
       <div className="mt-8 flex flex-col gap-8">
-        <SingleMediaSlot
-          venueId={venue.id}
-          folder="cover"
-          kind="image"
-          title="Capa"
-          description="JPG, PNG ou WebP. Aparece nos cards e no topo da página do estabelecimento."
-          currentUrl={venue.cover_image_url}
-          urlColumn="cover_image_url"
-          onVenueUpdated={onVenueUpdated}
-        />
-
         <SingleMediaSlot
           venueId={venue.id}
           folder="logo"
@@ -74,7 +66,7 @@ function MidiasContent({
           onVenueUpdated={onVenueUpdated}
         />
 
-        <VenueVideoLibrary venueId={venue.id} />
+        <VenueVideoLibrary id="video" venueId={venue.id} />
 
         <GallerySlot venueId={venue.id} />
       </div>

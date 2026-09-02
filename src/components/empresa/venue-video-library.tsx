@@ -28,7 +28,13 @@ type Status = "idle" | "busy" | "error";
  * destacado sozinho quando o teto é excedido — este componente só reflete
  * o resultado e mostra a mensagem de erro se o banco recusar.
  */
-export function VenueVideoLibrary({ venueId }: { venueId: string }) {
+interface VenueVideoLibraryProps {
+  venueId: string;
+  /** Âncora opcional (ex.: "video") pra abrir o painel já rolado até esta seção — ver checklist de publicação. */
+  id?: string;
+}
+
+export function VenueVideoLibrary({ venueId, id }: VenueVideoLibraryProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<VenueMediaListItem[]>([]);
   const [limit, setLimit] = useState<number | null>(null);
@@ -166,7 +172,7 @@ export function VenueVideoLibrary({ venueId }: { venueId: string }) {
   const uploadBlocked = atFreeLimit || allFeaturedAtLimit;
 
   return (
-    <section className="rounded-2xl border border-border bg-background-elevated p-5">
+    <section id={id} className="rounded-2xl border border-border bg-background-elevated p-5 scroll-mt-20">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-sm font-semibold text-foreground">Vídeos</h2>
@@ -228,7 +234,7 @@ export function VenueVideoLibrary({ venueId }: { venueId: string }) {
           {items.map((item) => (
             <div
               key={item.id}
-              className={`relative aspect-square overflow-hidden rounded-xl border ${
+              className={`relative aspect-[9/16] overflow-hidden rounded-xl border ${
                 item.isFeatured ? "border-accent" : "border-border"
               }`}
             >

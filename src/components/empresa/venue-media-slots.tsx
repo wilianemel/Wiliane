@@ -33,6 +33,8 @@ export interface SingleMediaSlotProps {
   currentUrl: string | null;
   urlColumn: "cover_image_url" | "logo_url" | "video_url";
   onVenueUpdated: () => void;
+  /** Âncora opcional (ex.: "capa") pra abrir o painel já rolado até este slot — ver checklist de publicação. */
+  id?: string;
 }
 
 /**
@@ -49,6 +51,7 @@ export function SingleMediaSlot({
   currentUrl,
   urlColumn,
   onVenueUpdated,
+  id,
 }: SingleMediaSlotProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<UploadStatus>("idle");
@@ -170,7 +173,7 @@ export function SingleMediaSlot({
   }
 
   return (
-    <section className="rounded-2xl border border-border bg-background-elevated p-5">
+    <section id={id} className="rounded-2xl border border-border bg-background-elevated p-5 scroll-mt-20">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-sm font-semibold text-foreground">{title}</h2>
@@ -347,7 +350,7 @@ export function GallerySlot({ venueId }: { venueId: string }) {
       ) : (
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {items.map((item) => (
-            <div key={item.name} className="relative aspect-square overflow-hidden rounded-xl border border-border">
+            <div key={item.name} className="relative aspect-[9/16] overflow-hidden rounded-xl border border-border">
               <Image src={item.url} alt="Foto da galeria" fill sizes="200px" className="object-cover" />
               <button
                 type="button"

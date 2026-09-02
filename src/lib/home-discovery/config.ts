@@ -20,7 +20,7 @@ export const HOME_QUESTIONS: string[] = [
   "Qual aventura vamos viver hoje?",
   "Que tipo de memória vamos criar hoje?",
   "O que seu momento está pedindo?",
-  "Qual é a boa para hoje?",
+  "Bora pra onde hoje?",
 ];
 
 /** Sensação do momento — enviada como `p_atmosphere`. */

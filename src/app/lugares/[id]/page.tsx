@@ -31,11 +31,11 @@ export async function generateMetadata({ params }: VenuePageProps): Promise<Meta
   const venue = await getPublishedVenueBySlug(id);
 
   if (!venue) {
-    return { title: "Estabelecimento não encontrado — Qual é a Boa!" };
+    return { title: "Estabelecimento não encontrado — Bora pra onde?" };
   }
 
   return {
-    title: `${venue.name} — Qual é a Boa!`,
+    title: `${venue.name} — Bora pra onde?`,
     description: venue.description,
   };
 }
@@ -59,7 +59,7 @@ export default async function VenuePage({ params }: VenuePageProps) {
       <VenueViewTracker venueId={venue.venueId} />
       <header className="border-b border-border/60 bg-background/90 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-2 sm:px-6">
-          <Link href="/" aria-label="Qual é a Boa — página inicial">
+          <Link href="/" aria-label="Bora pra onde — página inicial">
             <BrandLogo variant="dark" size="medium" priority />
           </Link>
           <Link

@@ -1,7 +1,7 @@
 /**
  * Entrada discreta para a Mostarda — serviço externo e opcional de
  * posicionamento/marketing/presença digital para empresários, sem relação
- * com planos, destaque ou requisitos do Qual é a Boa. Só aparece no
+ * com planos, destaque ou requisitos do Bora pra onde. Só aparece no
  * contexto empresarial (dashboard do estabelecimento), nunca no fluxo do
  * consumidor.
  *
@@ -20,7 +20,7 @@ export function MostardaCard() {
         A Mostarda pode ajudar sua empresa com posicionamento, marketing e presença digital.
       </p>
       <p className="mt-2 text-xs text-muted">
-        Serviço independente e opcional — não é um plano do Qual é a Boa nem requisito para
+        Serviço independente e opcional — não é um plano do Bora pra onde nem requisito para
         aparecer na plataforma.
       </p>
       <span

@@ -49,7 +49,7 @@ function AdminContent() {
         Painel administrativo
       </h1>
       <p className="mt-2 text-sm text-muted">
-        Ferramentas de gestão restritas à equipe do Qual é a Boa.
+        Ferramentas de gestão restritas à equipe do Bora pra onde.
       </p>
 
       <div className="mt-8 flex flex-col gap-4">

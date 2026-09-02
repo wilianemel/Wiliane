@@ -9,7 +9,7 @@ import type { VenueRow } from "./venue-row";
 // no topo, e código server-only chamando uma função de lá derruba a página
 // em runtime ("Attempted to call ... from the server"). venue-media-resolve.ts
 // tem a mesma lógica sem essa marcação, seguro pros dois lados.
-import { resolveFeaturedMediaUrl } from "./venue-media-resolve";
+import { resolveVenueMainImageUrl, resolveFeaturedMediaUrl } from "./venue-media-resolve";
 import {
   normalizeVenueBusinessHourRows,
   type VenueBusinessHour,
@@ -85,13 +85,15 @@ async function getVenuesMedia(
 
 /**
  * Capa: imagem destacada > primeira imagem > venues.cover_image_url (nunca
- * apagada, só preterida quando já existe mídia canônica melhor).
+ * apagada, só preterida quando já existe mídia canônica melhor). Regra
+ * compartilhada com o cliente (venue-media.ts) — mesma prioridade usada na
+ * prévia do painel do dono, pra nunca divergir do que o público vê aqui.
  */
 function resolveCoverImageUrl(media: VenueMediaRow[] | undefined, fallback?: string): string | undefined {
-  if (!media || media.length === 0) return fallback;
-  const images = media.filter((item) => item.media_type === "image");
-  if (images.length === 0) return fallback;
-  return (images.find((item) => item.is_featured) ?? images[0]).url;
+  return resolveVenueMainImageUrl(
+    media?.map((item) => ({ url: item.url, mediaType: item.media_type, isFeatured: item.is_featured })),
+    fallback,
+  );
 }
 
 /**

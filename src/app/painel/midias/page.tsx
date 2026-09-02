@@ -6,7 +6,7 @@ import { MediaDashboard } from "@/components/media-dashboard/media-dashboard";
 import { BrandLogo } from "@/components/shared/brand-logo";
 
 export const metadata: Metadata = {
-  title: "Painel de mídias — Qual é a Boa!",
+  title: "Painel de mídias — Bora pra onde?",
   description: "Protótipo interno de gestão de vídeos dos estabelecimentos.",
 };
 
@@ -42,7 +42,7 @@ export default async function PainelMidiasPage() {
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-border/60 bg-background/90 backdrop-blur">
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-2 sm:px-6">
-          <Link href="/" aria-label="Qual é a Boa — página inicial">
+          <Link href="/" aria-label="Bora pra onde — página inicial">
             <BrandLogo variant="dark" size="medium" priority />
           </Link>
           <Link

@@ -211,7 +211,7 @@ function ReivindicarContent() {
         Encontre seu estabelecimento
       </h1>
       <p className="mt-2 text-sm text-muted">
-        Seu estabelecimento já pode estar no Qual é a Boa. Procure pelo nome e assuma o controle
+        Seu estabelecimento já pode estar no Bora pra onde. Procure pelo nome e assuma o controle
         da sua página.
       </p>
 

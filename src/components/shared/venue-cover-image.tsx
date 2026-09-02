@@ -127,7 +127,7 @@ export function VenueCoverImage({
       <div className={`relative overflow-hidden ${className}`}>
         <Image
           src={venue.coverImageUrl}
-          alt={`Foto de capa de ${venue.name}`}
+          alt={`Foto de ${venue.name}`}
           fill
           sizes={sizes}
           priority={priority}

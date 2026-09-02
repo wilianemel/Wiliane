@@ -23,7 +23,7 @@ function InstagramIcon() {
 
 /**
  * CTA de marketing pra donos de estabelecimento — parceiro externo
- * (Mostarda), serviço separado do Qual é a Boa, não uma extensão do
+ * (Mostarda), serviço separado do Bora pra onde, não uma extensão do
  * cadastro/login. Reaproveitado em /entrar e /cadastro, sempre depois do
  * bloco de imagem+formulário (nunca compete visualmente com a
  * autenticação, que continua sendo o conteúdo principal da tela).

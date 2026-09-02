@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Qual é a Boa | Experiências escolhidas para você",
+  title: "Bora pra onde | Experiências escolhidas para você",
   description:
     "Descubra restaurantes, bares, eventos e experiências que combinam com o seu momento.",
   // PWA instalável (Etapa 1): manifest.ts e apple-icon.png já são
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   // env(safe-area-inset-top) (ver header.tsx) só nesse modo.
   appleWebApp: {
     capable: true,
-    title: "Qual é a Boa",
+    title: "Bora pra onde",
     statusBarStyle: "black-translucent",
   },
 };

@@ -1,5 +1,5 @@
 -- 001_create_venues.sql
--- Primeira estrutura real do banco do "Qual é a Boa": tabela de estabelecimentos.
+-- Primeira estrutura real do banco do "Bora pra onde": tabela de estabelecimentos.
 --
 -- Este arquivo é seguro para revisar e reexecutar (idempotente onde razoável):
 -- extensão, tabela, índices, função e policy usam "if not exists" / "or replace"
@@ -61,7 +61,7 @@ create table if not exists public.venues (
 );
 
 comment on table public.venues is
-  'Estabelecimentos (bares, restaurantes, casas de show etc.) exibidos no Qual é a Boa.';
+  'Estabelecimentos (bares, restaurantes, casas de show etc.) exibidos no Bora pra onde.';
 comment on column public.venues.distance_km is
   'Distância estática de demonstração usada no piloto. Substituir por cálculo real de geolocalização.';
 

@@ -3,7 +3,7 @@
  *
  * Nesta etapa não há autenticação real nem persistência: `role` é escolhido
  * localmente na página só para simular as duas experiências (dono do
- * estabelecimento e equipe do Qual é a Boa).
+ * estabelecimento e equipe do Bora pra onde).
  */
 
 export type DashboardRole = "admin" | "owner";

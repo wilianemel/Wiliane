@@ -8,7 +8,7 @@ import { buildVenueHoursStatusMap } from "@/lib/venues/venue-hours";
 import type { VenueFilters } from "@/lib/search-venues";
 
 export const metadata: Metadata = {
-  title: "Buscar — Qual é a Boa!",
+  title: "Buscar — Bora pra onde?",
   description:
     "Busque diretamente por nome, categoria, culinária, bairro, música ou característica da experiência.",
 };
@@ -53,7 +53,7 @@ export default async function BuscarPage({ searchParams }: BuscarPageProps) {
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-border/60 bg-background/90 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-2 sm:px-6">
-          <Link href="/" aria-label="Qual é a Boa — página inicial">
+          <Link href="/" aria-label="Bora pra onde — página inicial">
             <BrandLogo variant="dark" size="medium" priority />
           </Link>
           <Link

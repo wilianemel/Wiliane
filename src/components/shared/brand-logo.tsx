@@ -22,7 +22,7 @@ const SIZE_SIZES_ATTR = {
   large: "(min-width: 768px) 128px, 96px",
 } as const;
 
-const ALT_TEXT = "Qual é a Boa — plataforma de descoberta de experiências";
+const ALT_TEXT = "Bora pra onde — plataforma de descoberta de experiências";
 
 export type BrandLogoVariant = keyof typeof VARIANT_SRC;
 export type BrandLogoSize = keyof typeof SIZE_CLASSES;

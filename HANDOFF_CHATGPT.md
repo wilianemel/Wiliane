@@ -1,4 +1,4 @@
-# Qual é a Boa — Documento de continuidade do projeto
+# Bora pra onde — Documento de continuidade do projeto
 
 > Gerado para retomar o trabalho depois de perder o histórico de conversa no ChatGPT (usado para redigir os prompts enviados ao Claude Code, que é quem efetivamente implementa o código). Este arquivo resume tudo que já foi construído, as regras de trabalho combinadas e o ponto exato em que paramos.
 
@@ -6,7 +6,7 @@
 
 ## 1. O que é o projeto
 
-**Qual é a Boa** é uma plataforma de descoberta de experiências locais (restaurantes, bares, eventos) em São José dos Campos e região do Vale do Paraíba. A proposta central é diferenciar-se de apps de busca/mapa por combinar **intenção + vibe + personalização + experiência**, não só localização.
+**Bora pra onde** é uma plataforma de descoberta de experiências locais (restaurantes, bares, eventos) em São José dos Campos e região do Vale do Paraíba. A proposta central é diferenciar-se de apps de busca/mapa por combinar **intenção + vibe + personalização + experiência**, não só localização.
 
 Tem dois lados:
 - **Consumidor**: descobre lugares por busca direta (`/buscar`) ou por um fluxo guiado de recomendação por afinidade (`/descobrir`, motor de match em `match-engine.ts`), favorita, avalia, define preferências ("Minha vibe").
@@ -102,9 +102,9 @@ Essas mudanças pendentes são todas da investigação do **bug crítico do cada
 - Depois, numa auditoria pontual, confirmamos e corrigimos uma consulta duplicada real entre o resumo compacto e a seção completa (extraído hook `useVenueRatingSummary`).
 
 ### Fase E — Instagram + Mostarda
-- CTA discreto "Siga o Qual é a Boa no Instagram" (`@qualeaboa.brasil`, link para `https://www.instagram.com/qualeaboa.brasil/`) no fim da Home, antes do rodapé.
-- Card "Quer melhorar ainda mais o seu negócio?" da **Mostarda** (empresa parceira de marketing/posicionamento, **serviço externo e opcional**, não é plano do Qual é a Boa) no dashboard do estabelecimento — CTA fica desabilitado ("em breve") porque **não existe ainda destino real** (site, WhatsApp ou contato da Mostarda) cadastrado em lugar nenhum do projeto.
-- Explicitamente **não implementado**: site institucional do Qual é a Boa (fica pra depois, roadmap).
+- CTA discreto "Siga o Bora pra onde no Instagram" (`@qualeaboa.brasil`, link para `https://www.instagram.com/qualeaboa.brasil/`) no fim da Home, antes do rodapé.
+- Card "Quer melhorar ainda mais o seu negócio?" da **Mostarda** (empresa parceira de marketing/posicionamento, **serviço externo e opcional**, não é plano do Bora pra onde) no dashboard do estabelecimento — CTA fica desabilitado ("em breve") porque **não existe ainda destino real** (site, WhatsApp ou contato da Mostarda) cadastrado em lugar nenhum do projeto.
+- Explicitamente **não implementado**: site institucional do Bora pra onde (fica pra depois, roadmap).
 
 ### Fase F — Explorar (Fase 2 visual)
 - Removida a redundância: `/descobrir` sem filtro não embutia mais o `SearchPage` completo por baixo das fileiras curadas — no lugar, um CTA simples "Quer algo específico? → Buscar com filtros".

@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/client";
 
 export const MEDIA_BUCKET = "venue-media";
 
-/** HEIC/HEIF só entra quando o navegador consegue identificar o MIME type corretamente — sem fallback por extensão para imagem (diferente de vídeo, ver ALLOWED_VIDEO_EXTENSIONS). */
+/** Formatos de imagem aceitos. A extensão também é considerada porque alguns celulares não informam file.type. */
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"] as const;
 
 /**
@@ -35,10 +35,35 @@ export const ALLOWED_VIDEO_TYPES = [
  * engano se dependêssemos só do MIME type. Nunca usado pra imagem.
  */
 const ALLOWED_VIDEO_EXTENSIONS = [".mp4", ".webm", ".mov", ".hevc", ".h265"];
+const ALLOWED_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"];
+
+function hasAllowedExtension(fileName: string, extensions: readonly string[]): boolean {
+  const lower = fileName.toLowerCase();
+  return extensions.some((extension) => lower.endsWith(extension));
+}
 
 function hasAllowedVideoExtension(fileName: string): boolean {
-  const lower = fileName.toLowerCase();
-  return ALLOWED_VIDEO_EXTENSIONS.some((extension) => lower.endsWith(extension));
+  return hasAllowedExtension(fileName, ALLOWED_VIDEO_EXTENSIONS);
+}
+
+/** Garante um MIME válido também no Safari/iOS, que às vezes envia file.type vazio ou genérico. */
+export function getMediaUploadContentType(file: File, kind: MediaKind): string {
+  if (file.type && file.type !== "application/octet-stream") return file.type;
+  const name = file.name.toLowerCase();
+  if (kind === "image") {
+    if (name.endsWith(".jpg") || name.endsWith(".jpeg")) return "image/jpeg";
+    if (name.endsWith(".png")) return "image/png";
+    if (name.endsWith(".webp")) return "image/webp";
+    if (name.endsWith(".heic")) return "image/heic";
+    if (name.endsWith(".heif")) return "image/heif";
+  } else {
+    if (name.endsWith(".mp4")) return "video/mp4";
+    if (name.endsWith(".webm")) return "video/webm";
+    if (name.endsWith(".mov")) return "video/quicktime";
+    if (name.endsWith(".hevc")) return "video/hevc";
+    if (name.endsWith(".h265")) return "video/h265";
+  }
+  return kind === "image" ? "image/jpeg" : "application/octet-stream";
 }
 
 /** Mesmo teto configurado no bucket venue-media para imagem — validado aqui só para feedback rápido; a aplicação real do limite é no servidor. */
@@ -166,7 +191,8 @@ export async function verifyVenueUploadAccess(
 
 export function validateMediaFile(file: File, kind: MediaKind): string | null {
   if (kind === "image") {
-    if (!(ALLOWED_IMAGE_TYPES as readonly string[]).includes(file.type)) {
+    const hasKnownMimeType = (ALLOWED_IMAGE_TYPES as readonly string[]).includes(file.type);
+    if (!hasKnownMimeType && !hasAllowedExtension(file.name, ALLOWED_IMAGE_EXTENSIONS)) {
       return "Formato inválido. Envie um arquivo JPG, PNG, WebP ou HEIC/HEIF.";
     }
     if (file.size > MAX_IMAGE_FILE_SIZE_BYTES) {
@@ -275,7 +301,7 @@ export function getMediaPublicUrl(path: string): string {
  * de chegar aqui na maioria das vezes; isto é a segunda linha de defesa
  * caso o Storage recuse por um motivo que o cliente não pegou.
  */
-function describeStorageError(error: { message?: string; statusCode?: string }): string {
+export function describeStorageUploadError(error: { message?: string; statusCode?: string }): string {
   const message = (error.message ?? "").toLowerCase();
   if (
     error.statusCode === "413" ||
@@ -311,11 +337,11 @@ export async function replaceSingleMedia(
   const path = `${prefix}/${Date.now()}-${sanitizeFileName(file.name)}`;
 
   const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(path, file, {
-    contentType: file.type,
+    contentType: getMediaUploadContentType(file, folder === "logo" || folder === "cover" ? "image" : "video"),
   });
 
   if (error) {
-    return { error: describeStorageError(error) };
+    return { error: describeStorageUploadError(error) };
   }
 
   return { url: getMediaPublicUrl(path), path };
@@ -421,7 +447,7 @@ export async function uploadGalleryImage(
   });
 
   if (uploadError) {
-    return { error: "Não foi possível enviar a imagem agora. Tente novamente." };
+    return { error: describeStorageUploadError(uploadError) };
   }
 
   const url = getMediaPublicUrl(path);
@@ -522,30 +548,33 @@ export {
  * lista fixa de mensagens (whitelist por substring) — quando o banco
  * lançava QUALQUER outra coisa (inclusive um erro real e informativo, como
  * "column reference is ambiguous" causado por um bug de qualificação de
- * coluna em replace_featured_venue_media, corrigido na migration
- * fix_ambiguous_columns_media_write_rpcs, ou a mensagem de limite de FOTO —
- * "...foto ativa (limite do plano)...", que nunca batia com o texto de
- * VÍDEO que a whitelist checava) ela caía sempre na mesma mensagem genérica,
- * escondendo o motivo real. A troca: `RAISE EXCEPTION 'texto'` sem SQLSTATE
- * explícito (o padrão usado em toda RPC deste projeto) sempre chega aqui
- * com code 'P0001' — esse texto já é escrito à mão em português, pensado
- * pra leitura direta do usuário, então é sempre seguro mostrar como está,
- * sem whitelist nenhuma. Qualquer OUTRO code é um erro interno do Postgres
- * (coluna ambígua, violação de constraint, permissão no nível do banco
- * etc.) que nunca foi escrito pra leitura de usuário — nesse caso o texto
- * bruto nunca aparece na tela, mas também nunca é silenciado: vai pro
- * console (developer) e a tela mostra o código do erro, no mesmo formato
- * sugerido pelo produto ("O banco recusou este envio: [mensagem segura]").
+ * coluna em replace_featured_venue_media, corrigido nas migrations
+ * fix_ambiguous_columns_media_write_rpcs e
+ * fix_replace_featured_venue_media_venues_ambiguous_id, ou a mensagem de
+ * limite de FOTO — "...foto ativa (limite do plano)...", que nunca batia
+ * com o texto de VÍDEO que a whitelist checava) ela caía sempre na mesma
+ * mensagem genérica, escondendo o motivo real.
+ *
+ * CORREÇÃO 2 (o código sozinho ainda não bastava): mostrar só "erro 42702"
+ * pro usuário não diz NADA sobre a causa — é só um código pra procurar no
+ * console. `RAISE EXCEPTION 'texto'` sem SQLSTATE explícito (nossas próprias
+ * mensagens, sempre em português e pensadas pra leitura direta) chega com
+ * code 'P0001' e é mostrado como está. Qualquer OUTRO código é um erro
+ * interno do Postgres — mas o TEXTO desses erros (nomes de coluna/tabela/
+ * constraint, nunca dado nem credencial) não é sensível, então agora
+ * também aparece direto na tela, prefixado para deixar claro que veio do
+ * banco e não da aplicação — nunca mais escondido atrás de um código só.
  */
 function describeFeaturedMediaRpcError(error: { message?: string; code?: string }): string {
-  if (error.code === "P0001" && error.message) {
+  console.error("MEDIA WRITE RPC ERROR:", error);
+
+  if (!error.message) {
+    return "O banco recusou este envio. Tente novamente ou avise o suporte se persistir.";
+  }
+  if (error.code === "P0001") {
     return error.message;
   }
-
-  console.error("MEDIA WRITE RPC ERROR (não é uma exceção de aplicação — investigar):", error);
-  return error.code
-    ? `O banco recusou este envio: erro ${error.code}. Tente novamente ou avise o suporte se persistir.`
-    : "O banco recusou este envio. Tente novamente ou avise o suporte se persistir.";
+  return `O banco recusou este envio: ${error.message} (código ${error.code ?? "desconhecido"}).`;
 }
 
 /**

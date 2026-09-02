@@ -24,8 +24,15 @@ import {
   type VenueCompanionTag,
   type VenueMomentTag,
 } from "@/lib/venues/venue-tags";
+import {
+  buildCuisineTypesToSave,
+  extractCustomCuisineDescription,
+  hasEmptyCustomCuisineDescription,
+  reconcileCuisineTypesForEditing,
+} from "@/lib/venues/venue-cuisine";
 import { TagToggleButton, toggleValue } from "@/components/empresa/tag-toggle-button";
 import { AtmosphereGroupFields } from "@/components/empresa/atmosphere-group-fields";
+import { CuisineFields } from "@/components/empresa/cuisine-fields";
 import { CityAutocomplete } from "@/components/shared/city-autocomplete";
 import { ClaimDraftMediaUploader } from "@/components/empresa/claim-draft-media-uploader";
 import type { ClaimDraftMediaItem } from "@/lib/venues/claim-draft-media";
@@ -106,7 +113,6 @@ interface FormState {
   city: string;
   neighborhood: string;
   address: string;
-  cuisine_types: string;
   tags: string;
   music_styles: string;
   intentions: string;
@@ -147,7 +153,6 @@ function draftDataToFormState(data: DraftVenueData): FormState {
     city: data.city ?? "",
     neighborhood: data.neighborhood ?? "",
     address: data.address ?? "",
-    cuisine_types: toListText(data.cuisine_types),
     tags: toListText(nonMomentTags(data.tags)),
     music_styles: toListText(data.music_styles),
     intentions: toListText(data.intentions),
@@ -399,6 +404,12 @@ function DraftForm({
     useState<CustomAtmosphereDescriptions>(() =>
       extractCustomAtmosphereDescriptions(draft.venue_data.atmospheres ?? []),
     );
+  const [cuisineTypes, setCuisineTypes] = useState<string[]>(() =>
+    reconcileCuisineTypesForEditing(draft.venue_data.cuisine_types ?? []),
+  );
+  const [customCuisineDescription, setCustomCuisineDescription] = useState<string | null>(() =>
+    extractCustomCuisineDescription(draft.venue_data.cuisine_types ?? []),
+  );
   const [companions, setCompanions] = useState<VenueCompanionTag[]>(
     (draft.venue_data.companions ?? []) as VenueCompanionTag[],
   );
@@ -428,12 +439,12 @@ function DraftForm({
   }
 
   const canSaveAtmospheres = !hasEmptyCustomAtmosphereDescription(customAtmosphereDescriptions);
+  const canSaveCuisine = !hasEmptyCustomCuisineDescription(customCuisineDescription);
 
   const intentions = fromListText(form.intentions);
   const hoursOk = isHoursComplete(
     hours.map((hour) => ({ isClosed: hour.is_closed, opensAt: hour.opens_at, closesAt: hour.closes_at })),
   );
-  const hasCoverPhoto = mediaItems.some((item) => item.mediaType === "image" && item.isFeatured);
   const hasActiveVideo = mediaItems.some((item) => item.mediaType === "video");
 
   const checklist = computePublishChecklist({
@@ -452,7 +463,6 @@ function DraftForm({
     intentions,
     companions,
     hoursOk,
-    hasCoverPhoto,
     hasActiveVideo,
   });
   const missingLabels = missingChecklistLabels(checklist);
@@ -465,7 +475,7 @@ function DraftForm({
       city: form.city.trim(),
       neighborhood: form.neighborhood.trim(),
       address: form.address.trim(),
-      cuisine_types: fromListText(form.cuisine_types),
+      cuisine_types: buildCuisineTypesToSave(cuisineTypes, customCuisineDescription),
       tags: [...fromListText(form.tags), ...moments],
       music_styles: fromListText(form.music_styles),
       atmospheres: buildAtmospheresToSave(atmospheres, customAtmosphereDescriptions),
@@ -492,7 +502,7 @@ function DraftForm({
 
   async function handleSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!canSaveAtmospheres || !editable) return;
+    if (!canSaveAtmospheres || !canSaveCuisine || !editable) return;
 
     setSaveStatus("saving");
     setSaveError(null);
@@ -709,15 +719,17 @@ function DraftForm({
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
               Experiência (separe por vírgula)
             </h2>
-            <div>
-              <label className={labelClasses}>Tipos de culinária</label>
-              <input
-                value={form.cuisine_types}
-                onChange={(event) => updateField("cuisine_types", event.target.value)}
-                placeholder="Ex.: Japonesa, Brasileira"
-                className={`mt-2 ${inputClasses}`}
-              />
-            </div>
+            <fieldset>
+              <legend className={labelClasses}>Tipos de culinária</legend>
+              <div className="mt-3">
+                <CuisineFields
+                  cuisineTypes={cuisineTypes}
+                  onCuisineTypesChange={setCuisineTypes}
+                  customDescription={customCuisineDescription}
+                  onCustomDescriptionChange={setCustomCuisineDescription}
+                />
+              </div>
+            </fieldset>
             <div>
               <label className={labelClasses}>Outras tags</label>
               <input
@@ -987,7 +999,7 @@ function DraftForm({
         {editable && (
           <button
             type="submit"
-            disabled={saveStatus === "saving" || !canSaveAtmospheres}
+            disabled={saveStatus === "saving" || !canSaveAtmospheres || !canSaveCuisine}
             className={`inline-flex items-center justify-center gap-2 rounded-full border border-accent px-6 py-3 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-40 ${focusRing}`}
           >
             {saveStatus === "saving" ? "Salvando..." : "Salvar e continuar"}
@@ -1018,7 +1030,12 @@ function DraftForm({
           <button
             type="button"
             onClick={handleCompleteAndPublish}
-            disabled={completeStatus === "completing" || !canSaveAtmospheres || !checklist.complete}
+            disabled={
+              completeStatus === "completing" ||
+              !canSaveAtmospheres ||
+              !canSaveCuisine ||
+              !checklist.complete
+            }
             className={`inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent px-6 py-3.5 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 ${focusRing}`}
           >
             {completeStatus === "completing" ? "Publicando..." : "Concluir cadastro e publicar"}

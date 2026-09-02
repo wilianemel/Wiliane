@@ -4,7 +4,12 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { VENUE_CATEGORIES, OTHER_CATEGORY, combineCategoryValue } from "@/lib/venues/venue-categories";
+import {
+  buildCuisineTypesToSave,
+  hasEmptyCustomCuisineDescription,
+} from "@/lib/venues/venue-cuisine";
 import { CityAutocomplete } from "@/components/shared/city-autocomplete";
+import { CuisineFields } from "@/components/empresa/cuisine-fields";
 import { UpgradeToBasicoNotice } from "@/components/empresa/upgrade-to-basico-cta";
 
 const focusRing =
@@ -18,11 +23,11 @@ type PlanChoice = "free" | "basico" | "master";
 const PLAN_WHATSAPP_COPY: Record<Exclude<PlanChoice, "free">, { label: string; supportText: string }> = {
   basico: {
     label: "Contratar o plano Essencial por R$ 97/mês",
-    supportText: "Fale com o Qual é a Boa pelo WhatsApp para concluir o pagamento e ativar seu plano.",
+    supportText: "Fale com o Bora pra onde pelo WhatsApp para concluir o pagamento e ativar seu plano.",
   },
   master: {
     label: "Contratar o plano Master por R$ 187/mês",
-    supportText: "Fale com o Qual é a Boa pelo WhatsApp para concluir o pagamento e ativar seu plano.",
+    supportText: "Fale com o Bora pra onde pelo WhatsApp para concluir o pagamento e ativar seu plano.",
   },
 };
 
@@ -68,6 +73,10 @@ export function NovoEstabelecimentoForm({ userEmail, userPhone, onCreated }: Nov
   const [neighborhood, setNeighborhood] = useState("");
   const [address, setAddress] = useState("");
   const [description, setDescription] = useState("");
+  // Estabelecimento novo, sem culinária existente pra preservar — começa
+  // vazio. Mesmo padrão de "Outro" das outras 2 telas (venue-cuisine.ts).
+  const [cuisineTypes, setCuisineTypes] = useState<string[]>([]);
+  const [customCuisineDescription, setCustomCuisineDescription] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [duplicate, setDuplicate] = useState<{ id: string; name: string; isExact: boolean } | null>(null);
@@ -87,6 +96,7 @@ export function NovoEstabelecimentoForm({ userEmail, userPhone, onCreated }: Nov
     neighborhood.trim().length > 0 &&
     address.trim().length > 0 &&
     description.trim().length > 0 &&
+    !hasEmptyCustomCuisineDescription(customCuisineDescription) &&
     status !== "loading";
 
   async function createVenue(confirmDespiteDuplicate: boolean) {
@@ -132,6 +142,23 @@ export function NovoEstabelecimentoForm({ userEmail, userPhone, onCreated }: Nov
       setErrorMessage("Não foi possível cadastrar o estabelecimento agora. Tente novamente em instantes.");
       setStatus("error");
       return;
+    }
+
+    // Culinária: mesma lógica de "salvar só depois de criado com sucesso" do
+    // plano, abaixo. create_owned_venue não tem parâmetro pra isso (RPC
+    // não alterada — ver venue-cuisine.ts), então é um UPDATE direto do
+    // cliente logo em seguida; RLS já libera isso pro dono recém-vinculado
+    // (mesma policy que editar/page.tsx já usa em produção). Só chama se
+    // houver algo a salvar, e nunca trava o resto do fluxo se falhar.
+    const cuisineTypesToSave = buildCuisineTypesToSave(cuisineTypes, customCuisineDescription);
+    if (cuisineTypesToSave.length > 0) {
+      const { error: cuisineError } = await supabase
+        .from("venues")
+        .update({ cuisine_types: cuisineTypesToSave })
+        .eq("id", result.venue_id);
+      if (cuisineError) {
+        console.error("SAVE VENUE CUISINE TYPES ERROR:", cuisineError);
+      }
     }
 
     // Grava a escolha do plano SÓ depois do estabelecimento criado com
@@ -321,6 +348,18 @@ export function NovoEstabelecimentoForm({ userEmail, userPhone, onCreated }: Nov
             required
           />
         </div>
+
+        <fieldset>
+          <legend className="text-sm font-medium text-foreground">Tipos de culinária</legend>
+          <div className="mt-3">
+            <CuisineFields
+              cuisineTypes={cuisineTypes}
+              onCuisineTypesChange={setCuisineTypes}
+              customDescription={customCuisineDescription}
+              onCustomDescriptionChange={setCustomCuisineDescription}
+            />
+          </div>
+        </fieldset>
 
         {errorMessage && (
           <p className="rounded-xl border border-red-400/40 bg-red-400/5 px-4 py-3 text-sm text-red-300">

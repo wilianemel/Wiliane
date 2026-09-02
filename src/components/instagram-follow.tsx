@@ -34,7 +34,7 @@ export function InstagramFollow() {
             </span>
             <div>
               <p className="text-sm font-semibold text-foreground">
-                Siga o Qual é a Boa no Instagram
+                Siga o Bora pra onde? no Instagram
               </p>
               <p className="text-sm text-muted">{INSTAGRAM_HANDLE}</p>
             </div>

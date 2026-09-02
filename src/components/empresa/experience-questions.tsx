@@ -117,7 +117,7 @@ export function ExperienceQuestions({ venue, onSaved }: ExperienceQuestionsProps
         Personalize sua experiência
       </h2>
       <p className="mt-1 text-sm text-muted">
-        Isso ajuda a mostrar seu estabelecimento para as pessoas certas no Qual é a Boa.
+        Isso ajuda a mostrar seu estabelecimento para as pessoas certas no Bora pra onde.
       </p>
 
       <fieldset className="mt-6">

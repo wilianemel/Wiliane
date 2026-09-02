@@ -49,7 +49,7 @@ export function buildDemoMedia(venue: Venue): VenueMedia[] {
       status: "hidden",
       isPrimary: false,
       uploadedAt: "2026-07-10",
-      uploadedBy: "Equipe Qual é a Boa",
+      uploadedBy: "Equipe Bora pra onde",
       gradient: venue.gradient,
     },
   );

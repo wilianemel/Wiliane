@@ -25,10 +25,18 @@ import {
   type VenueCompanionTag,
   type VenueMomentTag,
 } from "@/lib/venues/venue-tags";
+import {
+  buildCuisineTypesToSave,
+  extractCustomCuisineDescription,
+  hasEmptyCustomCuisineDescription,
+  reconcileCuisineTypesForEditing,
+} from "@/lib/venues/venue-cuisine";
 import { TagToggleButton, toggleValue } from "@/components/empresa/tag-toggle-button";
 import { AtmosphereGroupFields } from "@/components/empresa/atmosphere-group-fields";
+import { CuisineFields } from "@/components/empresa/cuisine-fields";
 import { VenueHoursEditor } from "@/components/empresa/venue-hours-editor";
 import { CityAutocomplete } from "@/components/shared/city-autocomplete";
+import { useScrollToHash } from "@/lib/use-scroll-to-hash";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -45,7 +53,6 @@ interface FormState {
   city: string;
   neighborhood: string;
   address: string;
-  cuisine_types: string;
   /** Só tags livres — momento (café da manhã, jantar etc.) fica separado, no estado `moments`. */
   tags: string;
   music_styles: string;
@@ -88,7 +95,6 @@ function venueToFormState(venue: VenueOwnerRow): FormState {
     city: venue.city,
     neighborhood: venue.neighborhood,
     address: venue.address,
-    cuisine_types: toListText(venue.cuisine_types),
     tags: toListText(nonMomentTags(venue.tags)),
     music_styles: toListText(venue.music_styles),
     intentions: toListText(venue.intentions),
@@ -121,6 +127,12 @@ export default function EditarEstabelecimentoPage() {
 }
 
 function EditForm({ venue }: { venue: VenueOwnerRow; role: string }) {
+  // Rola até a seção do checklist que trouxe o usuário aqui (#dados-basicos,
+  // #categoria-experiencia, #horarios, #contato) — chamado sem condição
+  // porque, se EditForm está renderizando, os dados (e os ids das seções)
+  // já existem no DOM.
+  useScrollToHash(true);
+
   const [form, setForm] = useState<FormState>(() => venueToFormState(venue));
   const [customCategory, setCustomCategory] = useState(
     () => splitCategoryValue(venue.category).custom,
@@ -134,6 +146,15 @@ function EditForm({ venue }: { venue: VenueOwnerRow; role: string }) {
     useState<CustomAtmosphereDescriptions>(() =>
       extractCustomAtmosphereDescriptions(venue.atmospheres ?? []),
     );
+  // Mesma ideia do "Outro" de atmosfera, mas em um único grupo — valores
+  // fixos marcados + texto legado preservado (reconcileCuisineTypesForEditing
+  // nunca apaga nada, só casa com as novas opções quando o texto bate).
+  const [cuisineTypes, setCuisineTypes] = useState<string[]>(() =>
+    reconcileCuisineTypesForEditing(venue.cuisine_types ?? []),
+  );
+  const [customCuisineDescription, setCustomCuisineDescription] = useState<string | null>(() =>
+    extractCustomCuisineDescription(venue.cuisine_types ?? []),
+  );
   const [companions, setCompanions] = useState<VenueCompanionTag[]>(venue.companions ?? []);
   const [moments, setMoments] = useState<VenueMomentTag[]>(
     (venue.tags ?? []).filter((tag): tag is VenueMomentTag =>
@@ -149,12 +170,13 @@ function EditForm({ venue }: { venue: VenueOwnerRow; role: string }) {
   }
 
   const canSaveAtmospheres = !hasEmptyCustomAtmosphereDescription(customAtmosphereDescriptions);
+  const canSaveCuisine = !hasEmptyCustomCuisineDescription(customCuisineDescription);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     // Guarda explícita além do botão desabilitado — Enter num campo de texto
     // dispara o submit do form mesmo com o botão desabilitado.
-    if (!canSaveAtmospheres) return;
+    if (!canSaveAtmospheres || !canSaveCuisine) return;
     setStatus("saving");
     setErrorMessage(null);
 
@@ -171,7 +193,7 @@ function EditForm({ venue }: { venue: VenueOwnerRow; role: string }) {
         city: form.city.trim(),
         neighborhood: form.neighborhood.trim(),
         address: form.address.trim(),
-        cuisine_types: fromListText(form.cuisine_types),
+        cuisine_types: buildCuisineTypesToSave(cuisineTypes, customCuisineDescription),
         tags: [...fromListText(form.tags), ...moments],
         music_styles: fromListText(form.music_styles),
         atmospheres: buildAtmospheresToSave(atmospheres, customAtmosphereDescriptions),
@@ -220,7 +242,7 @@ function EditForm({ venue }: { venue: VenueOwnerRow; role: string }) {
       </div>
 
       <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-6">
-        <section className="flex flex-col gap-4">
+        <section id="dados-basicos" className="flex flex-col gap-4 scroll-mt-20">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
             Dados básicos
           </h2>
@@ -307,19 +329,21 @@ function EditForm({ venue }: { venue: VenueOwnerRow; role: string }) {
           </div>
         </section>
 
-        <section className="flex flex-col gap-4 border-t border-border pt-6">
+        <section id="categoria-experiencia" className="flex flex-col gap-4 border-t border-border pt-6 scroll-mt-20">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
             Experiência (separe por vírgula)
           </h2>
-          <div>
-            <label className={labelClasses}>Tipos de culinária</label>
-            <input
-              value={form.cuisine_types}
-              onChange={(event) => updateField("cuisine_types", event.target.value)}
-              placeholder="Ex.: Japonesa, Brasileira"
-              className={`mt-2 ${inputClasses}`}
-            />
-          </div>
+          <fieldset>
+            <legend className={labelClasses}>Tipos de culinária</legend>
+            <div className="mt-3">
+              <CuisineFields
+                cuisineTypes={cuisineTypes}
+                onCuisineTypesChange={setCuisineTypes}
+                customDescription={customCuisineDescription}
+                onCustomDescriptionChange={setCustomCuisineDescription}
+              />
+            </div>
+          </fieldset>
           <div>
             <label className={labelClasses}>Outras tags</label>
             <input
@@ -409,7 +433,7 @@ function EditForm({ venue }: { venue: VenueOwnerRow; role: string }) {
           </div>
         </section>
 
-        <section className="border-t border-border pt-6">
+        <section id="horarios" className="border-t border-border pt-6 scroll-mt-20">
           <VenueHoursEditor venueId={venue.id} />
         </section>
 
@@ -469,7 +493,7 @@ function EditForm({ venue }: { venue: VenueOwnerRow; role: string }) {
           </div>
         </section>
 
-        <section className="flex flex-col gap-4 border-t border-border pt-6">
+        <section id="contato" className="flex flex-col gap-4 border-t border-border pt-6 scroll-mt-20">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Contatos</h2>
           <div>
             <label className={labelClasses}>WhatsApp (número, formato internacional sem &quot;+&quot;)</label>
@@ -550,7 +574,7 @@ function EditForm({ venue }: { venue: VenueOwnerRow; role: string }) {
 
         <button
           type="submit"
-          disabled={status === "saving" || !canSaveAtmospheres}
+          disabled={status === "saving" || !canSaveAtmospheres || !canSaveCuisine}
           className={`inline-flex items-center justify-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 ${focusRing}`}
         >
           {status === "saving" ? "Salvando..." : "Salvar alterações"}

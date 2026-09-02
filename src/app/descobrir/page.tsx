@@ -7,7 +7,7 @@ import { buildVenueHoursStatusMap } from "@/lib/venues/venue-hours";
 import { EMPTY_VENUE_FILTERS, searchVenues, type VenueFilters } from "@/lib/search-venues";
 
 export const metadata: Metadata = {
-  title: "Descobrir — Qual é a Boa!",
+  title: "Descobrir — Bora pra onde?",
   description:
     "Explore experiências por momento, estilo e companhia — jantar, happy hour, música ao vivo e mais, perto de você.",
 };
@@ -57,7 +57,7 @@ export default async function DescobrirPage({ searchParams }: DescobrirPageProps
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-border/60 bg-background/90 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-2 sm:px-6">
-          <Link href="/" aria-label="Qual é a Boa — página inicial">
+          <Link href="/" aria-label="Bora pra onde — página inicial">
             <BrandLogo variant="dark" size="medium" priority />
           </Link>
           <Link

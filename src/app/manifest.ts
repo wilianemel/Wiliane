@@ -10,8 +10,8 @@ import type { MetadataRoute } from "next";
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Qual é a Boa!",
-    short_name: "Qual é a Boa",
+    name: "Bora pra onde?",
+    short_name: "Bora pra onde",
     description: "Encontre experiências que combinam com você.",
     start_url: "/",
     display: "standalone",

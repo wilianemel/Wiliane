@@ -4,9 +4,9 @@ import Link from "next/link";
 import { BrandLogo } from "@/components/shared/brand-logo";
 
 export const metadata: Metadata = {
-  title: "Para empresas — Qual é a Boa!",
+  title: "Para empresas — Bora pra onde?",
   description:
-    "Cadastre seu estabelecimento no Qual é a Boa e seja encontrado por pessoas que procuram exatamente o que você oferece.",
+    "Cadastre seu estabelecimento no Bora pra onde e seja encontrado por pessoas que procuram exatamente o que você oferece.",
 };
 
 const BENEFITS = [
@@ -54,7 +54,7 @@ export default function ParaEmpresasPage() {
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-border/60 bg-background/90 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-2 sm:px-6">
-          <Link href="/" aria-label="Qual é a Boa — página inicial">
+          <Link href="/" aria-label="Bora pra onde — página inicial">
             <BrandLogo variant="dark" size="medium" priority />
           </Link>
           <Link
@@ -78,7 +78,7 @@ export default function ParaEmpresasPage() {
               <div className="relative aspect-[3/2] w-full overflow-hidden rounded-3xl">
                 <Image
                   src="/images/business/business-onboarding-vintage.png"
-                  alt="Ilustração vintage de um estabelecimento sendo apresentado no Qual é a Boa"
+                  alt="Ilustração vintage de um estabelecimento sendo apresentado no Bora pra onde"
                   fill
                   sizes="(min-width: 1024px) 50vw, 100vw"
                   className="object-cover"
@@ -91,7 +91,7 @@ export default function ParaEmpresasPage() {
                   Para estabelecimentos
                 </p>
                 <h1 className="mt-4 text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl">
-                  Coloque seu estabelecimento no Qual é a Boa!
+              Coloque seu estabelecimento no Bora pra onde!
                 </h1>
                 <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
                   Cadastre sua empresa, apresente suas experiências e seja encontrado por
@@ -131,7 +131,7 @@ export default function ParaEmpresasPage() {
               </Link>
             </div>
             <p className="mt-3 max-w-2xl text-sm text-muted">
-              O Qual é a Boa já pode ter criado a página do seu estabelecimento. Crie seu acesso,
+              O Bora pra onde já pode ter criado a página do seu estabelecimento. Crie seu acesso,
               encontre seu estabelecimento e conclua o cadastro — a publicação é automática, sem
               espera.
             </p>

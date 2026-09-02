@@ -7,7 +7,12 @@ import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { VenueAccessGate } from "@/components/empresa/venue-access-gate";
 import type { VenueOwnerRow } from "@/lib/venues/venue-owner";
-import { listVenueMedia } from "@/lib/venues/venue-media";
+import {
+  listVenueMedia,
+  resolveFeaturedMediaUrl,
+  resolveVenueMainImageUrl,
+  type VenueMediaListItem,
+} from "@/lib/venues/venue-media";
 import { getVenueBusinessHours } from "@/lib/venues/venue-hours";
 import {
   computePublishChecklist,
@@ -51,9 +56,11 @@ function PreviewContent({ venue }: { venue: VenueOwnerRow }) {
   const [published, setPublished] = useState(venue.is_published);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [checklistLoading, setChecklistLoading] = useState(true);
-  const [hasCoverPhoto, setHasCoverPhoto] = useState(false);
   const [hasActiveVideo, setHasActiveVideo] = useState(false);
   const [hoursOk, setHoursOk] = useState(false);
+  const [mainImageUrl, setMainImageUrl] = useState<string | undefined>(venue.cover_image_url ?? undefined);
+  const [heroVideoUrl, setHeroVideoUrl] = useState<string | undefined>(venue.video_url ?? undefined);
+  const [galleryImages, setGalleryImages] = useState<VenueMediaListItem[]>([]);
 
   // Mesma checklist completa usada em complete_new_venue_onboarding() —
   // CORREÇÃO: esta tela chamava publish_owned_venue direto, cuja validação
@@ -71,7 +78,9 @@ function PreviewContent({ venue }: { venue: VenueOwnerRow }) {
       ]);
       if (!active) return;
 
-      setHasCoverPhoto(images.some((item) => item.isFeatured));
+      setGalleryImages(images);
+      setMainImageUrl(resolveVenueMainImageUrl(images, venue.cover_image_url));
+      setHeroVideoUrl(resolveFeaturedMediaUrl(videos, "video", venue.video_url));
       setHasActiveVideo(videos.length > 0);
       setHoursOk(
         isHoursComplete(
@@ -89,7 +98,7 @@ function PreviewContent({ venue }: { venue: VenueOwnerRow }) {
     return () => {
       active = false;
     };
-  }, [venue.id]);
+  }, [venue.id, venue.cover_image_url, venue.video_url]);
 
   const checklist = computePublishChecklist({
     name: venue.name,
@@ -107,7 +116,6 @@ function PreviewContent({ venue }: { venue: VenueOwnerRow }) {
     intentions: venue.intentions,
     companions: venue.companions,
     hoursOk,
-    hasCoverPhoto,
     hasActiveVideo,
   });
   const missingLabels = missingChecklistLabels(checklist);
@@ -151,23 +159,25 @@ function PreviewContent({ venue }: { venue: VenueOwnerRow }) {
       </div>
 
       <div className="mt-8 overflow-hidden rounded-2xl border border-border bg-background-elevated">
-        {venue.cover_image_url ? (
-          <div className="relative h-48 w-full">
+        {/* Vídeo ativo tem prioridade sobre foto; sem vídeo, cai pra primeira
+            foto ativa da galeria (resolveVenueMainImageUrl). Nunca exige
+            capa — sem nenhuma mídia, simplesmente não mostra nada aqui
+            (nenhum placeholder de "área reservada"). */}
+        {heroVideoUrl ? (
+          <div className="relative aspect-[9/16] w-full bg-black">
+            <video src={heroVideoUrl} controls muted className="h-full w-full object-cover" />
+          </div>
+        ) : mainImageUrl ? (
+          <div className="relative aspect-[9/16] w-full">
             <Image
-              src={venue.cover_image_url}
-              alt={`Capa de ${venue.name}`}
+              src={mainImageUrl}
+              alt={`Foto de ${venue.name}`}
               fill
               sizes="700px"
               className="object-cover"
             />
           </div>
-        ) : (
-          <div className="relative flex h-48 w-full items-center justify-center bg-gradient-to-br from-zinc-700/40 via-zinc-900 to-black">
-            <span className="rounded-full bg-black/50 px-3 py-1 text-xs text-white/70 backdrop-blur">
-              Área reservada para imagem
-            </span>
-          </div>
-        )}
+        ) : null}
 
         <div className="flex flex-col gap-5 p-6">
           <div className="flex items-center gap-3">
@@ -188,10 +198,6 @@ function PreviewContent({ venue }: { venue: VenueOwnerRow }) {
           </div>
 
           <p className="text-sm leading-relaxed text-muted">{venue.description}</p>
-
-          {venue.video_url && (
-            <video src={venue.video_url} controls muted className="w-full rounded-xl bg-black" />
-          )}
 
           <div className="flex flex-wrap gap-4 text-sm text-foreground">
             <span>Faixa de preço: {venue.price_range ?? "não informado"}</span>
@@ -220,6 +226,30 @@ function PreviewContent({ venue }: { venue: VenueOwnerRow }) {
         </div>
       </div>
 
+      {/* Galeria — mesmos dados reais de venue_media já usados no perfil
+          público e no painel de mídias; só aparece quando há foto ativa. */}
+      {galleryImages.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Galeria</h2>
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {galleryImages.map((item) => (
+              <div
+                key={item.id}
+                className="relative aspect-[9/16] overflow-hidden rounded-xl border border-border"
+              >
+                <Image
+                  src={item.url}
+                  alt={`Foto de ${venue.name}`}
+                  fill
+                  sizes="200px"
+                  className="object-cover"
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <div className="mt-8 rounded-2xl border border-border bg-background-elevated p-6">
         {published ? (
           <p className="text-sm text-foreground">Seu estabelecimento foi publicado com sucesso!</p>
@@ -227,7 +257,7 @@ function PreviewContent({ venue }: { venue: VenueOwnerRow }) {
           <>
             <p className="text-sm text-muted">
               Quando terminar de preencher os dados e as mídias, publique seu estabelecimento no
-              Qual é a Boa.
+              Bora pra onde.
             </p>
             {!checklistLoading && !checklist.complete && (
               <p className="mt-3 text-xs text-muted">Falta: {missingLabels.join(", ")}.</p>

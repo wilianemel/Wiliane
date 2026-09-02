@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState, type FormEvent } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
@@ -43,7 +44,7 @@ function CadastroEmpresaContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   // "novo" (padrão) mantém o cadastro de empresa nova como sempre foi;
-  // "existente" é o caminho de quem acha que o Qual é a Boa já pode ter
+  // "existente" é o caminho de quem acha que o Bora pra onde já pode ter
   // criado a página do estabelecimento (ver /para-empresas) — só muda para
   // onde o cadastro de conta redireciona depois de criado.
   const fluxo = searchParams.get("fluxo") === "existente" ? "existente" : "novo";
@@ -235,17 +236,33 @@ function CriarContaForm({
   }
 
   return (
-    <div className="mx-auto max-w-md px-4 py-10 sm:px-6 sm:py-14">
-      <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-        Criar conta da empresa
-      </h1>
-      <p className="mt-2 text-sm text-muted">
-        {fluxo === "existente"
-          ? "Depois de criar sua conta, você encontra seu estabelecimento, confirma os dados e já começa a completar o cadastro."
-          : "Depois de criar sua conta, você cadastra os dados do seu estabelecimento."}
-      </p>
+    <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-center lg:gap-12">
+        {/* Imagem no topo no celular (antes do formulário, por vir primeiro
+            no DOM); ao lado do formulário a partir de lg:. Sem overlay/
+            gradiente por cima — a imagem fica totalmente visível. */}
+        <div className="relative aspect-[4/5] w-full overflow-hidden rounded-3xl">
+          <Image
+            src="/images/auth/business-signup-nightlife.png"
+            alt="Cena noturna vintage de um estabelecimento, representando a vida noturna do Bora pra onde"
+            fill
+            priority
+            sizes="(min-width: 1024px) 50vw, 100vw"
+            className="object-cover"
+          />
+        </div>
 
-      <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
+        <div className="w-full max-w-md lg:mx-0">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            Criar conta da empresa
+          </h1>
+          <p className="mt-2 text-sm text-muted">
+            {fluxo === "existente"
+              ? "Depois de criar sua conta, você encontra seu estabelecimento, confirma os dados e já começa a completar o cadastro."
+              : "Depois de criar sua conta, você cadastra os dados do seu estabelecimento."}
+          </p>
+
+          <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
         <div>
           <label htmlFor="full-name" className="text-sm font-medium text-foreground">
             Nome do responsável
@@ -355,7 +372,9 @@ function CriarContaForm({
             Entrar
           </Link>
         </p>
-      </form>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }

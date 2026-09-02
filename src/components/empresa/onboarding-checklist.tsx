@@ -34,8 +34,51 @@ function CheckIcon() {
 
 const linkButtonBase = `rounded-full border border-border px-4 py-2 text-xs font-medium text-muted transition-colors hover:border-accent hover:text-accent ${focusRing}`;
 
+type ChecklistKey = Exclude<keyof PublishChecklistResult, "complete">;
+
+interface ChecklistItemConfig {
+  href: (venueId: string) => string;
+  ariaLabelPending: string;
+  ariaLabelDone: string;
+}
+
+/**
+ * Destino de cada item — leva direto ao campo que falta, com âncora
+ * (#dados-basicos, #categoria-experiencia, #horarios, #contato, #video)
+ * pra editar/midias já rolarem até a seção certa (ver useScrollToHash e os
+ * ids correspondentes nessas duas telas). Item já completo continua
+ * clicável, com o mesmo destino — só muda pra "Editar".
+ */
+const CHECKLIST_ITEM_CONFIG: Record<ChecklistKey, ChecklistItemConfig> = {
+  basicData: {
+    href: (venueId) => `/empresa/painel/${venueId}/editar#dados-basicos`,
+    ariaLabelPending: "Preencher dados básicos",
+    ariaLabelDone: "Editar dados básicos",
+  },
+  categoryExperience: {
+    href: (venueId) => `/empresa/painel/${venueId}/editar#categoria-experiencia`,
+    ariaLabelPending: "Preencher categoria e experiência",
+    ariaLabelDone: "Editar categoria e experiência",
+  },
+  hours: {
+    href: (venueId) => `/empresa/painel/${venueId}/editar#horarios`,
+    ariaLabelPending: "Preencher horários",
+    ariaLabelDone: "Editar horários",
+  },
+  video: {
+    href: (venueId) => `/empresa/painel/${venueId}/midias#video`,
+    ariaLabelPending: "Adicionar vídeo",
+    ariaLabelDone: "Editar vídeo",
+  },
+  contact: {
+    href: (venueId) => `/empresa/painel/${venueId}/editar#contato`,
+    ariaLabelPending: "Preencher contato",
+    ariaLabelDone: "Editar contato",
+  },
+};
+
 type PublishStatus = "idle" | "publishing" | "error";
-type MediaCheckState = { loading: boolean; hasCoverPhoto: boolean; hasActiveVideo: boolean; hoursOk: boolean };
+type MediaCheckState = { loading: boolean; hasActiveVideo: boolean; hoursOk: boolean };
 
 interface OnboardingChecklistProps {
   venue: VenueOwnerRow;
@@ -48,15 +91,14 @@ interface OnboardingChecklistProps {
  * Checklist de publicação do estabelecimento novo (Fluxo 2) — mesma regra
  * de complete_new_venue_onboarding() no banco (_venue_publish_checklist,
  * via src/lib/venues/venue-publish-checklist.ts), pra nunca divergir entre
- * tela e RPC. "Horário preenchido" e "capa/vídeo ativos" dependem de
- * consultas assíncronas (venue_business_hours/venue_media), por isso
- * chegam via estado carregado em efeito, começando "false" até resolver
- * (nunca superestima o progresso enquanto carrega).
+ * tela e RPC. "Horário preenchido" e "vídeo ativo" dependem de consultas
+ * assíncronas (venue_business_hours/venue_media), por isso chegam via
+ * estado carregado em efeito, começando "false" até resolver (nunca
+ * superestima o progresso enquanto carrega).
  */
 export function OnboardingChecklist({ venue, justCreated = false, onPublished }: OnboardingChecklistProps) {
   const [mediaCheck, setMediaCheck] = useState<MediaCheckState>({
     loading: true,
-    hasCoverPhoto: false,
     hasActiveVideo: false,
     hoursOk: false,
   });
@@ -68,8 +110,7 @@ export function OnboardingChecklist({ venue, justCreated = false, onPublished }:
     let active = true;
 
     async function load() {
-      const [images, videos, hours] = await Promise.all([
-        listVenueMedia(venue.id, "image"),
+      const [videos, hours] = await Promise.all([
         listVenueMedia(venue.id, "video"),
         getVenueBusinessHours(venue.id),
       ]);
@@ -91,7 +132,6 @@ export function OnboardingChecklist({ venue, justCreated = false, onPublished }:
 
       setMediaCheck({
         loading: false,
-        hasCoverPhoto: images.some((item) => item.isFeatured),
         hasActiveVideo: videos.length > 0,
         hoursOk,
       });
@@ -119,7 +159,6 @@ export function OnboardingChecklist({ venue, justCreated = false, onPublished }:
     intentions: venue.intentions,
     companions: venue.companions,
     hoursOk: mediaCheck.hoursOk,
-    hasCoverPhoto: mediaCheck.hasCoverPhoto,
     hasActiveVideo: mediaCheck.hasActiveVideo,
   });
   const missingLabels = missingChecklistLabels(checklist);
@@ -159,7 +198,7 @@ export function OnboardingChecklist({ venue, justCreated = false, onPublished }:
           Estabelecimento publicado
         </p>
         <h2 className="mt-2 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-          {venue.name} já aparece no Qual é a Boa
+          {venue.name} já aparece no Bora pra onde
         </h2>
         <p className="mt-2 text-sm text-muted sm:text-base">
           Seu estabelecimento está visível na Home, em Descobrir e em Buscar.
@@ -179,28 +218,37 @@ export function OnboardingChecklist({ venue, justCreated = false, onPublished }:
           : `Falta pouco para ${venue.name} ficar completo`}
       </h2>
       <p className="mt-2 text-sm text-muted sm:text-base">
-        Complete os itens abaixo para publicar seu estabelecimento no Qual é a Boa.
+        Complete os itens abaixo para publicar seu estabelecimento no Bora pra onde.
       </p>
 
       <ul className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {(Object.keys(PUBLISH_CHECKLIST_LABELS) as (keyof typeof PUBLISH_CHECKLIST_LABELS)[]).map((key) => {
+        {(Object.keys(PUBLISH_CHECKLIST_LABELS) as ChecklistKey[]).map((key) => {
           const done = checklist[key];
+          const config = CHECKLIST_ITEM_CONFIG[key];
           return (
-            <li
-              key={key}
-              className={`flex items-center gap-3 rounded-xl border px-4 py-2.5 text-sm ${
-                done ? "border-emerald-400/30 bg-emerald-400/5 text-emerald-300" : "border-border text-muted"
-              }`}
-            >
-              <span
-                aria-hidden="true"
-                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
-                  done ? "border-emerald-400 bg-emerald-400/20" : "border-border"
+            <li key={key}>
+              {/* Card inteiro clicável (inclusive o ícone, que fica dentro
+                  do Link) — leva direto pro campo que falta, com âncora
+                  pra editar/midias rolarem até a seção certa sozinhos. */}
+              <Link
+                href={config.href(venue.id)}
+                aria-label={done ? config.ariaLabelDone : config.ariaLabelPending}
+                className={`flex min-h-11 items-center gap-3 rounded-xl border px-4 py-2.5 text-sm transition-colors ${focusRing} ${
+                  done
+                    ? "border-emerald-400/30 bg-emerald-400/5 text-emerald-300 hover:border-emerald-400/60"
+                    : "border-border text-muted hover:border-accent hover:text-accent"
                 }`}
               >
-                {done && <CheckIcon />}
-              </span>
-              {PUBLISH_CHECKLIST_LABELS[key]}
+                <span
+                  aria-hidden="true"
+                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+                    done ? "border-emerald-400 bg-emerald-400/20" : "border-border"
+                  }`}
+                >
+                  {done && <CheckIcon />}
+                </span>
+                {PUBLISH_CHECKLIST_LABELS[key]}
+              </Link>
             </li>
           );
         })}

@@ -35,7 +35,7 @@ export function UpgradeToBasicoCta({
 export function UpgradeToBasicoNotice({
   className = "",
   label,
-  supportText = "Fale com o Qual é a Boa pelo WhatsApp para contratar o plano Essencial por R$ 97/mês.",
+  supportText = "Fale com o Bora pra onde pelo WhatsApp para contratar o plano Essencial por R$ 97/mês.",
 }: {
   className?: string;
   label?: string;

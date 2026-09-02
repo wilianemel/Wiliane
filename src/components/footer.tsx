@@ -33,16 +33,16 @@ export function Footer() {
               ))}
             </nav>
             <a
-              href="mailto:contato@qualeaboa.com.br"
+              href="mailto:contato@borapraonde.app.br"
               className="text-sm text-muted transition-colors hover:text-accent"
             >
-              contato@qualeaboa.com.br
+              contato@borapraonde.app.br
             </a>
           </div>
         </div>
 
         <div className="mt-6 flex flex-col gap-2 border-t border-border/60 pt-5 text-xs text-muted sm:mt-8 sm:flex-row sm:items-center sm:justify-between sm:pt-6">
-          <span>© 2026 Qual é a Boa. Todos os direitos reservados.</span>
+          <span>© 2026 Bora pra onde. Todos os direitos reservados.</span>
           <span className="inline-flex w-fit items-center gap-2 rounded-full border border-border px-3 py-1 text-muted">
             Versão inicial do produto · MVP em desenvolvimento
           </span>

@@ -284,7 +284,7 @@ function VenueVideoHero({ venue, isOpenNow, heroStatusLabel }: VenueHeroProps) {
               {venue.isVerified && (
                 <span className="inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent">
                   <VerifiedIcon />
-                  Verificado pelo Qual é a Boa
+                  Verificado pelo Bora pra onde
                 </span>
               )}
             </div>
@@ -479,7 +479,7 @@ export function VenueProfile({
   const hasValidWhatsapp = normalizedWhatsappNumber.length > 0;
   const whatsappHref = hasValidWhatsapp
     ? `https://wa.me/${normalizedWhatsappNumber}?text=${encodeURIComponent(
-        `Olá! Vim pelo Qual é a Boa e gostaria de saber mais sobre o ${venue.name}.`,
+        `Olá! Vim pelo Bora pra onde e gostaria de saber mais sobre o ${venue.name}.`,
       )}`
     : null;
   const whatsappLabel = venue.tags.includes(PICKUP_ONLY_TAG)
