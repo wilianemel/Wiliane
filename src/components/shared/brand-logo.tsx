@@ -6,8 +6,8 @@ import Image from "next/image";
  * o recorte circular abaixo nunca corta o desenho, só a moldura de fundo.
  */
 const VARIANT_SRC = {
-  dark: "/brand/logo-amarelo-fundo-preto.jpeg",
-  yellow: "/brand/logo-preto-fundo-amarelo.jpeg",
+  dark: "/brand/logo-bora-dark.jpeg",
+  yellow: "/brand/logo-bora-yellow.jpeg",
 } as const;
 
 const SIZE_CLASSES = {
