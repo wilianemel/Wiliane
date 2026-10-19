@@ -25,7 +25,7 @@ export default function RecuperarSenhaPage() {
     await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo:
         typeof window !== "undefined"
-          ? `${window.location.origin}/empresa/entrar`
+          ? `${window.location.origin}/redefinir-senha?origem=empresa`
           : undefined,
     });
 

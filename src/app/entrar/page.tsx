@@ -148,6 +148,11 @@ export default function EntrarPage() {
                   wrapperClassName="mt-2"
                   required
                 />
+                <div className="mt-2 text-right">
+                  <Link href="/recuperar-senha" className="text-sm text-accent hover:underline">
+                    Esqueceu a senha?
+                  </Link>
+                </div>
               </div>
 
               {errorMessage && (
