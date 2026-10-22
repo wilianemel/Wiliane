@@ -175,14 +175,14 @@ export async function verifyVenueUploadAccess(
       error: "Não foi possível confirmar este estabelecimento agora. Atualize a página e tente novamente.",
     };
   }
-  if (!data.has_active_owner) {
-    return {
-      ok: false,
-      error:
-        'Este estabelecimento ainda não está vinculado à sua conta. Volte ao fluxo "Meu estabelecimento já está cadastrado" para assumir o controle antes de enviar mídias.',
-    };
-  }
   if (!data.current_user_can_manage) {
+    if (!data.has_active_owner) {
+      return {
+        ok: false,
+        error:
+          'Este estabelecimento ainda não está vinculado à sua conta. Volte ao fluxo "Meu estabelecimento já está cadastrado" para assumir o controle antes de enviar mídias.',
+      };
+    }
     return { ok: false, error: "Você não tem permissão para editar este estabelecimento." };
   }
 
