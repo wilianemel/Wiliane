@@ -66,9 +66,20 @@ function MidiasContent({
           onVenueUpdated={onVenueUpdated}
         />
 
+        <SingleMediaSlot
+          venueId={venue.id}
+          folder="cover"
+          kind="image"
+          title="Imagem de capa"
+          description="Foto horizontal que aparece grande no topo do card e da página do estabelecimento."
+          currentUrl={venue.cover_image_url}
+          urlColumn="cover_image_url"
+          onVenueUpdated={onVenueUpdated}
+        />
+
         <VenueVideoLibrary id="video" venueId={venue.id} />
 
-        <GallerySlot venueId={venue.id} />
+        <GallerySlot venueId={venue.id} onVenueUpdated={onVenueUpdated} />
       </div>
     </div>
   );

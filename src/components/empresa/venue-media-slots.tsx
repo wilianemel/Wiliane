@@ -238,7 +238,13 @@ export function SingleMediaSlot({
 /**
  * Galeria de imagens — mesmo motivo de extração do `SingleMediaSlot` acima.
  */
-export function GallerySlot({ venueId }: { venueId: string }) {
+export function GallerySlot({
+  venueId,
+  onVenueUpdated,
+}: {
+  venueId: string;
+  onVenueUpdated?: () => void;
+}) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<GalleryItem[]>([]);
   const [imageLimit, setImageLimit] = useState<number | null>(null);
@@ -303,6 +309,26 @@ export function GallerySlot({ venueId }: { venueId: string }) {
     setStatus("idle");
   }
 
+  async function handleFeature(item: GalleryItem) {
+    setStatus("uploading");
+    setErrorMessage(null);
+
+    // A mesma RPC usada pela capa cria/adota a imagem da galeria quando
+    // necessário e a torna a única capa ativa do estabelecimento.
+    const result = await upsertFeaturedVenueMedia(venueId, "image", item.url);
+    if (result) {
+      setErrorMessage(result.error);
+      setStatus("error");
+      return;
+    }
+
+    // Depois de destacada, a foto passa a aparecer no bloco "Capa" e deixa
+    // de ocupar um dos espaços da galeria.
+    setItems((current) => current.filter((existing) => existing.name !== item.name));
+    setStatus("idle");
+    onVenueUpdated?.();
+  }
+
   const atLimit = imageLimit !== null && items.length >= imageLimit;
 
   return (
@@ -352,6 +378,14 @@ export function GallerySlot({ venueId }: { venueId: string }) {
           {items.map((item) => (
             <div key={item.name} className="relative aspect-[9/16] overflow-hidden rounded-xl border border-border">
               <Image src={item.url} alt="Foto da galeria" fill sizes="200px" className="object-cover" />
+              <button
+                type="button"
+                onClick={() => handleFeature(item)}
+                disabled={status === "uploading"}
+                className="absolute bottom-2 left-2 inline-flex min-h-11 items-center justify-center rounded-full bg-accent px-3 text-xs font-semibold text-accent-foreground disabled:cursor-not-allowed"
+              >
+                Usar como capa
+              </button>
               <button
                 type="button"
                 onClick={() => handleRemove(item)}
