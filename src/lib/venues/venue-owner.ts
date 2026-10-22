@@ -189,7 +189,7 @@ export function useVenueAccess(venueId: string): VenueAccess {
           return;
         }
 
-        setVenue(adminVenue as VenueOwnerRow);
+        setVenue(adminVenue as unknown as VenueOwnerRow);
         setRole("admin");
         setState("ready");
         return;
