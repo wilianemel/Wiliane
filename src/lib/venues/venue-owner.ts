@@ -93,6 +93,10 @@ interface VenueAccessRow {
   venues: VenueOwnerRow | null;
 }
 
+interface ProfileRoleRow {
+  role: string;
+}
+
 interface VenueAccess {
   state: AccessState;
   venue: VenueOwnerRow | null;
@@ -104,10 +108,10 @@ interface VenueAccess {
 /**
  * Confirma, no próprio Supabase (nunca só no cliente), que o usuário
  * autenticado tem um vínculo ativo (owner ou manager) com o venueId
- * informado antes de liberar qualquer tela de edição/mídia/prévia. Um
- * venueId arbitrário ou de outro usuário sempre cai em "unauthorized",
- * porque a consulta usa o próprio user_id da sessão, não um valor vindo
- * da URL.
+ * informado antes de liberar qualquer tela de edição/mídia/prévia.
+ * Administradores da plataforma também podem abrir essas telas para dar
+ * suporte e completar as mídias iniciais. A autorização real continua nas
+ * policies/RPCs do banco; esta checagem só controla a interface.
  */
 export function useVenueAccess(venueId: string): VenueAccess {
   const router = useRouter();
@@ -134,6 +138,60 @@ export function useVenueAccess(venueId: string): VenueAccess {
 
       if (!userData.user) {
         router.replace("/empresa/entrar");
+        return;
+      }
+
+      // A conta administrativa pode preparar o perfil de qualquer
+      // estabelecimento antes de o proprietário assumir o próprio acesso.
+      // A leitura só funciona porque a policy de venues confere
+      // can_manage_venue_registration(), que inclui administradores.
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", userData.user.id)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (profileError) {
+        console.error("VENUE ACCESS — falha ao confirmar perfil:", {
+          code: profileError.code,
+          message: profileError.message,
+          details: profileError.details,
+          hint: profileError.hint,
+        });
+        setState("error");
+        return;
+      }
+
+      if ((profile as ProfileRoleRow | null)?.role === "admin") {
+        const { data: adminVenue, error: adminVenueError } = await supabase
+          .from("venues")
+          .select(OWNER_VENUE_COLUMNS)
+          .eq("id", venueId)
+          .maybeSingle();
+
+        if (cancelled) return;
+
+        if (adminVenueError) {
+          console.error("VENUE ACCESS — falha ao buscar venue como admin:", {
+            code: adminVenueError.code,
+            message: adminVenueError.message,
+            details: adminVenueError.details,
+            hint: adminVenueError.hint,
+          });
+          setState("error");
+          return;
+        }
+
+        if (!adminVenue) {
+          setState("unauthorized");
+          return;
+        }
+
+        setVenue(adminVenue as VenueOwnerRow);
+        setRole("admin");
+        setState("ready");
         return;
       }
 

@@ -325,6 +325,26 @@ function AdminEstabelecimentosContent() {
         <>
           <section className="mt-8">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+              Conteúdo do perfil
+            </h2>
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-background-elevated p-4">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">Fotos e vídeos</p>
+                <p className="mt-0.5 text-xs text-muted">
+                  Envie ou atualize as mídias deste estabelecimento como equipe do Bora pra onde.
+                </p>
+              </div>
+              <Link
+                href={`/empresa/painel/${selectedVenue.id}/midias`}
+                className={`shrink-0 rounded-full bg-accent px-4 py-2 text-xs font-semibold text-accent-foreground transition-transform hover:scale-[1.02] ${focusRing}`}
+              >
+                Gerenciar mídias
+              </Link>
+            </div>
+          </section>
+
+          <section className="mt-8">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
               Verificação
             </h2>
             <div className="mt-2 flex items-center justify-between gap-3 rounded-2xl border border-border bg-background-elevated p-4">
