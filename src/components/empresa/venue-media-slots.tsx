@@ -251,6 +251,7 @@ export function GallerySlot({
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<UploadStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -266,29 +267,64 @@ export function GallerySlot({
     };
   }, [venueId]);
 
-  async function handleFileSelected(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+  function handleFilesSelected(event: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []);
     event.target.value = "";
-    if (!file || imageLimit === null) return;
+    if (files.length === 0 || imageLimit === null) return;
 
-    const validationError = validateMediaFile(file, "image");
-    if (validationError) {
-      setErrorMessage(validationError);
+    const invalidFile = files.find((file) => validateMediaFile(file, "image"));
+    if (invalidFile) {
+      setErrorMessage(validateMediaFile(invalidFile, "image"));
       setStatus("error");
       return;
     }
+
+    setErrorMessage(null);
+    setStatus("idle");
+
+    const availableSlots = Math.max(imageLimit - items.length, 0);
+    const merged = [...selectedFiles, ...files];
+    const filesForUpload = merged.slice(0, availableSlots);
+
+    if (filesForUpload.length < merged.length) {
+      setErrorMessage(
+        `Você pode selecionar até ${availableSlots} imagem${availableSlots === 1 ? "" : "ens"} para completar a galeria.`,
+      );
+    }
+
+    setSelectedFiles(filesForUpload);
+  }
+
+  async function handleSendSelectedFiles() {
+    if (imageLimit === null || selectedFiles.length === 0) return;
 
     setStatus("uploading");
     setErrorMessage(null);
 
-    const result = await uploadGalleryImage(venueId, file, imageLimit);
-    if ("error" in result) {
-      setErrorMessage(result.error);
+    const uploadedItems: GalleryItem[] = [];
+    const errors: string[] = [];
+
+    for (const file of selectedFiles) {
+      const result = await uploadGalleryImage(venueId, file, imageLimit);
+      if ("error" in result) {
+        errors.push(`${file.name}: ${result.error}`);
+      } else {
+        uploadedItems.push(result.item);
+      }
+    }
+
+    if (uploadedItems.length > 0) {
+      setItems((current) => [...uploadedItems.reverse(), ...current]);
+    }
+
+    if (errors.length > 0) {
+      setSelectedFiles([]);
+      setErrorMessage(errors.join(" "));
       setStatus("error");
       return;
     }
 
-    setItems((current) => [result.item, ...current]);
+    setSelectedFiles([]);
     setStatus("idle");
   }
 
@@ -330,6 +366,7 @@ export function GallerySlot({
   }
 
   const atLimit = imageLimit !== null && items.length >= imageLimit;
+  const remainingSlots = imageLimit === null ? 0 : Math.max(imageLimit - items.length, 0);
 
   return (
     <section className="rounded-2xl border border-border bg-background-elevated p-5">
@@ -348,16 +385,52 @@ export function GallerySlot({
           disabled={status === "uploading" || imageLimit === null || atLimit}
           className={buttonBase}
         >
-          {status === "uploading" ? "Enviando..." : "Adicionar imagem"}
+          Selecionar fotos
         </button>
         <input
           ref={inputRef}
           type="file"
           accept="image/jpeg,image/png,image/webp"
-          onChange={handleFileSelected}
+          multiple
+          onChange={handleFilesSelected}
           className="hidden"
         />
       </div>
+
+      {selectedFiles.length > 0 && (
+        <div className="mt-4 rounded-xl border border-accent/50 bg-accent/5 p-4">
+          <p className="text-sm font-medium text-foreground">
+            {selectedFiles.length} foto{selectedFiles.length === 1 ? "" : "s"} selecionada{selectedFiles.length === 1 ? "" : "s"}
+          </p>
+          <p className="mt-1 text-xs text-muted">
+            Confira as fotos e clique em enviar. Restam {remainingSlots} espaço{remainingSlots === 1 ? "" : "s"} na galeria.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {selectedFiles.map((file) => (
+              <span key={`${file.name}-${file.lastModified}`} className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs text-muted">
+                {file.name}
+                <button
+                  type="button"
+                  onClick={() => setSelectedFiles((current) => current.filter((item) => item !== file))}
+                  disabled={status === "uploading"}
+                  className="font-medium text-foreground hover:text-accent disabled:cursor-not-allowed"
+                  aria-label={`Retirar ${file.name}`}
+                >
+                  Retirar
+                </button>
+              </span>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={handleSendSelectedFiles}
+            disabled={status === "uploading"}
+            className="mt-4 inline-flex min-h-11 items-center justify-center rounded-full bg-accent px-5 text-sm font-semibold text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {status === "uploading" ? "Enviando fotos..." : `Enviar foto${selectedFiles.length === 1 ? "" : "s"}`}
+          </button>
+        </div>
+      )}
 
       {atLimit && (
         <UpgradeToBasicoNotice className="mt-4" />

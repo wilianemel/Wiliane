@@ -453,13 +453,12 @@ export async function uploadGalleryImage(
   const url = getMediaPublicUrl(path);
   const name = path.split("/").pop() as string;
 
-  // Registra em venue_media (canônico) via RPC — se falhar, o arquivo já
-  // enviado permanece no Storage (nunca apagado aqui) e a imagem ainda
-  // aparece na galeria pela listagem antiga do path, só sem id canônico
-  // até uma nova tentativa (próximo upload/remoção tenta de novo).
+  // Só consideramos o envio concluído depois do registro canônico. Se a
+  // segunda etapa falhar, o arquivo continua preservado no Storage, mas a
+  // tela informa o erro em vez de fingir que ele já entrou na galeria.
   const registered = await addVenueGalleryMedia(venueId, url);
   if ("error" in registered) {
-    return { item: { id: null, name, url } };
+    return { error: registered.error };
   }
 
   return { item: { id: registered.id, name, url } };
