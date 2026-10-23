@@ -1,5 +1,5 @@
-const INSTAGRAM_URL = "https://www.instagram.com/qualeaboa.brasil/";
-const INSTAGRAM_HANDLE = "@qualeaboa.brasil";
+const INSTAGRAM_URL = "https://www.instagram.com/borapraonde.app/";
+const INSTAGRAM_HANDLE = "@borapraonde.app";
 
 function InstagramIcon() {
   return (
@@ -19,7 +19,7 @@ function InstagramIcon() {
 }
 
 /**
- * CTA discreto para o Instagram oficial (@qualeaboa.brasil), perto do fim da
+ * CTA discreto para o Instagram oficial (@borapraonde.app), perto do fim da
  * Home, antes do Footer. Não é o site institucional (que ainda não existe) —
  * só a rede social, sem prometer nada além disso.
  */
