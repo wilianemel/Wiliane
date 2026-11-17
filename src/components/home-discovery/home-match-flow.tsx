@@ -422,7 +422,7 @@ export function HomeMatchFlow({
   }
 
   return (
-    <section className="relative overflow-hidden border-b border-border/60">
+    <section className="relative overflow-hidden border-b border-border/60 supports-[overflow:clip]:overflow-clip">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -top-32 left-1/2 h-96 w-[36rem] -translate-x-1/2 rounded-full bg-accent/20 blur-[120px]"
@@ -445,7 +445,7 @@ export function HomeMatchFlow({
             cor conforme a etapa (background-color e box-shadow são
             propriedades nativamente animáveis por CSS — a transição
             acontece sozinha, sem depender de nenhuma lib). */}
-        <div className="relative mx-auto mt-6 max-w-2xl overflow-hidden rounded-[28px] border border-border/60 bg-background-elevated/80 p-5 shadow-xl shadow-black/30 transition-shadow duration-500 sm:mt-8 sm:p-8">
+        <div className="relative mx-auto mt-6 max-w-2xl overflow-hidden rounded-[28px] supports-[overflow:clip]:overflow-clip border border-border/60 bg-background-elevated/80 p-5 shadow-xl shadow-black/30 transition-shadow duration-500 sm:mt-8 sm:p-8">
           <div
             aria-hidden="true"
             className="pointer-events-none absolute -top-24 -left-10 h-56 w-56 rounded-full blur-[90px] transition-colors duration-500"
@@ -475,7 +475,18 @@ export function HomeMatchFlow({
                 volta a ficar alinhado à direita, do tamanho do texto, no
                 desktop (sm:ml-auto sm:flex-none) — igual ao comportamento
                 de sempre lá. */}
-            <div className="mt-6 flex items-center gap-3 sm:mt-10">
+            {/* Barra de ações "grudada" (sticky) no mobile, logo acima da
+                bottom nav (h-16 = 4rem + safe-area-inset-bottom, mesma conta
+                do AppShell): ao tocar numa opção, Continuar já está visível
+                sem rolar. Sticky (não fixed) de propósito — só gruda
+                enquanto o cartão do questionário está na tela, então nunca
+                cobre as outras seções da Home, e continua no fluxo normal,
+                reservando o próprio espaço no fim do cartão. Para o sticky
+                funcionar, o cartão e a <section> usam overflow-clip (que,
+                ao contrário de overflow-hidden, não cria contêiner de
+                rolagem). A partir de md: (sem bottom nav) volta ao
+                comportamento estático de sempre. */}
+            <div className="mt-6 flex items-center gap-3 max-md:sticky max-md:bottom-[calc(4rem+env(safe-area-inset-bottom))] max-md:z-10 max-md:-mx-5 max-md:-mb-5 max-md:bg-gradient-to-t max-md:from-background-elevated max-md:from-70% max-md:to-transparent max-md:px-5 max-md:pt-4 max-md:pb-5 sm:mt-10 max-md:sm:-mx-8 max-md:sm:-mb-8 max-md:sm:px-8 max-md:sm:pb-8">
               {stepIndex > 0 && (
                 <button
                   type="button"

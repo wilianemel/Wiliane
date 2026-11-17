@@ -126,8 +126,11 @@ export function Header() {
   return (
     <>
       <header className="sticky top-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-2 sm:px-6">
-          <Link href="/" className="flex items-center gap-3">
+        {/* Margens laterais respeitam safe-area-inset-left/right (notch em
+            paisagem no iPhone, recortes de tela no Android): nunca menos
+            que o px-4/sm:px-6 de antes. */}
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 py-2 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] sm:pl-[max(1.5rem,env(safe-area-inset-left))] sm:pr-[max(1.5rem,env(safe-area-inset-right))]">
+          <Link href="/" className="flex min-w-0 items-center gap-3">
             {/* Menor só no mobile puro (abaixo de sm:) para liberar espaço
                 vertical no topo da Home — de sm: em diante volta ao tamanho
                 "medium" original, igual ao desktop. */}
@@ -137,9 +140,12 @@ export function Header() {
               priority
               className="!h-10 !w-10 sm:!h-[72px] sm:!w-[72px] md:!h-[104px] md:!w-[104px]"
             />
-            <span className="flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-[11px] text-muted sm:px-3 sm:py-1 sm:text-xs">
+            {/* Uma linha só: em telas muito estreitas (~320px) o nome da
+                cidade é abreviado com "…" em vez de quebrar em duas linhas
+                e desalinhar o cabeçalho. */}
+            <span className="flex min-w-0 items-center gap-1 whitespace-nowrap rounded-full border border-border px-2.5 py-1 text-[11px] text-muted sm:px-3 sm:py-1 sm:text-xs [&>svg]:shrink-0">
               <PinIcon />
-              {city}
+              <span className="truncate">{city}</span>
             </span>
           </Link>
 
@@ -155,7 +161,7 @@ export function Header() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-3">
             {user ? (
               <div className="hidden items-center gap-3 sm:flex">
                 <span className="text-sm text-muted">Olá, {displayName}</span>
@@ -198,10 +204,14 @@ export function Header() {
             {/* Acesso direto ao perfil visível no topo mobile (não só dentro
                 do menu) — avatar com inicial de quem está logado, ou ícone
                 genérico levando pro login. */}
+            {/* Perfil e menu: mesma caixa de toque 44x44 (h-11 w-11, mínimo
+                recomendado por Apple/Google), mesmo formato e centralizados
+                pelo items-center do contêiner — alinhados na mesma linha,
+                com gap-3 (12px) entre eles. */}
             <Link
               href={user ? "/perfil" : "/entrar"}
               aria-label={user ? "Meu perfil" : "Entrar"}
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-background-elevated text-sm font-semibold text-foreground transition-colors hover:border-accent hover:text-accent md:hidden"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-background-elevated text-sm font-semibold text-foreground transition-colors hover:border-accent hover:text-accent md:hidden"
             >
               {user ? displayName.charAt(0).toUpperCase() : <UserIcon />}
             </Link>
@@ -212,7 +222,7 @@ export function Header() {
               aria-expanded={menuOpen}
               aria-controls="mobile-menu"
               aria-label="Abrir menu"
-              className="pointer-events-auto relative z-10 inline-flex items-center justify-center rounded-full border border-border p-2.5 text-foreground md:hidden"
+              className="pointer-events-auto relative z-10 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-foreground md:hidden"
             >
               <MenuIcon />
             </button>
